@@ -165,7 +165,7 @@ import { applyNativeAppearanceChrome } from "./native-appearance-chrome";
 import { exportShortManuscript } from "./short-manuscript-export";
 import { exportLongManuscript } from "./long-manuscript-export";
 import { UtilityCommandTimeoutError, UtilitySupervisor } from "./supervisor";
-import { runApplicationSmoke } from "./smoke";
+import { runApplicationSmoke, smokeErrorMessage } from "./smoke";
 import {
   catalogCommandTimeoutMessage,
   catalogCommandTimeoutMs
@@ -2332,9 +2332,7 @@ async function announceReady(window: BrowserWindow): Promise<void> {
         `DEEPWRITE_STORAGE_SMOKE_OK ${JSON.stringify(await runStorageSmoke(window))}`
       );
     } catch (error) {
-      console.error(
-        `DEEPWRITE_STORAGE_SMOKE_FAIL ${error instanceof Error ? error.message : "unknown"}`
-      );
+      console.error(`DEEPWRITE_STORAGE_SMOKE_FAIL ${smokeErrorMessage(error)}`);
     } finally {
       app.quit();
     }
@@ -2346,9 +2344,7 @@ async function announceReady(window: BrowserWindow): Promise<void> {
         smokeEventTap = tap;
       });
     } catch (error: unknown) {
-      console.error(
-        `DEEPWRITE_SMOKE_FAIL ${error instanceof Error ? error.message : "unknown"}`
-      );
+      console.error(`DEEPWRITE_SMOKE_FAIL ${smokeErrorMessage(error)}`);
     } finally {
       app.quit();
     }

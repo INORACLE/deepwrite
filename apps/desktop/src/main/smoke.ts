@@ -1,6 +1,7 @@
 import type { BrowserWindow } from "electron";
 import {
   CommandEnvelopeSchema,
+  ErrorPayloadSchema,
   SessionPromptAcceptedPayloadSchema,
   createEnvelope,
   type SystemHealthPayload,
@@ -20,6 +21,14 @@ import { runLongBookDecompositionSmoke } from "./smoke-long-book-decomposition";
 import { runDecompositionUiSmoke } from "./smoke-decomposition-ui";
 import { runBookIdentitySmoke } from "./smoke-book-identity";
 import { runLibraryGroupDeletionSmoke } from "./smoke-library-group-deletion";
+
+export function smokeErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  const payload = ErrorPayloadSchema.safeParse(error);
+  return payload.success
+    ? `${payload.data.code}: ${payload.data.message}`
+    : "unknown";
+}
 
 export async function runApplicationSmoke(
   health: SystemHealthPayload,

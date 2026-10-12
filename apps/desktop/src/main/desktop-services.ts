@@ -20,6 +20,7 @@ import { ImageService } from "./image/image-service";
 import { imageSmokeOptions } from "./image/image-smoke-transport";
 import { CoverRenderService } from "../extras/book-identity/cover-render-service";
 import { voiceSmokeOptions } from "./smoke-voice-transport";
+import { modelSmokeOptions } from "./smoke-model-config";
 import { LibraryAgentConfigStore } from "./library-agent-config-store";
 import { LongAgentConfigStore } from "./long-agent-config-store";
 import { MarketplaceClient } from "./marketplace-client";
@@ -44,7 +45,8 @@ interface DesktopServiceOptions {
 export function createDesktopServices(options: DesktopServiceOptions) {
   const { userDataPath, command } = options;
   const modelConfigStore = new ModelConfigStore(userDataPath, {
-    appVersion: options.appVersion
+    appVersion: options.appVersion,
+    ...modelSmokeOptions()
   });
   const modelUsageStore = new ModelUsageStore(userDataPath);
   const workspaceDirectoryStore = new WorkspaceDirectoryStore(
