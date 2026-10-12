@@ -134,7 +134,7 @@ export function buildEditTool(ctx: LongToolContext): AgentTool {
       ),
       meta: Type.Optional(editMetaParameter),
       allow_overwrite_existing: Type.Optional(
-        Type.Unsafe<true>({
+        Type.Unsafe<boolean>({
           ...explicitTrueParameter,
           description: WRITING_EDIT_OVERWRITE_DESCRIPTION
         })
@@ -208,7 +208,7 @@ export function buildEditTool(ctx: LongToolContext): AgentTool {
             }
             if (
               params.content !== undefined &&
-              !params.allow_overwrite_existing
+              params.allow_overwrite_existing !== true
             ) {
               return textResult(WRITING_EDIT_OVERWRITE_RECOVERY);
             }
@@ -287,7 +287,10 @@ export function buildEditTool(ctx: LongToolContext): AgentTool {
       const live = await readWholeDocument(target.file, signal);
       const evidence = fullyReadDocuments.get(live.file.id);
       if (live.content.trim()) {
-        if (params.content !== undefined && !params.allow_overwrite_existing) {
+        if (
+          params.content !== undefined &&
+          params.allow_overwrite_existing !== true
+        ) {
           return textResult(WRITING_EDIT_OVERWRITE_RECOVERY);
         }
         if (!evidence || evidence.content !== live.content) {

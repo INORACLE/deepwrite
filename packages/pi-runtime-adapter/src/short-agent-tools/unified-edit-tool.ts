@@ -261,7 +261,7 @@ export function buildShortUnifiedEditTool(
         ),
         meta: Type.Optional(writingEditMetaParameter),
         allow_overwrite_existing: Type.Optional(
-          Type.Unsafe<true>({
+          Type.Unsafe<boolean>({
             ...explicitTrueParameter,
             description: WRITING_EDIT_OVERWRITE_DESCRIPTION
           })

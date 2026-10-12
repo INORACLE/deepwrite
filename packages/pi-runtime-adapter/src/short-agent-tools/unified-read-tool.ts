@@ -123,7 +123,7 @@ export function buildShortUnifiedReadTool(
         id: stableWritingIdParameter,
         document: Type.Optional(writingDocumentParameter),
         include_all_sections: Type.Optional(
-          Type.Literal(true, {
+          Type.Boolean({
             description:
               "仅 kind=draft、id=draft：一次返回全部小节。不传 document 时默认 body；读取人物状态须指定 document=character_state。"
           })
@@ -153,7 +153,7 @@ export function buildShortUnifiedReadTool(
         }
         return textResult(readDraftDirectory(input, sharedState));
       }
-      if (params.include_all_sections) {
+      if (params.include_all_sections === true) {
         throw new Error("include_all_sections 仅用于 kind=draft、id=draft。");
       }
       if (params.kind === "draft_section" && !params.document) {

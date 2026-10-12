@@ -107,6 +107,6 @@ export const writingEditMetaParameter = Type.Object(
   { additionalProperties: false, minProperties: 1 }
 );
 
-export const explicitTrueParameter = Type.Literal(true, {
+export const explicitTrueParameter = Type.Boolean({
   description: "必须显式传 true。"
 });
