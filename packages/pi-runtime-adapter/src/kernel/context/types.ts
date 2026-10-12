@@ -1,4 +1,8 @@
-import type { ToolCall, ToolResultMessage } from "@earendil-works/pi-ai";
+import type {
+  JsonObject,
+  ToolCall,
+  ToolResultMessage
+} from "@earendil-works/pi-ai";
 import type {
   AgentContextCompactionReason,
   ContextCheckpointRefs,
@@ -21,7 +25,7 @@ export interface ToolCompactor {
     call: ToolCall | undefined
   ): string | undefined;
   /** Replacement arguments for an old call, e.g. prose bodies replaced by stubs. */
-  args?(args: Record<string, unknown>): Record<string, unknown> | undefined;
+  args?(args: JsonObject): JsonObject | undefined;
   /** Business references recorded without asking the summary model. */
   refs?(
     call: ToolCall,

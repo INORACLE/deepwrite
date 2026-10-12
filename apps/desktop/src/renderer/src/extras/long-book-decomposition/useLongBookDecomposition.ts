@@ -13,10 +13,12 @@ import {
   type LongBookSummary,
   type LongBookDecompositionJob,
   type DecompositionRegistry,
-  type DecompositionRegistryData
+  type DecompositionRegistryData,
+  type SystemEventEnvelope
 } from "@deepwrite/contracts/renderer";
 import { createLongAnalysisSources } from "../long-book-analysis/long-analysis-sources";
 import { createDecompositionEngine } from "./engine";
+import { createDecompositionCreationRecovery } from "./creation-recovery";
 import { getErrorPayload } from "../../i18n/errors";
 
 export function useLongBookDecomposition(options: {
@@ -44,6 +46,12 @@ export function useLongBookDecomposition(options: {
   ]);
   const profileId = ref(DEFAULT_DECOMPOSITION_PROFILE.id);
   const jobs = shallowRef<LongBookDecompositionJob[]>([]);
+  const creationRecovery = createDecompositionCreationRecovery({
+    api,
+    job: engine.job,
+    jobs,
+    isDisposed: () => disposed
+  });
   const books = shallowRef<LongBookSummary[]>([]);
   const registry = shallowRef<DecompositionRegistry | null>(null);
   const readingModelId = ref("");
@@ -78,7 +86,7 @@ export function useLongBookDecomposition(options: {
         sources.loadSavedSources()
       ]);
       profiles.value = settings.profiles;
-      jobs.value = savedJobs;
+      creationRecovery.adopt(savedJobs);
       books.value = longBooks.books;
     } finally {
       loading.value = false;
@@ -133,21 +141,26 @@ export function useLongBookDecomposition(options: {
         );
       })
     );
-    engine.job.value = await api().longBookDecomposition.createJob({
-      ...input,
-      confirmation: confirmation.value,
-      profileId: profileId.value,
-      models: {
-        reading: {
-          modelId: readingModelId.value,
-          thinkingLevel: readingThinkingLevel.value
-        },
-        integration: {
-          modelId: integrationModelId.value,
-          thinkingLevel: integrationThinkingLevel.value
+    try {
+      engine.job.value = await api().longBookDecomposition.createJob({
+        ...input,
+        confirmation: confirmation.value,
+        profileId: profileId.value,
+        models: {
+          reading: {
+            modelId: readingModelId.value,
+            thinkingLevel: readingThinkingLevel.value
+          },
+          integration: {
+            modelId: integrationModelId.value,
+            thinkingLevel: integrationThinkingLevel.value
+          }
         }
-      }
-    });
+      });
+    } catch (cause) {
+      await creationRecovery.recover(cause).catch(() => undefined);
+      throw cause;
+    }
     await inspect();
     if (engine.job.value?.lastError)
       throw new Error(engine.job.value.lastError);
@@ -195,12 +208,16 @@ export function useLongBookDecomposition(options: {
     selectJob,
     inspect,
     estimate,
+    handleEvent(event: SystemEventEnvelope) {
+      engine.handleEvent(event);
+      creationRecovery.handleEvent(event);
+    },
     async run() {
       await engine.run();
       try {
         await inspect();
       } catch (cause) {
-        engine.error.value =
+        engine.error.value ??=
           getErrorPayload(cause)?.message ??
           (cause instanceof Error ? cause.message : String(cause));
       }

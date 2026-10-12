@@ -10,11 +10,7 @@ import type {
   WorkspaceDirectorySettings
 } from "@deepwrite/contracts";
 import { DEFAULT_LONG_AGENT_SETTINGS } from "@deepwrite/contracts";
-import {
-  useSettingsStore,
-  type OfficialModelsSnapshot,
-  type SettingsLoader
-} from "./settingsStore";
+import { useSettingsStore, type SettingsLoader } from "./settingsStore";
 
 function deferred<Value>() {
   let resolve!: (value: Value) => void;
@@ -176,38 +172,15 @@ describe("settings store", () => {
     expect(store.cloudBackupLoaded).toBe(true);
   });
 
-  it("loads official-model state as one snapshot and marks models available", async () => {
-    const store = useSettingsStore();
-    const snapshot: OfficialModelsSnapshot = {
-      settings: modelSettings("official-model"),
-      usageDashboard: null,
-      balance: null
-    };
-
-    await store.ensureOfficialModelsLoaded(async () => snapshot);
-
-    expect(store.officialModelsLoaded).toBe(true);
-    expect(store.modelsLoaded).toBe(true);
-    expect(store.modelSettings).toBe(snapshot.settings);
-    expect(store.officialModelUsageDashboard).toBeNull();
-    expect(store.officialModelBalance).toBeNull();
-  });
-
-  it("prevents an older model request from overwriting an official refresh", async () => {
+  it("prevents an older model request from overwriting saved model settings", async () => {
     const store = useSettingsStore();
     const stale = deferred<ModelSettings>();
     const staleRequest = store.ensureModelsLoaded(() => stale.promise);
-    const official: OfficialModelsSnapshot = {
-      settings: modelSettings("official-newer"),
-      usageDashboard: null,
-      balance: null
-    };
-
-    await store.ensureOfficialModelsLoaded(async () => official);
+    store.markLoaded("models", modelSettings("saved-newer"));
     stale.resolve(modelSettings("stale-model"));
     await staleRequest;
 
-    expect(store.modelSettings?.defaultModelId).toBe("official-newer");
+    expect(store.modelSettings?.defaultModelId).toBe("saved-newer");
     expect(store.modelsLoaded).toBe(true);
     expect(store.modelLoading).toBe(false);
   });

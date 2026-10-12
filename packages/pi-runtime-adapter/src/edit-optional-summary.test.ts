@@ -1,5 +1,5 @@
 import { Check } from "typebox/value";
-import { validateToolArguments } from "@earendil-works/pi-ai";
+import { validateToolArguments, type JsonObject } from "@earendil-works/pi-ai";
 import { describe, expect, it } from "vitest";
 import { screenplayWorkspace, scriptAgentProfile } from "./index.test-support";
 import {
@@ -20,7 +20,7 @@ import {
 import { resolveWritingEditSummary } from "./writing-edit-summary";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 
-function validate(tool: AgentTool, args: Record<string, unknown>) {
+function validate(tool: AgentTool, args: JsonObject) {
   return validateToolArguments(tool, {
     type: "toolCall",
     id: "edit-summary",

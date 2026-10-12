@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { validateToolArguments } from "@earendil-works/pi-ai";
+import { validateToolArguments, type JsonObject } from "@earendil-works/pi-ai";
 import {
   DEFAULT_DECOMPOSITION_PROFILE,
   DECOMPOSITION_CHILD_QUERY_LIMIT,
@@ -128,10 +128,7 @@ function callAsModel(tool: AgentTool, args: Record<string, unknown>) {
       type: "toolCall",
       id: "write",
       name: tool.name,
-      arguments: (tool.prepareArguments?.(args) ?? args) as Record<
-        string,
-        unknown
-      >
+      arguments: (tool.prepareArguments?.(args) ?? args) as JsonObject
     })
   );
 }
@@ -296,12 +293,14 @@ describe("decomposition child execution boundaries", () => {
       type: "toolCall",
       id: "write",
       name: tool.name,
-      arguments: {
-        items: [
-          { unitId: "reading:chapter_1", data: reading("chapter_1", 1) },
-          { unitId: "reading:chapter_3", data: over }
-        ]
-      }
+      arguments: JSON.parse(
+        JSON.stringify({
+          items: [
+            { unitId: "reading:chapter_1", data: reading("chapter_1", 1) },
+            { unitId: "reading:chapter_3", data: over }
+          ]
+        })
+      ) as JsonObject
     });
     const text = JSON.stringify((await tool.execute("write", args)).content);
     expect(text).toContain("reading:chapter_1：已保存");

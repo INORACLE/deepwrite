@@ -17,13 +17,9 @@ export const APP_ALERT_CONFIG_URL = deepWritePublicDataUrl("ALERT.json");
 const REMOTE_REQUEST_TIMEOUT_MS = 10_000;
 const MAX_REMOTE_CONFIG_BYTES = 64 * 1_024;
 
-export const DEFAULT_MODEL_ALERT_MESSAGES = [
-  "官方模型已经上线！直连厂商！软件整体用量越多，折扣会越大！"
-] as const;
-
 const FALLBACK_MANIFEST: AppAlertManifest = {
   desketop: [],
-  model: [...DEFAULT_MODEL_ALERT_MESSAGES]
+  model: []
 };
 
 interface AppAlertStateFile {
@@ -167,13 +163,10 @@ export class AppAlertStore {
       this.manifest = AppAlertManifestSchema.parse(JSON.parse(text) as unknown);
       this.fetchedAt = new Date(now).toISOString();
       await this.persistState();
-    } catch (error: unknown) {
-      // A failed fetch must not expose a previously cached documentation link.
+    } catch {
+      // Only show model announcements and documentation links from a successful fetch.
+      this.manifest.model = [];
       delete this.manifest.officialDocsUrl;
-      console.warn(
-        "DeepWrite remote alerts could not be refreshed; using cached content:",
-        error instanceof Error ? error.message : "unknown error"
-      );
     }
   }
 

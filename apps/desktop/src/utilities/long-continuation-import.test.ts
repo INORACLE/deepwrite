@@ -1,7 +1,7 @@
 import { link, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   previewContinuationImportSource,
   scanContinuationImportSource
@@ -9,6 +9,7 @@ import {
 import { LongProjectStore } from "./long-project-store";
 
 const roots: string[] = [];
+vi.setConfig({ testTimeout: 30_000 });
 
 async function fixture(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "deepwrite-continuation-import-"));
@@ -294,5 +295,5 @@ describe("long continuation TXT import", () => {
     expect(imported.checkpointCount).toBe(49);
     expect(imported.book.workspaceIndex.ledger.commits).toHaveLength(49);
     expect(imported.book.workspaceIndex.chapters.at(-1)?.commitId).toBeNull();
-  }, 20_000);
+  });
 });

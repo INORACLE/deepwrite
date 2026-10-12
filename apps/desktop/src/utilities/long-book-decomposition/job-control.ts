@@ -3,6 +3,7 @@ import {
   addDecompositionUsage,
   decompositionUsageLimit,
   decompositionUsageTotal,
+  isModelQuotaExhausted,
   type DecompositionControlInput,
   type DecompositionUsage,
   type LongBookDecompositionJob
@@ -47,11 +48,13 @@ export async function controlDecompositionJob(
   }
   if (input.action === "stop") {
     job.status = "stopped";
+    if (input.error) job.lastError = input.error;
     delete job.activeAttemptId;
     for (const unit of Object.values(job.units))
       if (["running", "writing"].includes(unit.status)) {
         unit.status = "pending";
         delete unit.attemptId;
+        delete unit.runId;
       }
   } else if (input.action === "resume") {
     for (const [id, unit] of Object.entries(job.units))
@@ -82,6 +85,7 @@ export async function controlDecompositionJob(
         delete unit.lastError;
       }
     job.status = "idle";
+    if (isModelQuotaExhausted(job.lastError)) delete job.lastError;
     // Continuing after a usage pause is the user's go-ahead for more.
     const used = decompositionUsageTotal(job.usage);
     if (used > decompositionUsageLimit(job)) {
@@ -110,20 +114,24 @@ export async function controlDecompositionJob(
   } else if (input.action === "finish-package") {
     if (!input.attemptId || job.activeAttemptId !== input.attemptId)
       throw new Error("旧工作包不能结束当前运行。");
+    const quota = input.failed && isModelQuotaExhausted(input.error);
     for (const unit of Object.values(job.units))
       if (
         unit.attemptId === input.attemptId &&
         ["running", "writing"].includes(unit.status)
       ) {
-        unit.attempts++;
-        unit.status = unit.attempts >= 3 ? "failed" : "pending";
+        if (!quota) unit.attempts++;
+        unit.status = !quota && unit.attempts >= 3 ? "failed" : "pending";
         unit.lastError = (input.error ?? "工作包未提交此单元。").slice(0, 2000);
+        delete unit.attemptId;
+        delete unit.runId;
       }
-    job.status = Object.values(job.units).some(
-      ({ status }) => status === "failed"
-    )
-      ? "failed"
-      : "idle";
+    job.status = quota
+      ? "stopped"
+      : Object.values(job.units).some(({ status }) => status === "failed")
+        ? "failed"
+        : "idle";
+    if (quota) job.lastError = input.error;
     delete job.activeAttemptId;
     pauseOverUsage(job);
   } else if (input.action === "skip" || input.action === "retry") {

@@ -142,7 +142,7 @@ describe("GPT-6 Responses compatibility", () => {
       const config = modelConfig(provider, modelId);
       expect(buildProviderRuntime(config).model).toMatchObject({
         id: modelId,
-        contextWindow: 1_050_000,
+        contextWindow: provider === "openai" ? 272_000 : 1_050_000,
         maxTokens: 128_000,
         input: ["text", "image"],
         compat: { supportsStrictMode: true },

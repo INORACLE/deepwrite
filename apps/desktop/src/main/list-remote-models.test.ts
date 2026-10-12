@@ -78,6 +78,31 @@ describe("listRemoteModels", () => {
     ).toEqual([{ id: "gemini-flash", label: "Gemini Flash" }]);
   });
 
+  it("keeps optional model descriptions and ignores invalid descriptions", () => {
+    expect(
+      parseRemoteModelList({
+        data: [
+          { id: "described", description: "  适合日常写作  " },
+          { id: "empty", description: "   " },
+          { id: "invalid", description: { text: "invalid" } },
+          { id: "legacy" },
+          { id: "overlong", description: "a".repeat(501) }
+        ]
+      })
+    ).toEqual([
+      { id: "described", description: "适合日常写作" },
+      { id: "empty", description: "" },
+      { id: "invalid" },
+      { id: "legacy" },
+      { id: "overlong" }
+    ]);
+    expect(
+      parseRemoteModelList({
+        models: [{ name: "models/writer", description: "Google 目录说明" }]
+      })
+    ).toEqual([{ id: "writer", description: "Google 目录说明" }]);
+  });
+
   it("keeps validated remote runtime metadata and understands common aliases", () => {
     expect(
       parseRemoteModelList({
@@ -86,6 +111,7 @@ describe("listRemoteModels", () => {
             id: "writer-pro",
             label: "Writer Pro",
             provider: "deepseek",
+            api: "openai-responses",
             request_model_id: "writer-pro-20260901",
             supports_developer_role: false,
             tool_schema_profile: "portable",
@@ -107,6 +133,7 @@ describe("listRemoteModels", () => {
         id: "writer-pro",
         label: "Writer Pro",
         provider: "deepseek",
+        api: "openai-responses",
         requestModelId: "writer-pro-20260901",
         supportsDeveloperRole: false,
         toolSchemaProfile: "portable",
@@ -130,6 +157,7 @@ describe("listRemoteModels", () => {
         data: [
           {
             id: "writer-pro",
+            api: "unsupported-api",
             context_window: 500_000,
             max_tokens: 64_000,
             discount: 8

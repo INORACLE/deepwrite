@@ -5,6 +5,7 @@ import type {
   PrepareNextTurnContext
 } from "@earendil-works/pi-agent-core";
 import {
+  getCurrentSystemMessage,
   isContextOverflow,
   type Api,
   type AssistantMessage,
@@ -77,7 +78,9 @@ export class RunContextManager {
     history: readonly SessionConversationHistoryMessage[] | undefined
   ): Promise<void> {
     const { agent, policy } = this.options;
-    const messages = agent.state.messages;
+    const messages = agent.state.messages.filter(
+      (message) => message.role !== "system"
+    );
     (history ?? []).forEach((item, index) => {
       const message = messages[index];
       if (item.role === "user" && item.runId && message) {
@@ -96,7 +99,8 @@ export class RunContextManager {
     this.state.summaryMessage = summary;
     this.state.pruned.add(summary);
     this.state.compactedAt = Date.now();
-    agent.state.messages = [summary, ...messages];
+    const system = getCurrentSystemMessage(agent.state.messages);
+    agent.state.messages = [...(system ? [system] : []), summary, ...messages];
   }
 
   /** True once when compaction dropped the fixed context of an earlier run. */
@@ -286,10 +290,18 @@ export class RunContextManager {
     let started = false;
     this.options.setBusy(true);
     try {
-      const staged = this.state.fork(input.messages);
+      const system = getCurrentSystemMessage(input.messages);
+      const conversation = input.messages.filter(
+        (message) => message.role !== "system"
+      );
+      const staged = this.state.fork(conversation);
       const { agent } = this.options;
       const result = await compactMessages({
         ...input,
+        messages: conversation,
+        protectFrom: input.messages
+          .slice(0, input.protectFrom)
+          .filter((message) => message.role !== "system").length,
         state: staged,
         policy,
         budget: this.budget,
@@ -343,7 +355,7 @@ export class RunContextManager {
       this.state.compactedAt = Date.now();
       this.options.notifyCompacted();
       this.emitOutcome(result.outcome);
-      return result.messages;
+      return [...(system ? [system] : []), ...result.messages];
     } catch (error: unknown) {
       if (this.options.signal.aborted) throw error;
       this.emitCompaction({

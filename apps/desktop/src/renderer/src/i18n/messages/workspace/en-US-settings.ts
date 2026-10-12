@@ -1,8 +1,8 @@
 export default {
   settingsStore: {
     failedToLoadSettings: "Failed to load settings.",
-    officialModelsAreNowAvailableWithDirectProviderAccess:
-      "Official models are now available with direct provider access. Greater overall usage unlocks larger discounts."
+    officialSiteModelsAvailableWithYourKey:
+      "Add your official site model key to start using official site models."
   },
   voiceRecorder: {
     recordingCanceled: "Recording canceled"
@@ -87,24 +87,10 @@ export default {
       "Working directory restored to its default location. Existing projects remain in their original locations."
   },
   modelProviderGroups: {
-    deepwriteFreeModels: "DeepWrite free models",
-    legacyOfficialSiteModels: "Legacy official site models"
+    deepwriteFreeModels: "DeepWrite free models"
   },
   modelSettingsCoordinator: {
     failedToLoadModelUsage: "Failed to load model usage.",
-    failedToQueryOfficialModelSpending:
-      "Failed to query official model spending.",
-    failedToLoadOfficialModels: "Failed to load official models.",
-    officialTokenSavedSecurelyOfficialModelsAreReadyTo:
-      "Official token saved securely. Official models are ready to use.",
-    failedToSaveOfficialToken: "Failed to save official token.",
-    officialTokenRemovedUsageHistoryRemainsInTheLocal:
-      "Official token removed. Usage history remains in the local ledger.",
-    failedToRemoveOfficialToken: "Failed to remove official token.",
-    modelEnabledAndAddedToModelSettings:
-      "Model enabled and added to model settings.",
-    modelDisabledAndHiddenFromModelSettings:
-      "Model disabled and hidden from model settings.",
     failedToUpdateModelStatus: "Failed to update model status.",
     modelSettingsSavedAndAppliedToSubsequentConversations:
       "Model settings saved and applied to subsequent conversations.",
@@ -276,7 +262,6 @@ export default {
     currentConfiguration: "Current configuration",
     historicalModel: "Historical model",
     localSimulation: "Local simulation",
-    legacyOfficialSite: "Legacy official site",
     newOfficialSite: "New official site",
     deepwriteFree: "DeepWrite Free",
     subagent: "Subagent",

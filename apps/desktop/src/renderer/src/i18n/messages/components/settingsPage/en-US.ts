@@ -10,7 +10,6 @@ export default {
   usage: "Usage",
   freeModels: "Free models",
   customModelSettings: "Custom models",
-  legacyOfficialModels: "Legacy official models",
   officialSiteModels: "Official site models",
   personal: "Personal",
   general: "General",

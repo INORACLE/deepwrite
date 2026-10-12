@@ -8,13 +8,13 @@ import {
   type ModelConfig,
   type SystemEventEnvelope
 } from "@deepwrite/contracts/renderer";
-import {
-  startExtrasAgentTask,
-  type ExtrasAgentTaskHandle
-} from "../agent-runtime/extrasAgentTask";
+import type { ExtrasAgentTaskHandle } from "../agent-runtime/extrasAgentTask";
 import { createSubagentRunTracker } from "../agent-runtime/subagentRunTracker";
-import { getErrorPayload } from "../../i18n/errors";
 import { createDecompositionModelCapacities } from "./model-capacity";
+import {
+  decompositionFailureMessage as failureMessage,
+  startDecompositionPackage
+} from "./package-runner";
 
 /** The page can unmount; this controller belongs to the workspace feature host. */
 export function createDecompositionEngine(
@@ -27,17 +27,6 @@ export function createDecompositionEngine(
   const error = ref<string | null>(null);
   const waitingForSlot = ref(false);
   let wakeSlot: (() => void) | undefined;
-  const capacityError = (cause: unknown): boolean => {
-    if (!cause || typeof cause !== "object") return false;
-    const value = cause as { code?: unknown; cause?: unknown };
-    return (
-      value.code === "agent.capacity_reached" ||
-      value.code === "agent.extras_capacity_reached" ||
-      (value.cause && value.cause !== cause
-        ? capacityError(value.cause)
-        : false)
-    );
-  };
   // Children of the latest packages: who runs, who waits, what they did.
   const subtasks = createSubagentRunTracker();
   // Another task's board is not this one's; a running package keeps its own.
@@ -53,9 +42,6 @@ export function createDecompositionEngine(
   let refreshTimer: ReturnType<typeof setTimeout> | undefined;
   let refreshing = false;
   let refreshPending = false;
-  const failureMessage = (cause: unknown) =>
-    getErrorPayload(cause)?.message ??
-    (cause instanceof Error ? cause.message : String(cause));
   function reportBlockedUnit() {
     const blocked = Object.values(job.value?.units ?? {}).find(
       (unit) => ["conflict", "failed"].includes(unit.status) && unit.lastError
@@ -157,23 +143,15 @@ export function createDecompositionEngine(
           },
           modelCapacity
         );
-        let acceptedJob: Promise<LongBookDecompositionJob> | undefined;
-        subtasks.begin({ phase, unitIds });
-        handle = startExtrasAgentTask(
+        const pkg = startDecompositionPackage(
           api(),
+          current,
+          phase,
+          unitIds,
+          subtasks,
           {
-            modelId: chosen.modelId,
-            thinkingLevel: chosen.thinkingLevel,
-            task: {
-              agentId: "long-book-decomposition",
-              profileId: current.profile.id,
-              input: { jobId: current.id, phase, unitIds }
-            }
-          },
-          {
-            onAccepted: () => {
+            onAccepted: (acceptedJob) => {
               const sequence = ++refreshSequence;
-              acceptedJob = api().longBookDecomposition.getJob(current.id);
               // Claimed units show as running now, not after the first save.
               acceptedJob.then(
                 (latest) => {
@@ -186,30 +164,24 @@ export function createDecompositionEngine(
                 () => undefined
               );
             },
-            ...subtasks.parentCallbacks,
-            onSubagentEvent: (event) => subtasks.handleEvent(event),
             onOutput: () => {
               queueRefresh();
             }
           }
         );
-        let failure: string | undefined;
-        let capacity = false;
-        let stopped = false;
-        try {
-          stopped = (await handle.outcome).status === "stopped";
-        } catch (cause) {
-          capacity = capacityError(cause);
-          failure = failureMessage(cause);
+        handle = pkg.handle;
+        const { failure, capacity, quota } = await pkg.outcome;
+        if (epoch !== generation) break;
+        if (quota) {
+          error.value = failure ?? null;
+          refreshSequence++;
+          job.value = await api().longBookDecomposition.control({
+            jobId: current.id,
+            action: "stop",
+            ...(failure ? { error: failure.slice(0, 2000) } : {})
+          });
+          break;
         }
-        subtasks.end(
-          failure && !capacity
-            ? "failed"
-            : stopped || capacity
-              ? "stopped"
-              : "completed",
-          failure
-        );
         if (capacity && epoch === generation) {
           waitingForSlot.value = true;
           await new Promise<void>((resolve) => {
@@ -229,7 +201,7 @@ export function createDecompositionEngine(
           await refresh();
           continue;
         }
-        const snapshot = await acceptedJob?.catch(() => undefined);
+        const snapshot = await pkg.claimedJob();
         const attemptId =
           snapshot &&
           unitIds.map((id) => snapshot.units[id]?.attemptId).find(Boolean);

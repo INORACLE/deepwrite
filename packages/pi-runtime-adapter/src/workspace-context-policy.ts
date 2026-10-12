@@ -1,4 +1,8 @@
-import type { ToolResultMessage } from "@earendil-works/pi-ai";
+import type {
+  JsonObject,
+  JsonValue,
+  ToolResultMessage
+} from "@earendil-works/pi-ai";
 import { rehydrateWorkspaceContext } from "./workspace-context-recovery";
 import {
   headTail,
@@ -56,7 +60,10 @@ const readCompactor: ToolCompactor = {
   }
 };
 
-function stubProse(value: unknown, label: string): unknown {
+function stubProse(
+  value: JsonValue | undefined,
+  label: string
+): JsonValue | undefined {
   return typeof value === "string" && value.length > 200
     ? `〔${label} ${count(value)} 字，已作为提案提交；以作品当前内容为准〕`
     : value;
@@ -66,10 +73,10 @@ function stubProse(value: unknown, label: string): unknown {
 const mutationCompactor: ToolCompactor = {
   args(args) {
     let changed = false;
-    const next: Record<string, unknown> = { ...args };
+    const next: JsonObject = { ...args };
     for (const key of ["content", "character_state", "document_content"]) {
       const stubbed = stubProse(args[key], key === "content" ? "正文" : key);
-      if (stubbed !== args[key]) {
+      if (stubbed !== undefined && stubbed !== args[key]) {
         next[key] = stubbed;
         changed = true;
       }

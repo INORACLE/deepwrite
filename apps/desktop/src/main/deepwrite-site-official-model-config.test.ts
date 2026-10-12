@@ -88,6 +88,44 @@ describe("DeepWrite site official model config", () => {
     ).toBe("https://gateway.example.test/proxy/v1beta");
   });
 
+  it.each([
+    ["openai-completions", "v1"],
+    ["openai-responses", "v1"],
+    ["anthropic-messages", "v1"],
+    ["google-generative-ai", "v1beta"]
+  ] as const)(
+    "uses the declared %s API from the v1 catalog",
+    (api, version) => {
+      const [configured] = createDeepWriteSiteOfficialModels(
+        "dw_sk_test_only_invalid",
+        { models: [{ id: "remote-model", api }], googleModels: [] },
+        "https://gateway.example.test/proxy/v1/"
+      );
+
+      expect(configured).toMatchObject({
+        modelId: "remote-model",
+        api,
+        baseUrl: `https://gateway.example.test/proxy/${version}`
+      });
+    }
+  );
+
+  it("prefers the declared v1 API over Google catalog membership", () => {
+    const [configured] = createDeepWriteSiteOfficialModels(
+      "dw_sk_test_only_invalid",
+      {
+        models: [{ id: "gem", api: "openai-responses" }],
+        googleModels: [{ id: "gem", api: "google-generative-ai" }]
+      },
+      "https://gateway.example.test"
+    );
+
+    expect(configured).toMatchObject({
+      api: "openai-responses",
+      baseUrl: "https://gateway.example.test/v1"
+    });
+  });
+
   it("uses validated remote runtime configuration before local defaults", () => {
     const [configured] = createDeepWriteSiteOfficialModels(
       "dw_sk_test_only_invalid",
@@ -172,6 +210,25 @@ describe("DeepWrite site official model config", () => {
     });
   });
 
+  it("removes an old description when the refreshed catalog clears it", () => {
+    const site = {
+      ...model(DEEPWRITE_SITE_OFFICIAL_MODEL_ID),
+      description: "旧说明"
+    };
+    for (const description of [undefined, ""]) {
+      const refreshed = saveDeepWriteSiteOfficialModelInput(
+        settings([site], site.id),
+        "dw_sk_test_only_invalid",
+        {
+          models: [{ id: "deepseek-v4-flash", description }],
+          googleModels: []
+        },
+        "https://gateway.example.test"
+      );
+      expect(refreshed.models[0]!.description).toBe(description);
+    }
+  });
+
   it("preserves model visibility across refreshes and changes the selectable default", () => {
     const custom = model("custom");
     const site = {
@@ -181,11 +238,15 @@ describe("DeepWrite site official model config", () => {
     const refreshed = saveDeepWriteSiteOfficialModelInput(
       settings([site, custom], custom.id),
       "dw_sk_test_only_invalid",
-      { models: [{ id: "deepseek-v4-flash" }], googleModels: [] },
+      {
+        models: [{ id: "deepseek-v4-flash", api: "openai-responses" }],
+        googleModels: []
+      },
       "https://gateway.example.test"
     );
     expect(refreshed.models[1]).toMatchObject({
       id: DEEPWRITE_SITE_OFFICIAL_MODEL_ID,
+      api: "openai-responses",
       enabled: false
     });
 
@@ -203,15 +264,49 @@ describe("DeepWrite site official model config", () => {
     expect(enabled.models[1]).toMatchObject({ enabled: true });
   });
 
-  it("removes the model and chooses another default without exposing keys", () => {
+  it("clears credentials, keeps the catalog disabled, and chooses another default", () => {
     const custom = model("custom");
     const site = model(DEEPWRITE_SITE_OFFICIAL_MODEL_ID);
     const input = clearDeepWriteSiteOfficialModelInput(
       settings([site, custom], site.id)
     );
 
-    expect(input.models).toEqual([expect.objectContaining({ id: custom.id })]);
+    expect(input.models).toEqual([
+      expect.objectContaining({
+        id: site.id,
+        clearApiKey: true,
+        enabled: false
+      }),
+      expect.objectContaining({ id: custom.id })
+    ]);
     expect(input.models[0]).not.toHaveProperty("hasApiKey");
     expect(input.defaultModelId).toBe(custom.id);
+  });
+
+  it("stores a keyless catalog for browsing without changing the usable default", () => {
+    const custom = model("custom");
+    const input = saveDeepWriteSiteOfficialModelInput(
+      settings([custom], custom.id),
+      "",
+      { models: [{ id: "writer" }], googleModels: [] },
+      "https://gateway.example.test"
+    );
+    expect(input.defaultModelId).toBe(custom.id);
+    expect(input.models[1]).toMatchObject({ apiKey: "", enabled: false });
+    const preview = { ...input.models[1]!, hasApiKey: false };
+    expect(() =>
+      setDeepWriteSiteOfficialModelEnabledInput(
+        settings([preview], ""),
+        preview.id,
+        true
+      )
+    ).toThrow("请先添加新官方小站模型密钥");
+    const keyed = saveDeepWriteSiteOfficialModelInput(
+      settings([preview], ""),
+      "test-only-invalid-key",
+      { models: [{ id: "writer" }], googleModels: [] },
+      "https://gateway.example.test"
+    );
+    expect(keyed.models[0]).toMatchObject({ enabled: true });
   });
 });

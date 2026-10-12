@@ -62,6 +62,8 @@ const kindLabel = {
   gap: 10px;
   width: fit-content;
   max-width: min(520px, 100%);
+  max-height: calc(100dvh - 100px);
+  overflow-y: auto;
   min-height: 42px;
   padding: 10px 14px;
   border: 1px solid var(--theme-line);

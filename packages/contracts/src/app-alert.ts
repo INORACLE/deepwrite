@@ -41,7 +41,7 @@ const AlertVersionSchema = z
 export const AppAlertManifestSchema = z.object({
   // Keep the upstream spelling for compatibility with the published file.
   desketop: z.array(AlertMessageSchema).max(20),
-  model: z.array(AlertMessageSchema).min(1).max(20),
+  model: z.array(AlertMessageSchema).max(20).default([]),
   pcLatestVersion: AlertVersionSchema,
   officialDocsUrl: OfficialDocsUrlSchema
 });
@@ -53,7 +53,7 @@ export const AppAlertDesktopRevisionSchema = z
 
 export const AppAlertSnapshotSchema = z.object({
   desktopMessages: z.array(AlertMessageSchema).max(20),
-  modelMessages: z.array(AlertMessageSchema).min(1).max(20),
+  modelMessages: z.array(AlertMessageSchema).max(20),
   pcLatestVersion: AlertVersionSchema,
   officialDocsUrl: OfficialDocsUrlSchema,
   desktopRevision: AppAlertDesktopRevisionSchema,

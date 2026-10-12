@@ -7,6 +7,7 @@ import {
   isRetryableAssistantError,
   type AssistantMessage
 } from "@earendil-works/pi-ai";
+import { isModelQuotaExhausted } from "@deepwrite/contracts";
 
 export const DEFAULT_AGENT_TURN_RETRY_DELAYS_MS = [
   2_000, 5_000, 10_000, 20_000, 30_000
@@ -320,7 +321,9 @@ export async function runAgentWithTurnRetries(
     ) {
       const reason = emptyResponse
         ? event.message.errorMessage
-        : classifyFailure(event.message);
+        : isModelQuotaExhausted(event.message.errorMessage)
+          ? undefined
+          : classifyFailure(event.message);
       if (reason) {
         const baseDelayMs = policy.delaysMs[activeTurn.attempt - 1] ?? 0;
         const delayMs = jitterAgentTurnRetryDelay(baseDelayMs, policy.random);

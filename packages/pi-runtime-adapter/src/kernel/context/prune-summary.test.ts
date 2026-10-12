@@ -87,7 +87,11 @@ describe("loss-aware context pruning and summarization", () => {
         thinkingLevel: "off",
         streamFn: (_model, context) => {
           const prompt = textOf(
-            (context.messages[0] as ReturnType<typeof user>).content
+            (
+              context.messages.find(
+                (message) => message.role === "user"
+              ) as ReturnType<typeof user>
+            ).content
           );
           prompts.push(prompt);
           return response();

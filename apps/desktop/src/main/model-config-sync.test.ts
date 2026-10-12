@@ -7,7 +7,7 @@ import {
   temporaryRoots,
   emptyCatalog,
   customModel,
-  officialCatalog
+  managedModel
 } from "./model-config-store.test-support";
 
 const storage = vi.hoisted(() => ({ available: true, brokenDecrypt: false }));
@@ -25,19 +25,22 @@ vi.mock("electron", () => ({
 
 const { ModelConfigStore } = await import("./model-config-store");
 
-async function createStore() {
+async function createStore(withManagedKey = false) {
   const root = await mkdtemp(join(tmpdir(), "deepwrite-model-sync-"));
   temporaryRoots.push(root);
-  const remoteOfficialCatalog = officialCatalog();
   const store = new ModelConfigStore(root, {
     freeModelCatalog: {
       initialize: async () => undefined,
-      getCatalog: async () => emptyCatalog()
-    },
-    officialModelCatalog: {
-      initialize: async () => undefined,
-      getCatalog: async () => structuredClone(remoteOfficialCatalog),
-      refreshCatalog: async () => structuredClone(remoteOfficialCatalog)
+      getCatalog: async () => ({
+        ...emptyCatalog(),
+        enabled: true,
+        manifestAvailable: true,
+        canDeprecateMissingModels: true,
+        models: [managedModel("writer")],
+        apiKeys: withManagedKey
+          ? { "deepwrite-free-writing": "invalid-managed-test-key" }
+          : {}
+      })
     }
   });
   return { root, store };
@@ -78,8 +81,8 @@ describe("ModelConfigStore device sync", () => {
     storage.brokenDecrypt = false;
   });
 
-  it("lists custom models with their own key and never the official token", async () => {
-    const { root, store } = await createStore();
+  it("lists custom models with their own key and excludes managed models", async () => {
+    const { root, store } = await createStore(true);
     await store.save({
       models: [
         { ...customModel(), apiKey: "sk-sync-test-only" },
@@ -87,7 +90,7 @@ describe("ModelConfigStore device sync", () => {
       ],
       defaultModelId: "custom-writer"
     });
-    await store.saveOfficialToken("sk-official-test-only");
+    await store.setFreeModelEnabled("deepwrite-free-writing", true);
 
     const listed = await store.listSyncModels();
     expect(listed.map(({ model }) => model.id)).toEqual([
@@ -97,7 +100,7 @@ describe("ModelConfigStore device sync", () => {
     expect(listed[0]!.apiKey).toBe("sk-sync-test-only");
     expect(listed[1]).not.toHaveProperty("apiKey");
     expect(listed[0]!.model).not.toHaveProperty("apiKey");
-    expect(JSON.stringify(listed)).not.toContain("sk-official-test-only");
+    expect(JSON.stringify(listed)).not.toContain("invalid-managed-test-key");
     expect(
       await readFile(join(root, "config", "models.json"), "utf8")
     ).toContain("custom-writer");
@@ -298,17 +301,14 @@ describe("ModelConfigStore device sync", () => {
 
   it("does not let a synced change touch a managed model", async () => {
     const { store } = await createStore();
-    await store.saveOfficialToken("sk-official-test-only");
+    await store.setFreeModelEnabled("deepwrite-free-writing", true);
 
-    for (const next of [
-      null,
-      entry(synced({ id: "deepwrite-deepseek-v4-flash" }))
-    ])
+    for (const next of [null, entry(synced({ id: "deepwrite-free-writing" }))])
       await expect(
-        store.applySyncedModels([{ id: "deepwrite-deepseek-v4-flash", next }])
+        store.applySyncedModels([{ id: "deepwrite-free-writing", next }])
       ).rejects.toThrow("托管");
     expect((await store.list()).models.map((model) => model.id)).toContain(
-      "deepwrite-deepseek-v4-flash"
+      "deepwrite-free-writing"
     );
   });
 

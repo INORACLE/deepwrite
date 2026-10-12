@@ -89,10 +89,7 @@ export function isDeepSeekWebSearchCompatible(
 export const ToolSchemaProfileSchema = z.enum(["native", "portable"]);
 export type ToolSchemaProfile = z.infer<typeof ToolSchemaProfileSchema>;
 
-export const ModelManagedBySchema = z.enum([
-  "deepwrite-free",
-  "deepwrite-official"
-]);
+export const ModelManagedBySchema = z.enum(["deepwrite-free"]);
 export type ModelManagedBy = z.infer<typeof ModelManagedBySchema>;
 
 export const DEEPWRITE_SITE_OFFICIAL_MODEL_ID_PREFIX =
@@ -138,6 +135,8 @@ const ModelIdentitySchema = z
   .object({
     id: z.string().trim().min(1).max(120),
     label: z.string().trim().min(1).max(120),
+    /** Optional catalog description displayed after the model name. */
+    description: z.string().trim().max(500).optional(),
     provider: z.string().trim().min(1).max(120),
     modelId: z.string().trim().min(1).max(240),
     /** Optional provider-side routing id when it differs from the public model id. */

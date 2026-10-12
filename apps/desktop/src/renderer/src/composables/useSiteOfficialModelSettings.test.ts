@@ -109,16 +109,43 @@ describe("new-site quota loading and refresh feedback", () => {
     expect(notifications.error).not.toHaveBeenCalled();
   });
 
-  it("does not query quota without a saved key", async () => {
-    const { coordinator, models, store } = setup();
+  it("refreshes the catalog without querying quota when no key is saved", async () => {
+    const { coordinator, models, store, notifications } = setup();
     store.modelSettings = { defaultModelId: "", models: [] };
-    models.refreshSiteOfficial.mockRejectedValueOnce(
-      new Error("请先添加新官方小站模型密钥。")
-    );
+    models.refreshSiteOfficial.mockResolvedValueOnce({
+      ...settings,
+      models: settings.models.map((model) => ({
+        ...model,
+        hasApiKey: false,
+        enabled: false
+      }))
+    });
 
     await coordinator.refreshSiteOfficialModels();
 
     expect(models.querySiteOfficialQuota).not.toHaveBeenCalled();
+    expect(models.refreshSiteOfficial).toHaveBeenCalledOnce();
+    expect(store.modelSettings?.models[0]?.hasApiKey).toBe(false);
+    expect(store.siteOfficialQuota).toBeNull();
+    expect(notifications.success).toHaveBeenCalledOnce();
     expect(store.siteOfficialModelsRefreshing).toBe(false);
+  });
+
+  it("loads a keyless catalog when opening the page without a success toast", async () => {
+    const { coordinator, models, store, notifications } = setup();
+    store.modelSettings = { defaultModelId: "", models: [] };
+    models.refreshSiteOfficial.mockResolvedValueOnce({
+      ...settings,
+      models: settings.models.map((model) => ({
+        ...model,
+        hasApiKey: false,
+        enabled: false
+      }))
+    });
+    await coordinator.loadSiteOfficialModels();
+    expect(models.refreshSiteOfficial).toHaveBeenCalledOnce();
+    expect(models.querySiteOfficialQuota).not.toHaveBeenCalled();
+    expect(store.modelSettings?.models).toHaveLength(1);
+    expect(notifications.success).not.toHaveBeenCalled();
   });
 });

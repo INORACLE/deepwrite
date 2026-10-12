@@ -1,5 +1,9 @@
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import type { Message, Tool } from "@earendil-works/pi-ai";
+import {
+  normalizeContext,
+  type Message,
+  type Tool
+} from "@earendil-works/pi-ai";
 import { inPlaceSummaryPrompt } from "./summary-prompts";
 import type { SummaryModel, SummaryRequest } from "./summarize";
 
@@ -32,14 +36,17 @@ export async function summarizeInPlace(
   // Same conversion the agent loop applies before every request.
   const sent = messages.filter(
     (message): message is Message =>
+      message.role === "system" ||
       message.role === "user" ||
       message.role === "assistant" ||
       message.role === "toolResult"
   );
   const stream = await streamFn(
     model,
-    {
-      systemPrompt: target.systemPrompt,
+    normalizeContext({
+      ...(sent.some((message) => message.role === "system")
+        ? {}
+        : { systemPrompt: target.systemPrompt, tools: [...target.tools] }),
       messages: [
         ...sent,
         {
@@ -52,9 +59,8 @@ export async function summarizeInPlace(
           ],
           timestamp: Date.now()
         }
-      ],
-      tools: [...target.tools]
-    },
+      ]
+    }),
     {
       maxTokens: Math.min(
         request.maxTokens,

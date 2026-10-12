@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { inspectTranscript } from "./transcript.test-support";
 import {
   Agent,
   type AgentMessage,
@@ -114,6 +115,7 @@ describe("built-in management subagents", () => {
       fauxToolCall("spawn_subagent", {}, { id: "spawn-1" })
     ]);
     const history: AgentMessage[] = [
+      { role: "system", content: "parent-only instructions", timestamp: 0 },
       { role: "user", content: "保存上面的素材", timestamp: 1 },
       complete,
       {
@@ -138,8 +140,9 @@ describe("built-in management subagents", () => {
     expect(copy).toHaveLength(3);
     expect(JSON.stringify(copy)).toContain("已读正文");
     expect(JSON.stringify(copy)).not.toContain("spawn-1");
+    expect(JSON.stringify(copy)).not.toContain("parent-only instructions");
     (copy[0] as { content: string }).content = "改变";
-    expect(history[0]).toMatchObject({ content: "保存上面的素材" });
+    expect(history[1]).toMatchObject({ content: "保存上面的素材" });
   });
 
   it("uses manager tools, inherits parent history, and forwards library proposals", async () => {
@@ -184,7 +187,7 @@ describe("built-in management subagents", () => {
       model: runtime.model,
       thinkingLevel: "off",
       streamFn: (model, ctx, opts) => {
-        seen.push(ctx);
+        seen.push(inspectTranscript(ctx));
         return runtime.stream(model, ctx, opts);
       },
       definitions: management.definitions,

@@ -10,7 +10,6 @@ export default {
   usage: "用量",
   freeModels: "免费模型",
   customModelSettings: "自定义模型",
-  legacyOfficialModels: "旧官方小站模型",
   officialSiteModels: "新官方小站模型",
   personal: "个人",
   general: "常规",

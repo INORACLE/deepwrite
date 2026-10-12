@@ -6,6 +6,13 @@ import {
 import type { DeepWriteApi, ModelSettings } from "@deepwrite/contracts";
 import { isDeepWriteSiteOfficialModel } from "@deepwrite/contracts/renderer";
 import { useSettingsStore } from "../stores/settingsStore";
+import { getErrorDetail } from "../i18n/errors";
+import {
+  invalidSiteOfficialKeyLine,
+  mergeSiteOfficialKeyBatch,
+  notifySiteOfficialKeyBatch,
+  parseSiteOfficialKeyLines
+} from "./siteOfficialKeyBatch";
 
 const t = createScopedTranslator("workspace");
 
@@ -25,9 +32,10 @@ interface SiteOfficialModelSettingsContext {
 }
 
 function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error
-    ? error.message.replace(/^models\.[a-z_]+:\s*/u, "")
-    : fallback;
+  return (getErrorDetail(error) ?? fallback).replace(
+    /^models\.[a-z_]+:\s*/u,
+    ""
+  );
 }
 
 export function useSiteOfficialModelSettings(
@@ -71,17 +79,18 @@ export function useSiteOfficialModelSettings(
     )
       return;
     const api = context.api();
+    if (!api) return;
     const configured = settingsStore.modelSettings?.models.some(
       (model) => isDeepWriteSiteOfficialModel(model) && model.hasApiKey
     );
-    if (!api || !configured) {
-      settingsStore.siteOfficialQuota = null;
+    if (!configured) {
+      await refreshSiteOfficialModels(false);
       return;
     }
     await queryQuota(api);
   }
 
-  async function saveSiteOfficialToken(apiKey: string): Promise<void> {
+  async function saveSiteOfficialToken(rawKeys: string): Promise<void> {
     const api = context.api();
     if (
       !api ||
@@ -89,22 +98,71 @@ export function useSiteOfficialModelSettings(
       settingsStore.siteOfficialModelsRefreshing
     )
       return;
+    const keys = parseSiteOfficialKeyLines(rawKeys);
+    const target = keys[0];
+    const invalidLine = invalidSiteOfficialKeyLine(keys, true);
+    if (!target || invalidLine !== undefined) {
+      uiMessage.warning(
+        invalidLine !== undefined
+          ? t("siteOfficialQuotaMerge.invalidKeyLine", { line: invalidLine })
+          : t("siteOfficialQuotaMerge.enterAValidSourceKey")
+      );
+      return;
+    }
     invalidateSiteOfficialQuota(settingsStore);
     settingsStore.siteOfficialQuota = null;
     settingsStore.siteOfficialModelsSaving = true;
     settingsStore.modelError = null;
+    let targetSaved = false;
     try {
-      const settings = await api.models.saveSiteOfficialToken(apiKey);
+      const settings = await api.models.saveSiteOfficialToken(target.key);
+      targetSaved = true;
       context.applyLoadedModelSettings(settings);
       await queryQuota(api);
       uiMessage.success(
         t("siteOfficialModelSettings.theNewOfficialSiteSModelKeyHasBeen")
       );
+      if (keys.length > 1) {
+        const current = beginSiteOfficialQuotaRequest(settingsStore);
+        const result = await mergeSiteOfficialKeyBatch({
+          models: api.models,
+          sources: keys.slice(1),
+          target,
+          quota: settingsStore.siteOfficialQuota,
+          current,
+          applyQuota: (quota) => {
+            settingsStore.siteOfficialQuota = quota;
+          }
+        });
+        notifySiteOfficialKeyBatch(result, uiMessage);
+        if (result.succeeded.length) {
+          // Retain the last authoritative merge balance if refreshing fails.
+          try {
+            const quota = await api.models.querySiteOfficialQuota();
+            if (current()) settingsStore.siteOfficialQuota = quota;
+          } catch {
+            uiMessage.warning(
+              t(
+                "siteOfficialQuotaMerge.quotaTransferredUsageHasNotRefreshedYetRefreshThe"
+              )
+            );
+          }
+        }
+      }
     } catch (error: unknown) {
       settingsStore.modelError = errorMessage(
         error,
         t("siteOfficialModelSettings.couldNotSaveTheNewOfficialSiteSModel")
       );
+      if (keys.length > 1 && !targetSaved) {
+        settingsStore.modelError = t(
+          "siteOfficialQuotaMerge.targetKeyNotSaved",
+          {
+            line: target.line,
+            reason: settingsStore.modelError
+          }
+        );
+      }
       uiMessage.error(settingsStore.modelError);
     } finally {
       settingsStore.siteOfficialModelsSaving = false;
@@ -141,7 +199,9 @@ export function useSiteOfficialModelSettings(
     }
   }
 
-  async function refreshSiteOfficialModels(): Promise<void> {
+  async function refreshSiteOfficialModels(
+    notifySuccess = true
+  ): Promise<void> {
     const api = context.api();
     if (
       !api ||
@@ -172,7 +232,9 @@ export function useSiteOfficialModelSettings(
       const configured = settingsStore.modelSettings?.models.some(
         (model) => isDeepWriteSiteOfficialModel(model) && model.hasApiKey
       );
-      if (configured && (await queryQuota(api)) && catalogRefreshed) {
+      if (!configured) settingsStore.siteOfficialQuota = null;
+      const quotaRefreshed = !configured || (await queryQuota(api));
+      if (notifySuccess && quotaRefreshed && catalogRefreshed) {
         uiMessage.success(
           t("siteOfficialModelSettings.theNewOfficialSiteSModelPageHasBeen")
         );

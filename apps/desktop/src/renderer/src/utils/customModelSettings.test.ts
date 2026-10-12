@@ -23,7 +23,7 @@ function model(
 
 describe("mergeCustomModelSettings", () => {
   it("updates custom models while preserving managed models and their order", () => {
-    const official = model("official", "deepwrite-official");
+    const official = model("deepwrite-site-official-writer");
     const custom = model("custom-old");
     const free = model("free", "deepwrite-free");
     const edited = { ...custom, label: "edited" };
@@ -32,15 +32,15 @@ describe("mergeCustomModelSettings", () => {
     const result = mergeCustomModelSettings(
       [official, custom, free],
       [edited, added],
-      "official"
+      official.id
     );
 
     expect(result.models).toEqual([official, edited, free, added]);
-    expect(result.defaultModelId).toBe("official");
+    expect(result.defaultModelId).toBe(official.id);
   });
 
   it("removes deleted custom models without deleting managed models", () => {
-    const official = model("official", "deepwrite-official");
+    const official = model("deepwrite-site-official-writer");
     const free = model("free", "deepwrite-free");
 
     const result = mergeCustomModelSettings(
@@ -50,13 +50,13 @@ describe("mergeCustomModelSettings", () => {
     );
 
     expect(result.models).toEqual([official, free]);
-    expect(result.defaultModelId).toBe("official");
+    expect(result.defaultModelId).toBe(official.id);
   });
 
   it("accepts a custom model as the new global default", () => {
     const custom = model("custom");
     const result = mergeCustomModelSettings(
-      [model("official", "deepwrite-official")],
+      [model("deepwrite-site-official-writer")],
       [custom],
       custom.id
     );

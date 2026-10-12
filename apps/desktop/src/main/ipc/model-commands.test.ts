@@ -113,19 +113,28 @@ describe("model commands", () => {
     expect(syncConfiguredModels).not.toHaveBeenCalled();
   });
 
-  it("saves a new-site key after discovering v1 and Google v1beta models", async () => {
+  it("validates a new-site key and discovers every protocol through the public catalog", async () => {
     const list = vi.fn(async () => settings());
     const save = vi.fn(async () => settings());
-    const listRemoteModels = vi.fn(async (input: { api: string }) =>
-      input.api === "google-generative-ai"
-        ? [{ id: "gemini-3.7-flash" }]
-        : [{ id: "deepseek-v4-flash" }, { id: "gemini-3.7-flash" }]
+    const listRemoteModels = vi.fn(async () => [
+      { id: "deepseek-v4-flash" },
+      { id: "gemini-3.7-flash", api: "google-generative-ai" }
+    ]);
+    const remoteFetch = vi.fn(async () =>
+      Response.json({
+        object: "api_key_quota",
+        unlimited: false,
+        total: 10,
+        used: 0,
+        remaining: 10
+      })
     );
     const syncConfiguredModels = vi.fn(async () => undefined);
     const ctx = {
       requireModelConfigStore: () => ({ list, save }),
       requireModelUsageStore: () => ({ syncConfiguredModels }),
-      listRemoteModels
+      listRemoteModels,
+      remoteFetch
     } as unknown as IpcCommandContext;
     const command = CommandEnvelopeSchema.parse(
       createEnvelope(
@@ -154,23 +163,20 @@ describe("model commands", () => {
         ])
       })
     );
-    expect(listRemoteModels).toHaveBeenCalledTimes(2);
+    expect(remoteFetch).toHaveBeenCalledOnce();
+    expect(listRemoteModels).toHaveBeenCalledOnce();
     expect(listRemoteModels).toHaveBeenCalledWith(
       expect.objectContaining({
         api: "openai-completions",
-        baseUrl: "https://gateway.example.test/v1"
-      })
-    );
-    expect(listRemoteModels).toHaveBeenCalledWith(
-      expect.objectContaining({
-        api: "google-generative-ai",
-        baseUrl: "https://gateway.example.test/v1beta"
+        baseUrl: "https://gateway.example.test/api/v1/public",
+        apiKey: "",
+        allowUnauthenticated: true
       })
     );
     expect(syncConfiguredModels).toHaveBeenCalledWith([freeModel]);
   });
 
-  it("removes the new-site model when its user key is cleared", async () => {
+  it("retains the new-site catalog with models disabled when its user key is cleared", async () => {
     const siteModel = {
       ...freeModel,
       id: "deepwrite-site-official-deepseek-v4-flash",
@@ -201,7 +207,14 @@ describe("model commands", () => {
     });
     expect(save).toHaveBeenCalledWith(
       expect.objectContaining({
-        models: [expect.objectContaining({ id: freeModel.id })],
+        models: [
+          expect.objectContaining({
+            id: siteModel.id,
+            clearApiKey: true,
+            enabled: false
+          }),
+          expect.objectContaining({ id: freeModel.id })
+        ],
         defaultModelId: freeModel.id
       })
     );

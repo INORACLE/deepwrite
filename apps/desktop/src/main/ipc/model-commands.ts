@@ -15,7 +15,6 @@ import {
 import { createUsageModelSnapshot } from "../usage-observation";
 import { safeErrorDetails } from "./errors";
 import type { IpcCommandContext } from "./command-types";
-import { handleOfficialModelCommands } from "./official-model-commands";
 import { handleSiteOfficialModelCommands } from "./site-official-model-commands";
 
 export type ModelCommandContext = Pick<
@@ -37,8 +36,6 @@ async function dispatchModelCommand(
     command
   );
   if (siteOfficialResult) return siteOfficialResult;
-  const officialResult = await handleOfficialModelCommands(ctx, command);
-  if (officialResult) return officialResult;
 
   if (command.type === "models.list") {
     try {

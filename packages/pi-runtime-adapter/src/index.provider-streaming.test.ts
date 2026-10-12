@@ -4,6 +4,7 @@ import type {
   LongWorkspaceRuntimeContext,
   ShortWorkspaceSnapshot
 } from "./index.test-support";
+import { normalizeContext } from "@earendil-works/pi-ai";
 import {
   DEFAULT_LIBRARY_AGENT_PROFILES,
   DEFAULT_LONG_AGENT_PROFILES,
@@ -100,7 +101,7 @@ describe("DeepWrite Pi runtime adapter: provider-streaming", () => {
     const message = toolCallMessage("tool_write", "write_workspace_editor");
     const forwarded = await intercepted(
       {} as Parameters<typeof intercepted>[0],
-      { messages: [] },
+      normalizeContext({ messages: [] }),
       undefined
     );
     const received: string[] = [];
@@ -163,7 +164,7 @@ describe("DeepWrite Pi runtime adapter: provider-streaming", () => {
     );
     const forwarded = await intercepted(
       {} as Parameters<typeof intercepted>[0],
-      { messages: [] },
+      normalizeContext({ messages: [] }),
       undefined
     );
     const received: string[] = [];
@@ -598,8 +599,15 @@ describe("DeepWrite Pi runtime adapter: provider-streaming", () => {
         >;
       }
     ).conversationAgents;
-    const messages = cache.get("session_restored_history:default")?.state
-      .messages;
+    const messages = cache
+      .get("session_restored_history:default")
+      ?.state.messages.filter((message) => message.role !== "system");
+
+    expect(() =>
+      structuredClone(
+        cache.get("session_restored_history:default")?.state.messages[0]
+      )
+    ).not.toThrow();
 
     expect(messages?.map((message) => message.role)).toEqual([
       "user",
@@ -658,8 +666,9 @@ describe("DeepWrite Pi runtime adapter: provider-streaming", () => {
         >;
       }
     ).conversationAgents;
-    const messages = cache.get("session_history_replace:default")?.state
-      .messages;
+    const messages = cache
+      .get("session_history_replace:default")
+      ?.state.messages.filter((message) => message.role !== "system");
 
     expect(messages?.map((message) => message.role)).toEqual([
       "user",
@@ -681,8 +690,9 @@ describe("DeepWrite Pi runtime adapter: provider-streaming", () => {
       // Consume an empty-prefix replacement turn.
     }
 
-    const resetMessages = cache.get("session_history_replace:default")?.state
-      .messages;
+    const resetMessages = cache
+      .get("session_history_replace:default")
+      ?.state.messages.filter((message) => message.role !== "system");
     expect(resetMessages?.map((message) => message.role)).toEqual([
       "user",
       "assistant"

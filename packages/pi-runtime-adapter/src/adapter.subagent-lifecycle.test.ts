@@ -3,6 +3,7 @@ import type { AgentProviderRuntimeConfig } from "@deepwrite/contracts";
 import type { StreamFn } from "@earendil-works/pi-agent-core";
 import {
   createAssistantMessageEventStream,
+  normalizeContext,
   type AssistantMessage,
   type Model
 } from "@earendil-works/pi-ai";
@@ -108,7 +109,8 @@ async function harness(hangParent = false) {
   };
   vi.spyOn(provider, "buildWorkspaceProviderRuntimes").mockReturnValue({
     model,
-    streamFn: parentStream,
+    streamFn: (requestModel, context, options) =>
+      parentStream(requestModel, normalizeContext(context), options),
     spawnStreamFn: (_model, _context, options) => {
       options?.signal?.addEventListener(
         "abort",

@@ -43,6 +43,8 @@ export interface TrackedSubagentPackage {
   readonly startedAt: string;
   endedAt?: string;
   outcome?: "completed" | "stopped" | "failed";
+  /** Why a package that failed never delegated anything. */
+  failureReason?: string;
   /** Holds the child runs as `subagentRuns`, like a conversation message. */
   message: ChatMessage;
 }
@@ -183,6 +185,7 @@ export function createSubagentRunTracker(
     current.message.processingCompletedAt = at;
     current.endedAt = at;
     current.outcome = outcome;
+    if (outcome === "failed" && reason) current.failureReason = reason;
     forget();
   }
   return {

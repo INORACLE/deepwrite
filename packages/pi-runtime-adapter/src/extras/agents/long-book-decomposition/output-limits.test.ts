@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { validateToolArguments } from "@earendil-works/pi-ai";
+import { validateToolArguments, type JsonObject } from "@earendil-works/pi-ai";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import {
   DEFAULT_DECOMPOSITION_PROFILE,
@@ -79,10 +79,7 @@ function callAsModel(tool: AgentTool, args: Record<string, unknown>) {
       type: "toolCall",
       id: "write",
       name: tool.name,
-      arguments: (tool.prepareArguments?.(args) ?? args) as Record<
-        string,
-        unknown
-      >
+      arguments: (tool.prepareArguments?.(args) ?? args) as JsonObject
     })
   );
 }

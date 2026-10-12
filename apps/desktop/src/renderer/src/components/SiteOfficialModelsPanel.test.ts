@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import source from "./SiteOfficialModelsPanel.vue?raw";
+import tokenCard from "./SiteOfficialTokenCard.vue?raw";
 
 describe("SiteOfficialModelsPanel", () => {
-  it("opens a single shop that sells both official site catalogs", () => {
+  it("opens the official site shop", () => {
     expect(source).toContain("siteStore");
     expect(source).toMatch(/href="https:\/\/[^/]+\/shop\/[A-Za-z0-9]+"/);
     expect(source).toContain('class="site-shop-button"');
@@ -14,17 +15,17 @@ describe("SiteOfficialModelsPanel", () => {
   });
 
   it("asks the user for a separate model key before showing the model", () => {
-    expect(source).toContain("addYourSiteKey");
-    expect(source).toContain('type="password"');
-    expect(source).toContain('autocomplete="new-password"');
-    expect(source).toContain('emit("saveToken", apiKey)');
-    expect(source).toContain("relatedModelsJoinTheListAfterYouSaveA");
+    expect(tokenCard).toContain("addYourSiteKey");
+    expect(tokenCard).toContain("<textarea");
+    expect(tokenCard).toContain('autocomplete="new-password"');
+    expect(tokenCard).toContain('emit("saveToken", apiKey)');
+    expect(tokenCard).toContain("relatedModelsJoinTheListAfterYouSaveA");
     expect(source).not.toContain("MAIN_VITE_DEEPWRITE_GATEWAY_API_KEY");
   });
 
   it("never renders the saved key and supports testing or removing the model", () => {
     expect(source).toContain("configuredModels.value.some");
-    expect(source).toContain("valueModelsEnabledTheKeyIsNeverReturnedTo");
+    expect(tokenCard).toContain("valueModelsEnabledTheKeyIsNeverReturnedTo");
     expect(source).toContain("emit('clearToken')");
     expect(source).toContain('emit("test", toModelInput(model))');
   });

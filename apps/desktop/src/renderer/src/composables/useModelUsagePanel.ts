@@ -241,8 +241,7 @@ export function useModelUsagePanel(
   function modelProviderLabel(
     model: ModelUsageDashboard["models"][number]["model"]
   ): string {
-    if (model.managedBy === "deepwrite-official")
-      return t("legacyOfficialSite");
+    if (model.managedBy === "deepwrite-official") return t("historicalModel");
     if (isDeepWriteSiteOfficialModel(model)) return t("newOfficialSite");
     if (model.managedBy === "deepwrite-free") return t("deepwriteFree");
     return model.provider;

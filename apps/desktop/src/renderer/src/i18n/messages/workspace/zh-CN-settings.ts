@@ -1,8 +1,8 @@
 export default {
   settingsStore: {
     failedToLoadSettings: "加载设置失败。",
-    officialModelsAreNowAvailableWithDirectProviderAccess:
-      "官方模型已经上线！直连厂商！软件整体用量越多，折扣会越大！"
+    officialSiteModelsAvailableWithYourKey:
+      "添加新官方小站模型密钥，即可使用官方小站模型。"
   },
   voiceRecorder: {
     recordingCanceled: "已取消录音"
@@ -77,21 +77,10 @@ export default {
       "工作目录已恢复默认位置；现有项目保持原位置不变"
   },
   modelProviderGroups: {
-    deepwriteFreeModels: "DeepWrite 免费模型",
-    legacyOfficialSiteModels: "旧官方小站模型"
+    deepwriteFreeModels: "DeepWrite 免费模型"
   },
   modelSettingsCoordinator: {
     failedToLoadModelUsage: "加载模型用量失败。",
-    failedToQueryOfficialModelSpending: "查询官方模型消费信息失败。",
-    failedToLoadOfficialModels: "加载官方模型失败。",
-    officialTokenSavedSecurelyOfficialModelsAreReadyTo:
-      "官方令牌已安全保存，官方模型现在可以直接使用。",
-    failedToSaveOfficialToken: "保存官方令牌失败。",
-    officialTokenRemovedUsageHistoryRemainsInTheLocal:
-      "官方令牌已移除，历史用量仍保留在本机账本中。",
-    failedToRemoveOfficialToken: "移除官方令牌失败。",
-    modelEnabledAndAddedToModelSettings: "模型已启用，并显示在模型配置中。",
-    modelDisabledAndHiddenFromModelSettings: "模型已停用，并从模型配置中隐藏。",
     failedToUpdateModelStatus: "更新模型启用状态失败。",
     modelSettingsSavedAndAppliedToSubsequentConversations:
       "模型配置已保存，并已同步到后续对话。",
@@ -244,7 +233,6 @@ export default {
     currentConfiguration: "当前配置",
     historicalModel: "历史模型",
     localSimulation: "本地模拟",
-    legacyOfficialSite: "旧官方小站",
     newOfficialSite: "新官方小站",
     deepwriteFree: "DeepWrite 免费",
     subagent: "子智能体",

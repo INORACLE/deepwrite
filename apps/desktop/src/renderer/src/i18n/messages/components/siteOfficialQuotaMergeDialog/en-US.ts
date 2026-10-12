@@ -2,11 +2,11 @@ export default {
   addQuota: "Add quota",
   close: "Close",
   allUnusedQuotaFromTheSourceKeyTransfersTo:
-    "All unused quota from the source key transfers to the currently saved key. The current key and its expiration remain unchanged. After a successful transfer, the source key is permanently revoked and cannot be used or transferred again.",
-  sourceKey: "Source key",
-  enterTheKeyProvidingTheQuota: "Enter the key providing the quota",
+    "Enter one source key per line. Each key transfers all unused quota to the currently saved key. The current key and its expiration remain unchanged. Successfully transferred source keys are permanently revoked and cannot be used or transferred again.",
+  sourceKey: "Source keys (one per line)",
+  enterTheKeyProvidingTheQuota: "Enter one source key providing quota per line",
   theSourceKeyIsUsedOnlyForThisTransfer:
-    "The source key is used only for this transfer and is not saved locally.",
+    "Source keys are used only for this transfer and are not saved locally. Failures show the corresponding line number and reason.",
   cancel: "Cancel",
   transferring: "Transferring…",
   transferQuotaAndRevokeSourceKey: "Transfer quota and revoke source key"

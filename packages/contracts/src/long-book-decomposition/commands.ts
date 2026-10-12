@@ -49,6 +49,10 @@ export type CreateDecompositionJobInput = z.infer<
 export const DecompositionJobActionSchema = z.object({
   jobId: DecompositionIdSchema
 });
+/** A failed creation can still have a durable task that the UI must reconnect. */
+export const DecompositionCommandRecoverySchema = z.object({
+  jobId: DecompositionIdSchema
+});
 export const DecompositionUnitActionSchema = z.object({
   jobId: DecompositionIdSchema,
   unitId: DecompositionIdSchema

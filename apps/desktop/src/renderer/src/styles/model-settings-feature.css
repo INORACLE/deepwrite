@@ -4,12 +4,8 @@
 .model-config-scroll-area {
   padding: 24px 28px 28px;
 }
-.model-config-content .model-price-notice {
+.model-config-content .model-announcement-notice {
   margin: 0 0 20px;
-  color: var(--text-secondary);
-  font-size: 0.857143rem;
-  font-weight: 400;
-  line-height: 1.6;
 }
 .model-list-toolbar {
   display: flex;

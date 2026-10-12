@@ -12,6 +12,7 @@ export interface ListRemoteModelsInput {
   baseUrl: string;
   apiKey: string;
   provider: string;
+  allowUnauthenticated?: boolean;
 }
 
 type RemoteModelsFetcher = (
@@ -190,7 +191,11 @@ export async function listRemoteModels(
       "请先填写 API 地址，再拉取可用模型。"
     );
   }
-  if (!input.apiKey.trim() && !isOllamaProvider(input.provider)) {
+  if (
+    !input.apiKey.trim() &&
+    !isOllamaProvider(input.provider) &&
+    !input.allowUnauthenticated
+  ) {
     throw new RemoteModelListError(
       "models.list_remote_missing_key",
       "请先填写 API Key，再拉取可用模型。"

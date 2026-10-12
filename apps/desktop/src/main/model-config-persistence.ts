@@ -34,6 +34,26 @@ function legacySecrets(raw: unknown): DiskModelSecrets {
   };
 }
 
+function removeRetiredOfficialSecrets(
+  secrets: DiskModelSecrets,
+  rawSettings: unknown
+): DiskModelSecrets {
+  const encryptedApiKeys = { ...secrets.encryptedApiKeys };
+  delete encryptedApiKeys["deepwrite-official-token"];
+  if (isRecord(rawSettings) && Array.isArray(rawSettings.models)) {
+    for (const model of rawSettings.models) {
+      if (
+        isRecord(model) &&
+        model.managedBy === "deepwrite-official" &&
+        typeof model.id === "string"
+      ) {
+        delete encryptedApiKeys[model.id];
+      }
+    }
+  }
+  return { version: 1, encryptedApiKeys };
+}
+
 async function readJson(path: string): Promise<unknown> {
   try {
     return JSON.parse(await readFile(path, "utf8")) as unknown;
@@ -82,10 +102,13 @@ export class ModelConfigPersistence {
         throw new Error("模型配置中的加密密钥数据损坏，无法读取。");
       return {
         settings: normalizeDiskModelSettings({ ...raw, version: 2 }),
-        secrets: {
-          version: 1,
-          encryptedApiKeys: raw.encryptedApiKeys as Record<string, string>
-        }
+        secrets: removeRetiredOfficialSecrets(
+          {
+            version: 1,
+            encryptedApiKeys: raw.encryptedApiKeys as Record<string, string>
+          },
+          raw
+        )
       };
     }
     if (
@@ -96,7 +119,10 @@ export class ModelConfigPersistence {
     }
     return {
       settings: normalizeDiskModelSettings(raw),
-      secrets: legacySecrets(await readJson(this.legacySecretsPath))
+      secrets: removeRetiredOfficialSecrets(
+        legacySecrets(await readJson(this.legacySecretsPath)),
+        raw
+      )
     };
   }
 

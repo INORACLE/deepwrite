@@ -116,6 +116,7 @@ describe("empty assistant responses in the shared run kernel", () => {
         { payload: { status: "completed", hadToolCall: false } }
       ]);
       expect(messages.map((m) => m.role)).toEqual([
+        "system",
         "user",
         "assistant",
         "toolResult",

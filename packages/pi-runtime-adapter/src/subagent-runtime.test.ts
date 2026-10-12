@@ -12,9 +12,11 @@ import {
   fauxToolCall,
   type Api,
   type Context,
+  type JsonObject,
   type Model
 } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
+import { inspectTranscript } from "./transcript.test-support";
 import { describe, expect, it, vi } from "vitest";
 import { buildShortWorkspaceTools } from "./short-agent-tools";
 import { shortProfile, shortWorkspace } from "./short-agent-tools.test-support";
@@ -85,7 +87,7 @@ function makeHarness(options: {
   const sourceStream = models.streamSimple.bind(models) as StreamFn;
   const streamFn: StreamFn = (requestModel, context, streamOptions) => {
     options.onModel?.(requestModel);
-    options.onContext?.(context);
+    options.onContext?.(inspectTranscript(context));
     options.onStreamOptions?.(streamOptions);
     return sourceStream(requestModel, context, streamOptions);
   };
@@ -709,7 +711,7 @@ describe("blocking subagent runtime", () => {
         };
       }
     };
-    const call = (args: Record<string, unknown>, id: string) =>
+    const call = (args: JsonObject, id: string) =>
       fauxAssistantMessage([fauxToolCall("flaky_submit", args, { id })], {
         stopReason: "toolUse"
       });

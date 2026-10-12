@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getCurrentSystemPrompt } from "@earendil-works/pi-ai";
 import { ConversationCheckpointSchema } from "@deepwrite/contracts";
 import {
   manager,
@@ -52,7 +53,10 @@ describe("conversation compaction lifecycle", () => {
     const incoming = user("继续", 3);
     guard.noteRunStart(incoming, incoming.content);
     await guard.beforeRun(incoming);
-    expect(agent.state.messages).toEqual([original, answer]);
+    expect(
+      agent.state.messages.filter((message) => message.role !== "system")
+    ).toEqual([original, answer]);
+    expect(getCurrentSystemPrompt(agent.state.messages)).toBe("写作");
     expect(guard.state.pruned.has(original)).toBe(false);
     expect(guard.state.checkpoint).toBeUndefined();
     expect(invalidated()).toBe(0);
@@ -81,14 +85,14 @@ describe("conversation compaction lifecycle", () => {
         runId: "old-run"
       }
     ]);
-    expect(guard.state.runStarts.get(agent.state.messages[1]!)).toBe("old-run");
+    expect(guard.state.runStarts.get(agent.state.messages[2]!)).toBe("old-run");
     skill = "修订后的技能";
     await guard.beforeRun();
     expect(
-      textOf((agent.state.messages[0] as ReturnType<typeof user>).content)
+      textOf((agent.state.messages[1] as ReturnType<typeof user>).content)
     ).toContain(skill);
     expect(
-      textOf((agent.state.messages[0] as ReturnType<typeof user>).content)
+      textOf((agent.state.messages[1] as ReturnType<typeof user>).content)
     ).not.toContain("旧技能");
   });
 
@@ -99,7 +103,9 @@ describe("conversation compaction lifecycle", () => {
     await guard.beforeRun(incoming);
     expect(() => guard.assertFits(incoming)).toThrow("原文已保留");
     expect(incoming.content).toHaveLength(40_000);
-    expect(agent.state.messages).toEqual([]);
+    expect(
+      agent.state.messages.filter((message) => message.role !== "system")
+    ).toEqual([]);
   });
 
   it("precompacts a completed conversation and keeps the current answer", async () => {
@@ -111,11 +117,12 @@ describe("conversation compaction lifecycle", () => {
       latest
     ]);
     guard.noteRunStart(
-      agent.state.messages[2] as ReturnType<typeof user>,
+      agent.state.messages[3] as ReturnType<typeof user>,
       "继续"
     );
     await guard.afterRun();
     expect(agent.state.messages).toContain(latest);
+    expect(getCurrentSystemPrompt(agent.state.messages)).toBe("写作");
     expect(events.at(-1)).toMatchObject({
       type: "agent.context_compaction",
       payload: { phase: "completed", reason: "idle" }
@@ -143,7 +150,8 @@ describe("conversation compaction lifecycle", () => {
       [user("旧历史".repeat(500)), assistant()],
       {
         streamFn: (_model, context) => {
-          if (context.systemPrompt?.includes("上下文整理员")) return response();
+          if (getCurrentSystemPrompt(context.messages).includes("上下文整理员"))
+            return response();
           calls += 1;
           return response(overflow);
         }

@@ -88,8 +88,7 @@ describe("conversation view behavior", () => {
         { id: "free", managedBy: "deepwrite-free" },
         { id: "custom-first", provider: "openai" },
         { id: "deepwrite-site-official-example", provider: "deepwrite-site" },
-        { id: "custom-second", provider: "provider-b" },
-        { id: "legacy-official", managedBy: "deepwrite-official" }
+        { id: "custom-second", provider: "provider-b" }
       ] as const
     ).map((model): ModelConfig => ({
       label: model.id,
@@ -112,7 +111,6 @@ describe("conversation view behavior", () => {
       ])
     ).toEqual([
       ["deepwrite-site-official-example", "官方小站"],
-      ["legacy-official", "官方小站"],
       ["custom-first", "OpenAI"],
       ["custom-second", "provider-b"],
       ["free", "免费模型"]

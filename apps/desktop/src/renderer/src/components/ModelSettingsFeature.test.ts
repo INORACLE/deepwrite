@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { expectSourceToContain } from "../../../test-utils/sourceText";
 import featureSource from "./ModelSettingsFeature.vue?raw";
+import noticeSource from "./ModelAnnouncementNotice.vue?raw";
 import editorSource from "./ModelEditorPanel.vue?raw";
 import advancedConfigSource from "./ModelAdvancedConfigDialog.vue?raw";
 import draftSource from "../composables/useModelSettingsDraft.ts?raw";
@@ -172,7 +173,7 @@ describe("ModelSettingsFeature provider presets", () => {
 
 describe("ModelSettingsFeature official models", () => {
   it("keeps official models selectable but hides edit and delete actions", () => {
-    expect(source).toContain("legacyOfficialModels");
+    expect(source).not.toContain("legacyOfficialModels");
     expect(source).toContain("officialSiteModels");
     expect(source).toContain('v-if="!row.model.managedBy"');
     expect(source).toContain("requestModelId: model.requestModelId");
@@ -182,11 +183,11 @@ describe("ModelSettingsFeature official models", () => {
   });
 
   it("shows the official model price notice in place of the configuration note", () => {
-    expect(source).toContain('class="dialog-description model-price-notice"');
-    expect(source).toContain('v-for="(message, index) in modelAlertMessages"');
-    expect(source).toContain("{{ message }}");
-    expect(source).toContain("@click=\"emit('openOfficialModels')\"");
-    expect(source).toContain("configureOfficialModels");
+    expect(featureSource).toContain("<ModelAnnouncementNotice");
+    expect(featureSource).toContain(':messages="modelAlertMessages"');
+    expect(featureSource).not.toContain("modelScope === 'all' &&");
+    expect(noticeSource).toContain("{{ message }}");
+    expect(noticeSource).toContain("@click=\"emit('openOfficialModels')\"");
     expect(source).not.toContain("官方模型已经上线！直连厂商！");
     expect(source).not.toContain("配置会同时用于连接测试与实际对话");
   });

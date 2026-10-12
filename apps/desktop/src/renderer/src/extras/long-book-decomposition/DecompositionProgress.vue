@@ -3,6 +3,7 @@ import { computed, ref, watch } from "vue";
 import {
   decompositionUsageLimit,
   decompositionUsageTotal,
+  isModelQuotaExhausted,
   type DecompositionControlInput,
   type DecompositionTarget
 } from "@deepwrite/contracts/renderer";
@@ -62,15 +63,19 @@ const finished = computed(
 );
 const started = computed(
   () =>
+    ["stopped", "failed"].includes(job.value?.status ?? "") ||
+    job.value?.phase === "prepare_target" ||
     units.value.some(([, unit]) => unit.status !== "pending") ||
     !["prepare_target", "read"].includes(job.value?.phase ?? "")
 );
 const phase = computed(() =>
-  props.controller.waitingForSlot.value
-    ? t("waitingForSlot")
-    : job.value?.phase === "registry"
-      ? t("registryPhase")
-      : t(job.value?.phase ?? "idle")
+  !busy.value && job.value?.status === "stopped"
+    ? t(isModelQuotaExhausted(job.value.lastError) ? "quotaPaused" : "stopped")
+    : props.controller.waitingForSlot.value
+      ? t("waitingForSlot")
+      : job.value?.phase === "registry"
+        ? t("registryPhase")
+        : t(job.value?.phase ?? "idle")
 );
 const phaseTone = computed(() =>
   job.value?.phase === "done" ? "success" : busy.value ? "accent" : "neutral"

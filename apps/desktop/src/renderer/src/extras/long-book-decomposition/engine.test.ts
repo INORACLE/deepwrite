@@ -1,179 +1,18 @@
 import { afterEach, expect, it, vi } from "vitest";
-import {
-  DEFAULT_DECOMPOSITION_PROFILE,
-  type DeepWriteApi,
-  type LongBookDecompositionJob,
-  type ModelConfig
+import type {
+  DeepWriteApi,
+  LongBookDecompositionJob
 } from "@deepwrite/contracts/renderer";
+import { runEvent } from "../agent-runtime/extrasAgent.test-support";
 import {
-  createExtrasAgentsFake,
-  runEvent
-} from "../agent-runtime/extrasAgent.test-support";
-import { createDecompositionEngine } from "./engine";
+  decompositionEngineFixture as fixture,
+  model
+} from "./engine.test-support";
 
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
-const model: ModelConfig = {
-  id: "test",
-  label: "合成模型",
-  provider: "test",
-  modelId: "test",
-  api: "openai-completions",
-  baseUrl: "https://example.test",
-  reasoning: false,
-  hasApiKey: true,
-  defaultThinkingLevel: "off",
-  thinkingLevelOptions: ["low"],
-  temperatureOptions: [0.1, 0.7, 1],
-  contextWindow: 128_000,
-  maxTokens: 8192
-};
-function fixture(selectedModel = model) {
-  const now = new Date().toISOString();
-  let stored: LongBookDecompositionJob = {
-    schemaVersion: 1,
-    id: "ldjob_ui",
-    createdAt: now,
-    updatedAt: now,
-    mode: "materials",
-    outputVersion: 1,
-    autoContinue: false,
-    profile: DEFAULT_DECOMPOSITION_PROFILE,
-    source: {
-      sourceId: "source_ui",
-      sourceRevision: 1,
-      title: "合成样书",
-      fingerprint: "a".repeat(64),
-      confirmationId: "confirm_ui",
-      confirmedAt: now,
-      chapterCount: 1,
-      characterCount: 5,
-      range: { start: 1, end: 1 }
-    },
-    targetSelection: {
-      kind: "material-group",
-      action: "create",
-      title: "合成资料"
-    },
-    target: {
-      kind: "material-group",
-      groupId: "group_ui",
-      libraryIds: {
-        character: "c",
-        plot: "p",
-        draft: "d",
-        other: "o",
-        gimmick: "g"
-      },
-      baseRevisions: {},
-      state: "ready"
-    },
-    models: {
-      reading: {
-        modelId: model.id,
-        thinkingLevel: "off",
-        contextWindow: 128_000,
-        maxTokens: 8192
-      },
-      integration: {
-        modelId: model.id,
-        thinkingLevel: "off",
-        contextWindow: 128_000,
-        maxTokens: 8192
-      }
-    },
-    chunks: [
-      {
-        id: "chunk:1",
-        chapterIds: ["chapter_ui"],
-        startOrder: 1,
-        endOrder: 1,
-        estimatedTokens: 5
-      }
-    ],
-    chronicleSegments: [],
-    phase: "read",
-    status: "idle",
-    units: {
-      "chunk:1": {
-        phase: "read",
-        status: "pending",
-        attempts: 0,
-        inputRevision: "a".repeat(64),
-        dependencies: [],
-        outputRefs: [],
-        receiptIds: [],
-        updatedAt: now
-      }
-    }
-  };
-  const extras = createExtrasAgentsFake();
-  const control = vi.fn<DeepWriteApi["longBookDecomposition"]["control"]>(
-    async (input) => {
-      if (input.action === "resume") stored.status = "idle";
-      if (input.action === "stop") {
-        stored.status = "stopped";
-        delete stored.activeAttemptId;
-      }
-      if (input.action === "finish-package") {
-        expect(input.attemptId).toBe("attempt_ui");
-        stored.units["chunk:1"]!.status = "done";
-        stored.status = "idle";
-      }
-      if (input.action === "advance") stored.phase = "registry_review";
-      return structuredClone(stored);
-    }
-  );
-  const getJob = vi.fn(async () => structuredClone(stored));
-  const api = {
-    extrasAgents: extras.extrasAgents,
-    session: { abort: vi.fn(async () => undefined) },
-    longBookDecomposition: { control, getJob }
-  } as unknown as DeepWriteApi;
-  const engine = createDecompositionEngine(
-    () => api,
-    () => [selectedModel]
-  );
-  engine.job.value = structuredClone(stored);
-  function accept() {
-    extras.run.mockImplementation(async (request) => {
-      stored.status = "running";
-      stored.activeAttemptId = "attempt_ui";
-      stored.units["chunk:1"]!.attemptId = "attempt_ui";
-      setTimeout(
-        () =>
-          engine.handleEvent(
-            runEvent("agent.message_completed", request, {
-              content: "已保存",
-              stopReason: "stop"
-            })
-          ),
-        0
-      );
-      return {
-        sessionId: request.sessionId,
-        runId: `${request.sessionId}-run`,
-        acceptedAt: now,
-        runtime: { provider: "test", model: "test", mode: "local-faux" }
-      };
-    });
-  }
-  return {
-    engine,
-    extras,
-    control,
-    getJob,
-    accept,
-    api,
-    stored: () => stored,
-    replace: (job: LongBookDecompositionJob) => {
-      stored = job;
-    }
-  };
-}
-
 it("名额不足时等待并重试，不增加单元失败次数，名册确认时停下", async () => {
   vi.useFakeTimers();
   const f = fixture();
@@ -389,5 +228,72 @@ it("查询模型容量期间停止，不派发迟到的工作包", async () => {
   await run;
   expect(f.extras.run).not.toHaveBeenCalled();
   expect(f.engine.job.value?.status).toBe("stopped");
+  f.engine.dispose();
+});
+
+it("模型超时重试三次后保留任务，继续只恢复失败单元", async () => {
+  const f = fixture();
+  const unit = f.stored().units["chunk:1"]!;
+  const completed = structuredClone({ ...unit, status: "done" as const });
+  f.stored().units["chunk:completed"] = completed;
+  f.control.mockImplementation(async (input) => {
+    if (input.action === "resume") {
+      if (unit.status === "failed") {
+        unit.status = "pending";
+        unit.attempts = 0;
+        delete unit.lastError;
+      }
+      f.stored().status = "idle";
+    }
+    if (input.action === "finish-package") {
+      if (input.failed) {
+        unit.attempts++;
+        unit.status = unit.attempts >= 3 ? "failed" : "pending";
+        unit.lastError = input.error;
+        f.stored().status = unit.status === "failed" ? "failed" : "idle";
+      } else {
+        unit.status = "done";
+        f.stored().status = "idle";
+      }
+    }
+    if (input.action === "advance") f.stored().phase = "registry_review";
+    return structuredClone(f.stored());
+  });
+  f.extras.run.mockImplementation(async (request) => {
+    f.stored().status = "running";
+    unit.status = "running";
+    unit.attemptId = "attempt_ui";
+    setTimeout(
+      () =>
+        f.engine.handleEvent(
+          runEvent("agent.error", request, {
+            code: "agent.request_timeout",
+            message: "合成模型响应超时"
+          })
+        ),
+      0
+    );
+    return {
+      sessionId: request.sessionId,
+      runId: `${request.sessionId}-run`,
+      acceptedAt: new Date().toISOString(),
+      runtime: { provider: "test", model: "test", mode: "local-faux" }
+    };
+  });
+  await f.engine.run();
+  expect(f.extras.run).toHaveBeenCalledTimes(3);
+  expect(f.engine.job.value).toMatchObject({
+    id: f.stored().id,
+    status: "failed"
+  });
+  expect(f.engine.error.value).toBe("合成模型响应超时");
+  expect(f.engine.isBusy.value).toBe(false);
+  expect(unit).toMatchObject({ status: "failed", attempts: 3 });
+  f.accept();
+  await f.engine.run();
+  expect(f.extras.run).toHaveBeenCalledTimes(4);
+  expect(f.engine.job.value?.phase).toBe("registry_review");
+  expect(f.engine.error.value).toBeNull();
+  expect(f.stored().units["chunk:completed"]).toEqual(completed);
   f.engine.dispose();
 });

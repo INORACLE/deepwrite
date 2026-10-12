@@ -39,6 +39,7 @@ export function buildSettingsFeatureModule(
     modelUsageDashboard: settingsStore.modelUsageDashboard,
     modelUsageLoading: settingsStore.modelUsageLoading,
     modelSettings: settingsStore.modelSettings,
+    modelAlertMessages: settingsStore.modelAlertMessages,
     modelLoading: settingsStore.modelLoading,
     modelSaving: settingsStore.modelSaving,
     freeModelsRefreshing: settingsStore.freeModelsRefreshing,
@@ -49,10 +50,6 @@ export function buildSettingsFeatureModule(
     modelError: settingsStore.modelError,
     modelTestMessage: settingsStore.modelTestMessage,
     testingModelId: settingsStore.testingModelId,
-    officialModelUsageDashboard: settingsStore.officialModelUsageDashboard,
-    officialModelBalance: settingsStore.officialModelBalance,
-    officialModelsLoading: settingsStore.officialModelsLoading,
-    officialModelsSaving: settingsStore.officialModelsSaving,
     runtimeAvailable: Boolean(options.api())
   };
 }

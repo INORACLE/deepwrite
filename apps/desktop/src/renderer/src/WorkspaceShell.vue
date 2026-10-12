@@ -548,7 +548,7 @@ const featureHost = useWorkspaceFeatureHostCoordinator({
     loadSyncLongBooks: () => loadLongBookList(),
     refreshSyncLongBook: (id) => refreshActiveLongWorkspace(id),
     loadModelSettings: () => loadModelSettings(),
-    loadOfficialModels: () => loadOfficialModels(),
+    loadSiteOfficialModels: () => loadSiteOfficialModels(),
     loadShortAndScriptAgentSettings: () => loadShortAndScriptAgentSettings(),
     ensureLongAgentSettingsLoaded: () => ensureLongAgentSettingsLoaded(),
     loadWorkspaceAgentSettings: () => loadWorkspaceAgentSettings(),
@@ -1403,15 +1403,11 @@ const {
   loadAppAlerts,
   closeStartupAlert,
   loadModelUsage,
-  loadOfficialModels,
   loadSiteOfficialModels,
-  saveOfficialToken,
-  clearOfficialToken,
   saveSiteOfficialToken,
   clearSiteOfficialToken,
   refreshSiteOfficialModels,
   setSiteOfficialModelEnabled,
-  setOfficialModelEnabled,
   saveModelSettings,
   refreshFreeModels,
   setFreeModelEnabled,
@@ -2463,15 +2459,11 @@ onBeforeUnmount(() => {
     @load-models="loadModelSettings"
     @save-models="saveModelSettings"
     @test-model="testModel"
-    @load-official-models="loadOfficialModels"
     @load-site-official-models="loadSiteOfficialModels"
-    @save-official-token="saveOfficialToken"
-    @clear-official-token="clearOfficialToken"
     @save-site-official-token="saveSiteOfficialToken"
     @clear-site-official-token="clearSiteOfficialToken"
     @refresh-site-official-models="refreshSiteOfficialModels"
     @set-site-official-model-enabled="setSiteOfficialModelEnabled"
-    @set-official-model-enabled="setOfficialModelEnabled"
     @refresh-free-models="refreshFreeModels"
     @set-free-model-enabled="setFreeModelEnabled"
   />

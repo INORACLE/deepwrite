@@ -203,11 +203,36 @@ export async function i18nSmokeInRenderer(
   );
   ensure(settings.length >= 14, "settings categories missing");
   ensure(
+    settings.includes("Official site models"),
+    "official-site settings missing"
+  );
+  ensure(
+    !settings.some((label) => /legacy official/iu.test(label)),
+    "retired official-site settings are still visible"
+  );
+  for (const method of [
+    "refreshOfficial",
+    "queryOfficialBalance",
+    "saveOfficialToken",
+    "clearOfficialToken",
+    "setOfficialModelEnabled"
+  ]) {
+    ensure(!(method in api.models), `retired model API exposed: ${method}`);
+  }
+  ensure(
+    typeof api.models.saveSiteOfficialToken === "function" &&
+      typeof api.models.querySiteOfficialQuota === "function",
+    "official-site model API missing"
+  );
+  ensure(
     settings.every((text) => !/\p{Script=Han}/u.test(text)),
     "Chinese settings category in English mode"
   );
   for (const label of settings) {
     await settingsCategory(label);
+    if (label === "Official site models") {
+      await until(() => select(".site-models-panel"), "official-site panel");
+    }
     layout();
   }
   await openGeneral();

@@ -75,13 +75,21 @@ function gatewayRootUrl(rawBaseUrl: string): URL {
 }
 
 export function deepWriteSiteOfficialGatewayBaseUrl(
-  api: "openai-completions" | "google-generative-ai",
+  api: ModelApi,
   rawBaseUrl = DEEPWRITE_PUBLIC_DATA_API_BASE_URL
 ): string {
   const root = gatewayRootUrl(rawBaseUrl);
   const version = api === "google-generative-ai" ? "v1beta" : "v1";
   const pathname = root.pathname === "/" ? "" : root.pathname;
   return `${root.origin}${pathname}/${version}`;
+}
+
+export function deepWriteSiteOfficialCatalogBaseUrl(
+  rawBaseUrl = DEEPWRITE_PUBLIC_DATA_API_BASE_URL
+): string {
+  const root = gatewayRootUrl(rawBaseUrl);
+  const pathname = root.pathname === "/" ? "" : root.pathname;
+  return `${root.origin}${pathname}/api/v1/public`;
 }
 
 function toInput(model: ModelConfig): ModelConfigInput {
@@ -147,6 +155,7 @@ function createDeepWriteSiteOfficialModel(
   return ModelConfigInputSchema.parse({
     id: configId(remote.id),
     label: remote.label ?? known?.label ?? remote.id,
+    description: remote.description,
     provider:
       remote.provider ?? known?.provider ?? inferredProvider(remote.id, api),
     modelId: remote.id,
@@ -196,22 +205,20 @@ export function createDeepWriteSiteOfficialModels(
     if (!allById.has(model.id)) allById.set(model.id, model);
   }
 
-  const openAIBaseUrl = deepWriteSiteOfficialGatewayBaseUrl(
-    "openai-completions",
-    baseUrl
-  );
-  const googleBaseUrl = deepWriteSiteOfficialGatewayBaseUrl(
-    "google-generative-ai",
-    baseUrl
-  );
   const models = [...allById.values()].map((remote) => {
     const google = googleById.get(remote.id);
     const resolvedRemote = google ? { ...remote, ...google } : remote;
+    // The v1 catalog lists every protocol. Use its declared API before
+    // inferring one from catalog membership for older gateway responses.
+    const api =
+      remote.api ??
+      google?.api ??
+      (google ? "google-generative-ai" : "openai-completions");
     return createDeepWriteSiteOfficialModel(
       resolvedRemote,
       apiKey,
-      google ? "google-generative-ai" : "openai-completions",
-      google ? googleBaseUrl : openAIBaseUrl
+      api,
+      deepWriteSiteOfficialGatewayBaseUrl(api, baseUrl)
     );
   });
   if (models.length === 0) {
@@ -228,7 +235,7 @@ export function saveDeepWriteSiteOfficialModelInput(
 ): ModelSettingsInput {
   const previousEnabledById = new Map(
     settings.models
-      .filter(isDeepWriteSiteOfficialModel)
+      .filter((model) => isDeepWriteSiteOfficialModel(model) && model.hasApiKey)
       .map((model) => [model.id, model.enabled !== false])
   );
   const models = settings.models
@@ -240,16 +247,21 @@ export function saveDeepWriteSiteOfficialModelInput(
     baseUrl
   ).map((model) => ({
     ...model,
-    enabled: previousEnabledById.get(model.id) ?? true
+    enabled: Boolean(apiKey) && (previousEnabledById.get(model.id) ?? true)
   }));
   models.push(...siteModels);
+  const defaultModels = apiKey
+    ? models
+    : models.filter((model) => !isDeepWriteSiteOfficialModel(model));
   return {
     models,
     defaultModelId:
       settings.defaultModelId &&
-      models.some((model) => model.id === settings.defaultModelId)
+      defaultModels.some((model) => model.id === settings.defaultModelId)
         ? settings.defaultModelId
-        : siteModels[0]!.id
+        : apiKey
+          ? siteModels[0]!.id
+          : (defaultModels[0]?.id ?? "")
   };
 }
 
@@ -258,12 +270,14 @@ export function setDeepWriteSiteOfficialModelEnabledInput(
   modelId: string,
   enabled: boolean
 ): ModelSettingsInput {
-  if (
-    !settings.models.some(
-      (model) => model.id === modelId && isDeepWriteSiteOfficialModel(model)
-    )
-  ) {
+  const target = settings.models.find(
+    (model) => model.id === modelId && isDeepWriteSiteOfficialModel(model)
+  );
+  if (!target) {
     throw new Error("这个新官方小站模型已不在当前目录中。");
+  }
+  if (enabled && !target.hasApiKey) {
+    throw new Error("请先添加新官方小站模型密钥。");
   }
   const models = settings.models.map((model) =>
     toInput(
@@ -288,13 +302,20 @@ export function setDeepWriteSiteOfficialModelEnabledInput(
 export function clearDeepWriteSiteOfficialModelInput(
   settings: ModelSettings
 ): ModelSettingsInput {
-  const models = settings.models
-    .filter((model) => !isDeepWriteSiteOfficialModel(model))
-    .map(toInput);
+  const models = settings.models.map((model) =>
+    isDeepWriteSiteOfficialModel(model)
+      ? { ...toInput(model), clearApiKey: true, enabled: false }
+      : toInput(model)
+  );
+  const defaultModels = models.filter(
+    (model) => !isDeepWriteSiteOfficialModel(model)
+  );
   return {
     models,
-    defaultModelId: models.some((model) => model.id === settings.defaultModelId)
+    defaultModelId: defaultModels.some(
+      (model) => model.id === settings.defaultModelId
+    )
       ? settings.defaultModelId
-      : (models[0]?.id ?? "")
+      : (defaultModels[0]?.id ?? "")
   };
 }

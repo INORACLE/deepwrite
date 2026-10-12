@@ -4,7 +4,12 @@ import {
   type StreamFn,
   type ThinkingLevel as PiThinkingLevel
 } from "@earendil-works/pi-agent-core";
-import type { Api, Model } from "@earendil-works/pi-ai";
+import {
+  normalizeContext,
+  toToolDeclaration,
+  type Api,
+  type Model
+} from "@earendil-works/pi-ai";
 import {
   cacheConversationAgent,
   selectConversationAgentForRun
@@ -50,7 +55,13 @@ export class ConversationAgentCache {
       if (reusable.state.isStreaming) {
         throw new Error("The selected conversation agent is already running.");
       }
-      reusable.state.systemPrompt = state.systemPrompt;
+      reusable.state.messages = normalizeContext({
+        systemPrompt: state.systemPrompt,
+        tools: state.tools.map(toToolDeclaration),
+        messages: reusable.state.messages.filter(
+          (message) => message.role !== "system"
+        )
+      }).messages;
       reusable.state.model = state.model;
       reusable.state.thinkingLevel = state.thinkingLevel;
       reusable.state.tools = state.tools;

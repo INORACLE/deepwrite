@@ -247,8 +247,10 @@ export const longBookDecompositionAgent: ExtrasTaskAgentDefinition<"long-book-de
             ? args.tasks.map((task) => {
                 const value = task as { key?: unknown; subagent_id?: unknown };
                 return {
-                  key: value.key,
-                  subagent_id: value.subagent_id,
+                  ...(typeof value.key === "string" ? { key: value.key } : {}),
+                  ...(typeof value.subagent_id === "string"
+                    ? { subagent_id: value.subagent_id }
+                    : {}),
                   task: "任务说明已压缩；单元状态请查询真实目标。"
                 };
               })

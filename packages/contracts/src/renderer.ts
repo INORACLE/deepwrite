@@ -55,6 +55,7 @@ export {
   decompositionInputBudget
 } from "./long-book-decomposition/chunking";
 export { estimateDecomposition } from "./long-book-decomposition/estimate";
+export { DecompositionCommandRecoverySchema } from "./long-book-decomposition/commands";
 export {
   decompositionUsageLimit,
   decompositionUsageTotal
@@ -115,6 +116,7 @@ export type * from "./material-query";
 export { MATERIAL_STAGE_KINDS } from "./material-stages";
 export type * from "./models";
 export type * from "./model-usage";
+export { isModelQuotaExhausted } from "./model-provider-errors";
 export type * from "./preload-api";
 export type * from "./renderer-state";
 export type * from "./session";

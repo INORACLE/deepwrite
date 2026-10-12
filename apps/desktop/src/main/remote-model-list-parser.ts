@@ -22,7 +22,9 @@ function remoteCandidate(record: Record<string, unknown>, id: string) {
   return {
     id,
     label: recordValue(record, "label", "display_name", "displayName"),
+    description: record.description,
     provider: record.provider,
+    api: record.api,
     requestModelId: recordValue(record, "requestModelId", "request_model_id"),
     supportsDeveloperRole: recordValue(
       record,

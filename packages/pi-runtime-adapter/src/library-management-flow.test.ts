@@ -8,6 +8,7 @@ import {
   type Api,
   type Model
 } from "@earendil-works/pi-ai";
+import type { JsonObject } from "@earendil-works/pi-ai";
 import {
   DEFAULT_LIBRARY_AGENT_PROFILES,
   createShortWorkspaceContentRevision,
@@ -155,7 +156,7 @@ describe("creative workspace management delegation", () => {
     // Auto-save is allowed to approve proposals, but it never answers questions.
     run.writeApprovalMode = "auto-approve";
     const { faux, model, streamFn } = provider();
-    const toolMessage = (name: string, args: Record<string, unknown>) =>
+    const toolMessage = (name: string, args: JsonObject) =>
       fauxAssistantMessage(fauxToolCall(name, args), { stopReason: "toolUse" });
     const delegate = () =>
       toolMessage("spawn_subagent", {

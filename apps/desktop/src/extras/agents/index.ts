@@ -1,7 +1,5 @@
-import {
-  controlWithUsage,
-  handleDecompositionCommands
-} from "./long-book-decomposition/commands";
+import { handleDecompositionCommands } from "./long-book-decomposition/commands";
+import { controlWithUsage } from "./long-book-decomposition/core-bridge";
 import { resolveDecompositionTask } from "./long-book-decomposition/task-resolution";
 import { handleLongMaterialPackCommands } from "./long-material-pack/commands";
 import { resolveLongMaterialGuideTask } from "./long-material-pack/task-resolution";

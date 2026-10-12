@@ -30,12 +30,9 @@
   font-size: 1.57143rem;
   font-weight: 650;
 }
-.usage-heading p {
+.usage-heading .usage-notice {
   max-width: 680px;
   margin: 0;
-  color: var(--text-secondary);
-  font-size: 0.892857rem;
-  line-height: 1.55;
 }
 
 .usage-refresh,

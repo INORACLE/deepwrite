@@ -305,9 +305,9 @@ describe("DeepWrite Pi runtime adapter: provider-model-routing", () => {
       thinkingLevelMap: {
         off: null,
         minimal: null,
-        low: "LOW",
-        medium: null,
-        high: "HIGH"
+        low: "low",
+        medium: "medium",
+        high: "high"
       }
     });
   });
@@ -516,16 +516,15 @@ describe("DeepWrite Pi runtime adapter: provider-model-routing", () => {
     const config: AgentProviderRuntimeConfig = {
       id: "deepwrite-deepseek-v4-flash",
       label: "Official DeepSeek Flash",
-      provider: "deepseek-official",
+      provider: "deepwrite-site",
       modelId: "deepseek-v4-flash-202605",
       api: "openai-completions",
-      baseUrl: "https://tokenhub.tencentmaas.com.example.test/v1",
+      baseUrl: "https://gateway.example.test/v1",
       reasoning: true,
       supportsDeveloperRole: false,
       defaultThinkingLevel: "high",
       thinkingLevelOptions: ["low", "high", "max"],
       temperatureOptions: [0.7, 1, 1.5],
-      managedBy: "deepwrite-official",
       apiKey: "test-only"
     };
 
@@ -543,24 +542,23 @@ describe("DeepWrite Pi runtime adapter: provider-model-routing", () => {
     const config: AgentProviderRuntimeConfig = {
       id: "deepwrite-kimi-k3",
       label: "Kimi K3",
-      provider: "deepseek-official",
+      provider: "deepwrite-site",
       modelId: "kimi-k3",
       api: "openai-completions",
-      baseUrl: "https://www.moxing.pro.example.test/v1",
+      baseUrl: "https://gateway.example.test/v1",
       reasoning: true,
       supportsDeveloperRole: false,
       defaultThinkingLevel: "high",
       thinkingLevelOptions: ["low", "high", "max"],
       temperatureOptions: [0.7, 1, 1.5],
-      managedBy: "deepwrite-official",
       apiKey: "test-only"
     };
 
     const high = buildProviderRuntime(config, undefined, "high").model;
     expect(high).toMatchObject({
       id: "kimi-k3",
-      provider: "deepseek-official",
-      baseUrl: "https://www.moxing.pro.example.test/v1",
+      provider: "deepwrite-site",
+      baseUrl: "https://gateway.example.test/v1",
       reasoning: true,
       input: ["text", "image"],
       contextWindow: 1_048_576,
@@ -601,23 +599,22 @@ describe("DeepWrite Pi runtime adapter: provider-model-routing", () => {
     const config: AgentProviderRuntimeConfig = {
       id: "deepwrite-deepseek-v4-flash-0731",
       label: "DeepSeek-V4-Flash-正式版",
-      provider: "deepseek-official",
+      provider: "deepwrite-site",
       modelId: "deepseek-v4-flash-0731",
       api: "openai-completions",
-      baseUrl: "https://www.moxing.pro.example.test/v1/",
+      baseUrl: "https://gateway.example.test/v1/",
       reasoning: true,
       supportsDeveloperRole: true,
       defaultThinkingLevel: "high",
       thinkingLevelOptions: ["low", "high", "max"],
       temperatureOptions: [0.7, 1, 1.5],
-      managedBy: "deepwrite-official",
       apiKey: "test-only"
     };
 
     expect(buildProviderRuntime(config, undefined, "max").model).toMatchObject({
       id: "deepseek-v4-flash-0731",
-      provider: "deepseek-official",
-      baseUrl: "https://www.moxing.pro.example.test/v1/",
+      provider: "deepwrite-site",
+      baseUrl: "https://gateway.example.test/v1/",
       contextWindow: 1_000_000,
       maxTokens: 384_000,
       input: ["text"],
@@ -646,7 +643,7 @@ describe("DeepWrite Pi runtime adapter: provider-model-routing", () => {
       const config: AgentProviderRuntimeConfig = {
         id: `deepwrite-${modelId}`,
         label,
-        provider: "deepseek-official",
+        provider: "deepwrite-site",
         modelId,
         api: "openai-completions",
         baseUrl: "https://example.test/v1",
@@ -655,7 +652,6 @@ describe("DeepWrite Pi runtime adapter: provider-model-routing", () => {
         defaultThinkingLevel: "high",
         thinkingLevelOptions: ["low", "high", "max"],
         temperatureOptions: [0.7, 1, 1.5],
-        managedBy: "deepwrite-official",
         apiKey: "test-only"
       };
 
@@ -663,7 +659,7 @@ describe("DeepWrite Pi runtime adapter: provider-model-routing", () => {
         buildProviderRuntime(config, undefined, "max").model
       ).toMatchObject({
         id: modelId,
-        provider: "deepseek-official",
+        provider: "deepwrite-site",
         baseUrl: "https://example.test/v1",
         contextWindow: 1_000_000,
         maxTokens: 384_000,
@@ -698,7 +694,7 @@ describe("DeepWrite Pi runtime adapter: provider-model-routing", () => {
       const config: AgentProviderRuntimeConfig = {
         id: `deepwrite-${modelId}`,
         label,
-        provider: "deepseek-official",
+        provider: "deepwrite-site",
         modelId,
         api: "openai-completions",
         baseUrl: "https://example.test/v1",
@@ -707,7 +703,6 @@ describe("DeepWrite Pi runtime adapter: provider-model-routing", () => {
         defaultThinkingLevel: "high",
         thinkingLevelOptions: ["low", "high", "max"],
         temperatureOptions: [0.7, 1, 1.5],
-        managedBy: "deepwrite-official",
         apiKey: "test-only"
       };
 
@@ -715,7 +710,7 @@ describe("DeepWrite Pi runtime adapter: provider-model-routing", () => {
         buildProviderRuntime(config, undefined, "max").model
       ).toMatchObject({
         id: modelId,
-        provider: "deepseek-official",
+        provider: "deepwrite-site",
         baseUrl: "https://example.test/v1",
         contextWindow,
         maxTokens,
@@ -741,7 +736,7 @@ describe("DeepWrite Pi runtime adapter: provider-model-routing", () => {
     const config: AgentProviderRuntimeConfig = {
       id: "deepwrite-glm-5.3",
       label: "GLM-5.3",
-      provider: "deepseek-official",
+      provider: "deepwrite-site",
       modelId: "glm-5.3",
       api: "openai-completions",
       baseUrl: "https://example.test/v1",
@@ -750,7 +745,6 @@ describe("DeepWrite Pi runtime adapter: provider-model-routing", () => {
       defaultThinkingLevel: "max",
       thinkingLevelOptions: ["low", "high", "max"],
       temperatureOptions: [0.7, 1, 1.5],
-      managedBy: "deepwrite-official",
       apiKey: "test-only"
     };
 
@@ -843,24 +837,23 @@ describe("DeepWrite Pi runtime adapter: provider-model-routing", () => {
         id: `deepwrite-${modelId}`,
         label:
           modelId === "qwen3.8-max" ? "Qwen3.8 Max" : "Qwen3.8 Max Preview",
-        provider: "deepseek-official",
+        provider: "deepwrite-site",
         modelId,
         api: "openai-completions",
-        baseUrl: "https://www.moxing.pro.example.test/v1",
+        baseUrl: "https://gateway.example.test/v1",
         reasoning: true,
         supportsDeveloperRole: false,
         defaultThinkingLevel: "high",
         thinkingLevelOptions: ["low", "high", "max"],
         temperatureOptions: [0.7, 1, 1.5],
-        managedBy: "deepwrite-official",
         apiKey: "test-only"
       };
 
       const high = buildProviderRuntime(config, undefined, "high").model;
       expect(high).toMatchObject({
         id: modelId,
-        provider: "deepseek-official",
-        baseUrl: "https://www.moxing.pro.example.test/v1",
+        provider: "deepwrite-site",
+        baseUrl: "https://gateway.example.test/v1",
         reasoning: true,
         input: ["text", "image"],
         contextWindow: 983_616,

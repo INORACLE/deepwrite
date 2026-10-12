@@ -217,7 +217,17 @@ export default {
     quotaTransferredUsageHasNotRefreshedYetRefreshThe:
       "额度已转入，暂未刷新最新用量，请稍后刷新页面。",
     quotaTransferFailedRefreshTheQuotaToCheckThe:
-      "额度转入失败，请刷新额度确认结果后再试。"
+      "额度转入失败，请刷新额度确认结果后再试。",
+    invalidKeyLine: "第 {line} 行密钥过长，请检查是否按每行一个密钥填写。",
+    keyNotTransferred: "尚未转入：{reason}",
+    targetKeyNotSaved:
+      "第 {line} 行密钥未保存：{reason}。其余密钥的额度均未转入。",
+    duplicateKeyLine: "与第 {line} 行密钥相同，未重复转入。",
+    failedKeyLine: "第 {line} 行：{reason}",
+    batchTransferResult:
+      "额度转入结果：成功 {succeeded} 个，失败或未转入 {failed} 个。{details}",
+    allSourceKeysTransferred:
+      "已将 {count} 个来源 Key 的额度转入当前密钥，来源 Key 已永久注销。"
   },
   popupSelect: {
     modelsSelected: "已选择 {length} 个模型"

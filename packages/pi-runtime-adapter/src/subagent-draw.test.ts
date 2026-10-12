@@ -7,6 +7,7 @@ import {
   type Api,
   type AssistantMessage,
   type Context,
+  type TranscriptContext,
   type Model
 } from "@earendil-works/pi-ai";
 import { describe, expect, it, vi } from "vitest";
@@ -23,6 +24,7 @@ import {
   type SubagentToolProgress
 } from "./subagent-runtime";
 import { createConcurrencyLimiter } from "./concurrency-limiter";
+import { inspectTranscript } from "./transcript.test-support";
 
 const EVALUATOR_MARK = "【抽卡评估运行边界】";
 
@@ -89,7 +91,8 @@ function harness(options: {
   models.setProvider(faux.provider);
   const contexts: Context[] = [];
   let drafts = 0;
-  const respond: Responder = (context) => {
+  const respond = (transcript: TranscriptContext) => {
+    const context = inspectTranscript(transcript);
     if (context.systemPrompt?.includes(EVALUATOR_MARK)) {
       return options.evaluator
         ? options.evaluator(context)
@@ -104,7 +107,7 @@ function harness(options: {
   const gate = deferred();
   let arrivals = 0;
   const streamFn: StreamFn = async (requestModel, context, streamOptions) => {
-    contexts.push(context);
+    contexts.push(inspectTranscript(context));
     arrivals += 1;
     if (arrivals >= (options.gate ?? 1)) gate.resolve();
     await gate.promise;

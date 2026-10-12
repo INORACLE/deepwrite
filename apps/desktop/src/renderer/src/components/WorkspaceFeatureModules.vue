@@ -99,15 +99,11 @@ const emit = defineEmits<{
   loadModels: [];
   saveModels: [settings: ModelSettingsInput];
   testModel: [model: ModelConfigInput];
-  loadOfficialModels: [];
   loadSiteOfficialModels: [];
-  saveOfficialToken: [apiKey: string];
-  clearOfficialToken: [];
   saveSiteOfficialToken: [apiKey: string];
   clearSiteOfficialToken: [];
   refreshSiteOfficialModels: [];
   setSiteOfficialModelEnabled: [modelId: string, enabled: boolean];
-  setOfficialModelEnabled: [modelId: string, enabled: boolean];
   setFreeModelEnabled: [modelId: string, enabled: boolean];
   retryAgentTeam: [];
   createAgentTeam: [input: AgentTeamProfileCreateInput];
@@ -164,6 +160,7 @@ const emit = defineEmits<{
     :model-usage-dashboard="module.modelUsageDashboard"
     :model-usage-loading="module.modelUsageLoading"
     :model-settings="module.modelSettings"
+    :model-alert-messages="module.modelAlertMessages"
     :model-loading="module.modelLoading"
     :model-saving="module.modelSaving"
     :free-models-refreshing="module.freeModelsRefreshing"
@@ -174,10 +171,6 @@ const emit = defineEmits<{
     :model-error="module.modelError"
     :model-test-message="module.modelTestMessage"
     :testing-model-id="module.testingModelId"
-    :official-model-usage-dashboard="module.officialModelUsageDashboard"
-    :official-model-balance="module.officialModelBalance"
-    :official-models-loading="module.officialModelsLoading"
-    :official-models-saving="module.officialModelsSaving"
     :runtime-available="module.runtimeAvailable"
     @back="emit('back')"
     @update-permission-mode="emit('updatePermissionMode', $event)"
@@ -206,19 +199,13 @@ const emit = defineEmits<{
     @load-models="emit('loadModels')"
     @save-models="emit('saveModels', $event)"
     @test-model="emit('testModel', $event)"
-    @load-official-models="emit('loadOfficialModels')"
     @load-site-official-models="emit('loadSiteOfficialModels')"
-    @save-official-token="emit('saveOfficialToken', $event)"
-    @clear-official-token="emit('clearOfficialToken')"
     @save-site-official-token="emit('saveSiteOfficialToken', $event)"
     @clear-site-official-token="emit('clearSiteOfficialToken')"
     @refresh-site-official-models="emit('refreshSiteOfficialModels')"
     @set-site-official-model-enabled="
       (modelId, enabled) =>
         emit('setSiteOfficialModelEnabled', modelId, enabled)
-    "
-    @set-official-model-enabled="
-      (modelId, enabled) => emit('setOfficialModelEnabled', modelId, enabled)
     "
     @refresh-free-models="emit('refreshFreeModels')"
     @set-free-model-enabled="

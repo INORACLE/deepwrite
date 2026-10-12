@@ -4,7 +4,9 @@ import type { AgentMessage } from "@earendil-works/pi-agent-core";
 export function snapshotSubagentHistory(
   messages: readonly AgentMessage[]
 ): AgentMessage[] {
-  const copied = structuredClone(messages) as AgentMessage[];
+  const copied = structuredClone(
+    messages.filter((message) => message.role !== "system")
+  ) as AgentMessage[];
   const completed = new Set(
     copied
       .filter((message) => message.role === "toolResult")

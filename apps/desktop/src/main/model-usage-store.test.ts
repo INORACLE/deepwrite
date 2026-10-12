@@ -207,20 +207,24 @@ describe("ModelUsageStore", () => {
     ]);
   });
 
-  it("filters shared official quota usage by managed model ownership", async () => {
+  it("retains retired official-site usage as historical after restart", async () => {
     const root = await makeTemporaryRoot();
     const officialModel = model({
       id: "deepwrite-official-test",
       provider: "deepseek-official",
-      modelId: "deepseek-official-test",
-      managedBy: "deepwrite-official"
+      modelId: "deepseek-official-test"
     });
     const customModel = model({ id: "custom-test", modelId: "custom-test" });
     const store = new ModelUsageStore(root);
 
-    await store.syncConfiguredModels([officialModel, customModel]);
+    await store.syncConfiguredModels([customModel]);
     await store.record(
-      record("official-event", localDate(2026, 6, 1), officialModel)
+      record("official-event", localDate(2026, 6, 1), officialModel, {
+        model: {
+          ...createModelUsageSnapshot(officialModel),
+          managedBy: "deepwrite-official"
+        }
+      })
     );
     await store.record(
       record("custom-event", localDate(2026, 6, 2), customModel, {
@@ -234,9 +238,12 @@ describe("ModelUsageStore", () => {
       })
     );
 
-    const dashboard = await store.query({ managedBy: "deepwrite-official" });
+    const dashboard = await new ModelUsageStore(root).query({
+      managedBy: "deepwrite-official"
+    });
     expect(dashboard.totals.totalTokens).toBe(DEFAULT_USAGE.totalTokens);
     expect(dashboard.models).toHaveLength(1);
+    expect(dashboard.models[0]?.status).toBe("historical");
     expect(dashboard.models[0]?.model).toMatchObject({
       configId: "deepwrite-official-test",
       managedBy: "deepwrite-official"

@@ -2,7 +2,7 @@ import type {
   ToolSchemaProfile,
   WorkspaceRuntimeContext
 } from "@deepwrite/contracts";
-import type { Context } from "@earendil-works/pi-ai";
+import type { Context, Tool } from "@earendil-works/pi-ai";
 
 const GRAMMAR_REPETITION_THRESHOLD = 2_000;
 const WRITING_WORKSPACE_OMITTED_KEYWORDS = new Set([
@@ -167,8 +167,7 @@ export function applyProviderToolSchemaCompatibility(
   profile: PortableToolSchemaProfile = "default"
 ): Context {
   if (
-    resolveProviderToolSchemaMode(provider, configuredProfile) !== "portable" ||
-    !context.tools?.length
+    resolveProviderToolSchemaMode(provider, configuredProfile) !== "portable"
   ) {
     return context;
   }
@@ -176,11 +175,17 @@ export function applyProviderToolSchemaCompatibility(
     profile === "writing-workspace"
       ? sanitizePortableWritingToolSchema
       : sanitizePortableToolSchema;
+  const sanitizeTool = (tool: Tool): Tool => ({
+    ...tool,
+    parameters: sanitize(tool.parameters) as typeof tool.parameters
+  });
   return {
     ...context,
-    tools: context.tools.map((tool) => ({
-      ...tool,
-      parameters: sanitize(tool.parameters) as typeof tool.parameters
-    }))
+    ...(context.tools ? { tools: context.tools.map(sanitizeTool) } : {}),
+    messages: context.messages.map((message) =>
+      message.role === "system" && message.toolsAdded?.length
+        ? { ...message, toolsAdded: message.toolsAdded.map(sanitizeTool) }
+        : message
+    )
   };
 }

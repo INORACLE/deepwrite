@@ -24,11 +24,9 @@ export function useModelProviderGroups(rows: Ref<ModelConfigRow[]>) {
           const label =
             model.managedBy === "deepwrite-free"
               ? t("deepwriteFreeModels")
-              : model.managedBy === "deepwrite-official"
-                ? t("legacyOfficialSiteModels")
-                : (MODEL_PROVIDER_OPTIONS.find(
-                    (option) => option.value === model.provider
-                  )?.label ?? model.provider);
+              : (MODEL_PROVIDER_OPTIONS.find(
+                  (option) => option.value === model.provider
+                )?.label ?? model.provider);
           currentGroup = { key, label, count: 0, rows: [] };
           groups.set(key, currentGroup);
         }

@@ -3,6 +3,7 @@ import type {
   ThinkingLevel as PiThinkingLevel
 } from "@earendil-works/pi-agent-core";
 import {
+  normalizeContext,
   type Api,
   type Context,
   type Model,
@@ -43,6 +44,12 @@ import {
   isVolcengineProvider,
   VOLCENGINE_COMPLETIONS_COMPAT
 } from "./volcengine-runtime";
+
+type ProviderStreamFn = (
+  model: Model<Api>,
+  context: Context,
+  options?: SimpleStreamOptions
+) => ReturnType<StreamFn>;
 
 function providerStreams(
   api: AgentProviderRuntimeConfig["api"]
@@ -139,8 +146,8 @@ export function buildWorkspaceProviderRuntimes(
   compatibility: ProviderRuntimeCompatibilityOptions = {}
 ): {
   model: Model<Api>;
-  streamFn: StreamFn;
-  spawnStreamFn: StreamFn;
+  streamFn: ProviderStreamFn;
+  spawnStreamFn: ProviderStreamFn;
 } {
   const parent = buildProviderRuntime(
     config,
@@ -168,7 +175,7 @@ export function buildProviderRuntime(
   compatibility: ProviderRuntimeCompatibilityOptions = {}
 ): {
   model: Model<Api>;
-  streamFn: StreamFn;
+  streamFn: ProviderStreamFn;
 } {
   if (compatibility.webSearchEnabled) {
     assertDeepSeekWebSearchCompatible(config);
@@ -257,11 +264,13 @@ export function buildProviderRuntime(
     const openCodeHeaders = openCodeRequestHeaders(options?.sessionId);
     return streams.streamSimple(
       requestModel,
-      applyProviderToolSchemaCompatibility(
-        enforceProviderToolSchemaCompatibility(context),
-        config.provider,
-        config.toolSchemaProfile,
-        compatibility.portableToolSchemaProfile
+      normalizeContext(
+        applyProviderToolSchemaCompatibility(
+          enforceProviderToolSchemaCompatibility(context),
+          config.provider,
+          config.toolSchemaProfile,
+          compatibility.portableToolSchemaProfile
+        )
       ),
       applyGoogleClaudeThinkingCompatibility(config.api, requestModel.id, {
         ...options,
@@ -297,7 +306,7 @@ export function buildProviderRuntime(
       })
     );
   };
-  return { model, streamFn: streamFn as StreamFn };
+  return { model, streamFn };
 }
 
 export function resolveProviderModelCapacity(

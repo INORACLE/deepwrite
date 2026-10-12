@@ -154,6 +154,10 @@
   letter-spacing: -0.035em;
 }
 
+.custom-models-notice {
+  margin-bottom: 20px;
+}
+
 .settings-group {
   max-width: 760px;
 }

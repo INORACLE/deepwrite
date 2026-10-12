@@ -1,13 +1,12 @@
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import type { ModelConfigInput } from "@deepwrite/contracts";
 import {
   temporaryRoots,
   emptyCatalog,
-  customModel,
-  officialModel,
-  officialCatalog
+  customModel
 } from "./model-config-store.test-support";
 
 vi.mock("electron", () => ({
@@ -19,206 +18,211 @@ vi.mock("electron", () => ({
 }));
 
 const { ModelConfigStore } = await import("./model-config-store");
+const SITE_MODEL_ID = "deepwrite-site-official-writer";
+const RETIRED_MODEL_ID = "retired-official-writer";
+const encrypt = (key: string) => Buffer.from(key, "utf8").toString("base64");
 
-describe("ModelConfigStore official models", () => {
-  it("encrypts one official token, injects immutable models first, and removes them with the token", async () => {
-    const root = await mkdtemp(
-      join(tmpdir(), "deepwrite-official-model-store-")
-    );
-    temporaryRoots.push(root);
-    const freeModelCatalog = {
+function createStore(root: string): InstanceType<typeof ModelConfigStore> {
+  return new ModelConfigStore(root, {
+    freeModelCatalog: {
       initialize: async () => undefined,
       getCatalog: async () => emptyCatalog()
-    };
-    const remoteOfficialCatalog = officialCatalog();
-    const officialModelCatalog = {
-      initialize: async () => undefined,
-      getCatalog: async () => structuredClone(remoteOfficialCatalog),
-      refreshCatalog: async () => structuredClone(remoteOfficialCatalog)
-    };
-    const store = new ModelConfigStore(root, {
-      freeModelCatalog,
-      officialModelCatalog
-    });
-    await store.save({
-      models: [customModel()],
-      defaultModelId: "custom-writer"
-    });
+    }
+  });
+}
 
-    const saved = await store.saveOfficialToken("sk-official-test-only");
-    expect(saved.deepwriteOfficialTokenConfigured).toBe(true);
-    expect(saved.models.map((model) => model.id)).toEqual([
-      "deepwrite-deepseek-v4-flash",
-      "custom-writer"
-    ]);
-    expect(saved.defaultModelId).toBe("custom-writer");
-    expect(saved.models[0]).toMatchObject({
-      label: "官方模型-DeepSeekFlash正式版本",
-      modelId: "deepseek-v4-flash-202605",
-      baseUrl: "https://official.example.test/v1",
-      supportsDeveloperRole: false,
-      hasApiKey: true,
-      managedBy: "deepwrite-official"
-    });
-
-    const resolved = await store.resolve("deepwrite-deepseek-v4-flash");
-    expect(resolved).toMatchObject({
-      modelId: "deepseek-v4-flash-202605",
-      supportsDeveloperRole: false,
-      apiKey: "sk-official-test-only"
-    });
-    const resaved = await store.save({
+async function seedSettings(
+  root: string,
+  version: number,
+  defaultModelId: string
+) {
+  const configDirectory = join(root, "config");
+  await mkdir(configDirectory, { recursive: true });
+  const encryptedApiKeys = {
+    "deepwrite-official-token": encrypt("invalid-retired-shared-token"),
+    [RETIRED_MODEL_ID]: encrypt("invalid-retired-model-key"),
+    [SITE_MODEL_ID]: encrypt("invalid-site-model-key"),
+    "deepwrite-site-official-disabled": encrypt("invalid-disabled-site-key"),
+    "custom-writer": encrypt("invalid-custom-model-key")
+  };
+  await writeFile(
+    join(configDirectory, "models.json"),
+    JSON.stringify({
+      version,
+      defaultModelId,
       models: [
-        customModel(),
         {
-          ...saved.models[0]!,
-          label: "不应保存的名称",
-          baseUrl: "https://invalid.example.test/v1"
-        }
+          ...customModel(),
+          id: RETIRED_MODEL_ID,
+          managedBy: "deepwrite-official"
+        },
+        {
+          ...customModel(),
+          id: "deepwrite-site-official-disabled",
+          enabled: false
+        },
+        { ...customModel(), id: SITE_MODEL_ID, enabled: true },
+        customModel()
       ],
-      defaultModelId: "deepwrite-deepseek-v4-flash"
-    });
-    expect(resaved.models[0]).toMatchObject({
-      label: "官方模型-DeepSeekFlash正式版本",
-      baseUrl: "https://official.example.test/v1"
-    });
-    expect(resaved.defaultModelId).toBe("deepwrite-deepseek-v4-flash");
-    const secrets = await readFile(join(root, "config", "models.json"), "utf8");
-    expect(secrets).not.toContain("sk-official-test-only");
-
-    const cleared = await store.clearOfficialToken();
-    expect(cleared.deepwriteOfficialTokenConfigured).toBe(false);
-    expect(cleared.models.map((model) => model.id)).toEqual(["custom-writer"]);
-    expect(cleared.defaultModelId).toBe("custom-writer");
-    expect(cleared.deepwriteOfficialModels?.[0]).toMatchObject({
-      modelId: "deepseek-v4-flash-202605",
-      hasApiKey: false
-    });
-  });
-
-  it("replaces the read-only official entries when the refreshed remote catalog changes", async () => {
-    const root = await mkdtemp(
-      join(tmpdir(), "deepwrite-official-refresh-store-")
+      disabledOfficialModelIds: [RETIRED_MODEL_ID],
+      ...(version === 3 ? { encryptedApiKeys } : {})
+    }),
+    "utf8"
+  );
+  if (version !== 3) {
+    await writeFile(
+      join(configDirectory, "model-secrets.json"),
+      JSON.stringify({ version: 1, encryptedApiKeys }),
+      "utf8"
     );
+  }
+}
+
+describe("ModelConfigStore retired official site migration", () => {
+  it.each([
+    [1, RETIRED_MODEL_ID],
+    [2, RETIRED_MODEL_ID],
+    [3, RETIRED_MODEL_ID],
+    [1, SITE_MODEL_ID],
+    [2, SITE_MODEL_ID],
+    [3, SITE_MODEL_ID]
+  ] as const)(
+    "migrates v%s with default %s while retaining site and custom keys",
+    async (version, defaultModelId) => {
+      const root = await mkdtemp(join(tmpdir(), "deepwrite-model-retirement-"));
+      temporaryRoots.push(root);
+      await seedSettings(root, version, defaultModelId);
+      const store = createStore(root);
+      await store.initialize();
+
+      const saved = await store.list();
+      expect(saved.models.map((model) => model.id)).toEqual([
+        "deepwrite-site-official-disabled",
+        SITE_MODEL_ID,
+        "custom-writer"
+      ]);
+      expect(saved.defaultModelId).toBe(SITE_MODEL_ID);
+      expect(saved.models.every((model) => model.hasApiKey)).toBe(true);
+      expect(saved.models[0]?.enabled).toBe(false);
+      await expect(store.resolve(RETIRED_MODEL_ID)).rejects.toThrow(
+        "所选模型不存在"
+      );
+      await expect(store.resolve(SITE_MODEL_ID)).resolves.toMatchObject({
+        apiKey: "invalid-site-model-key"
+      });
+      await expect(store.resolve("custom-writer")).resolves.toMatchObject({
+        apiKey: "invalid-custom-model-key"
+      });
+
+      const disk = JSON.parse(
+        await readFile(join(root, "config", "models.json"), "utf8")
+      ) as {
+        version: number;
+        encryptedApiKeys: Record<string, string>;
+      };
+      expect(disk.version).toBe(3);
+      expect(disk).not.toHaveProperty("disabledOfficialModelIds");
+      expect(Object.keys(disk.encryptedApiKeys)).toEqual([
+        SITE_MODEL_ID,
+        "deepwrite-site-official-disabled",
+        "custom-writer"
+      ]);
+
+      await store.save({
+        models: saved.models,
+        defaultModelId: saved.defaultModelId
+      });
+      const restarted = createStore(root);
+      await restarted.initialize();
+      expect(await restarted.list()).toEqual(saved);
+      await expect(restarted.resolve(SITE_MODEL_ID)).resolves.toMatchObject({
+        apiKey: "invalid-site-model-key"
+      });
+    }
+  );
+
+  it("clears a retired-only default without creating an available model", async () => {
+    const root = await mkdtemp(join(tmpdir(), "deepwrite-model-retired-only-"));
     temporaryRoots.push(root);
-    const remoteOfficialCatalog = officialCatalog();
-    let refreshCount = 0;
-    const store = new ModelConfigStore(root, {
-      freeModelCatalog: {
-        initialize: async () => undefined,
-        getCatalog: async () => emptyCatalog()
-      },
-      officialModelCatalog: {
-        initialize: async () => undefined,
-        getCatalog: async () => structuredClone(remoteOfficialCatalog),
-        refreshCatalog: async () => {
-          refreshCount += 1;
-          return structuredClone(remoteOfficialCatalog);
+    await mkdir(join(root, "config"), { recursive: true });
+    const retired = {
+      ...customModel(),
+      id: RETIRED_MODEL_ID,
+      managedBy: "deepwrite-official"
+    };
+    await writeFile(
+      join(root, "config", "models.json"),
+      JSON.stringify({
+        version: 3,
+        models: [retired],
+        defaultModelId: RETIRED_MODEL_ID,
+        encryptedApiKeys: {
+          "deepwrite-official-token": encrypt("invalid-retired-token")
         }
-      }
-    });
-    await store.saveOfficialToken("sk-official-refresh-test");
-    await store.save({
-      models: [officialModel(), customModel()],
-      defaultModelId: "deepwrite-deepseek-v4-flash"
-    });
-
-    remoteOfficialCatalog.revision = "remote-v2";
-    remoteOfficialCatalog.models = [
-      officialModel({
-        id: "deepwrite-deepseek-v4-flash-next",
-        label: "远程更新后的官方模型",
-        modelId: "deepseek-v4-flash-next"
-      })
-    ];
-    remoteOfficialCatalog.defaultModelId = "deepwrite-deepseek-v4-flash-next";
-
-    const refreshed = await store.refreshOfficialModels();
-    expect(refreshCount).toBe(1);
-    expect(refreshed.models.map((model) => model.id)).toEqual([
-      "deepwrite-deepseek-v4-flash-next",
-      "custom-writer"
-    ]);
-    expect(refreshed.models[0]?.label).toBe("远程更新后的官方模型");
-    expect(refreshed.defaultModelId).toBe("deepwrite-deepseek-v4-flash-next");
-  });
-
-  it("persists per-model enablement and exposes only enabled official models in model settings", async () => {
-    const root = await mkdtemp(
-      join(tmpdir(), "deepwrite-official-enabled-store-")
+      }),
+      "utf8"
     );
-    temporaryRoots.push(root);
-    const first = officialModel();
-    const second = officialModel({
-      id: "deepwrite-second-official",
-      label: "第二个官方模型",
-      modelId: "second-official"
-    });
-    const unavailable = officialModel({
-      id: "deepwrite-unavailable-official",
-      label: "暂不可用官方模型",
-      modelId: "unavailable-official",
-      status: 1
-    });
-    const store = new ModelConfigStore(root, {
-      freeModelCatalog: {
-        initialize: async () => undefined,
-        getCatalog: async () => emptyCatalog()
-      },
-      officialModelCatalog: {
-        initialize: async () => undefined,
-        getCatalog: async () => officialCatalog([first, second, unavailable])
-      }
-    });
 
-    const initial = await store.saveOfficialToken("sk-official-enabled-test");
-    expect(initial.deepwriteOfficialModels?.map((model) => model.id)).toEqual([
-      first.id,
-      second.id,
-      unavailable.id
-    ]);
-    expect(initial.deepwriteOfficialEnabledModelIds).toEqual([
-      first.id,
-      second.id
-    ]);
-    expect(initial.models.map((model) => model.id)).toEqual([
-      first.id,
-      second.id
-    ]);
+    const store = createStore(root);
+    await store.initialize();
+    expect(await store.list()).toMatchObject({
+      models: [],
+      defaultModelId: ""
+    });
+    await expect(store.resolve()).resolves.toBeUndefined();
     await expect(
-      store.setOfficialModelEnabled(unavailable.id, true)
-    ).rejects.toThrow(/当前不可用/u);
-    const disabled = await store.setOfficialModelEnabled(first.id, false);
-    expect(disabled.deepwriteOfficialEnabledModelIds).toEqual([second.id]);
-    expect(disabled.models.map((model) => model.id)).toEqual([second.id]);
-
-    await store.save({
-      models: disabled.models,
-      defaultModelId: second.id
-    });
-
-    const reloaded = await store.list();
-    expect(reloaded.models.map((model) => model.id)).toEqual([second.id]);
-    expect(reloaded.defaultModelId).toBe(second.id);
-
-    const restartedStore = new ModelConfigStore(root, {
-      freeModelCatalog: {
-        initialize: async () => undefined,
-        getCatalog: async () => emptyCatalog()
-      },
-      officialModelCatalog: {
-        initialize: async () => undefined,
-        getCatalog: async () => officialCatalog([first, second, unavailable])
-      }
-    });
-    const afterRestart = await restartedStore.list();
-    expect(afterRestart.defaultModelId).toBe(second.id);
-    expect(afterRestart.models.map((model) => model.id)).toEqual([second.id]);
-
-    const enabled = await store.setOfficialModelEnabled(first.id, true);
-    expect(enabled.models.map((model) => model.id)).toEqual([
-      first.id,
-      second.id
-    ]);
+      store.resolveDraft(retired as unknown as ModelConfigInput)
+    ).rejects.toThrow();
   });
+});
+
+describe("ModelConfigStore disabled site models", () => {
+  it.each([undefined, "invalid-disabled-site-key"])(
+    "keeps a disabled-only catalog out of runtime selection across restart (key=%s)",
+    async (apiKey) => {
+      const root = await mkdtemp(join(tmpdir(), "deepwrite-model-disabled-"));
+      temporaryRoots.push(root);
+      const store = createStore(root);
+      await store.save({
+        models: [
+          { ...customModel(), id: SITE_MODEL_ID, enabled: false, apiKey }
+        ],
+        defaultModelId: ""
+      });
+      await expect(store.resolve()).resolves.toBeUndefined();
+      await expect(store.resolve(SITE_MODEL_ID)).resolves.toMatchObject({
+        id: SITE_MODEL_ID,
+        apiKey: apiKey ?? ""
+      });
+
+      const restarted = createStore(root);
+      await restarted.initialize();
+      expect((await restarted.list()).models).toHaveLength(1);
+      await expect(restarted.resolve()).resolves.toBeUndefined();
+      await expect(restarted.resolve(SITE_MODEL_ID)).resolves.toMatchObject({
+        id: SITE_MODEL_ID,
+        apiKey: apiKey ?? ""
+      });
+    }
+  );
+
+  it.each(["", SITE_MODEL_ID])(
+    "falls back to the available custom model when the saved default is %s",
+    async (defaultModelId) => {
+      const root = await mkdtemp(join(tmpdir(), "deepwrite-model-fallback-"));
+      temporaryRoots.push(root);
+      const store = createStore(root);
+      await store.save({
+        models: [
+          { ...customModel(), id: SITE_MODEL_ID, enabled: false },
+          { ...customModel(), apiKey: "invalid-custom-fallback-key" }
+        ],
+        defaultModelId
+      });
+      await expect(store.resolve()).resolves.toMatchObject({
+        id: "custom-writer",
+        apiKey: "invalid-custom-fallback-key"
+      });
+    }
+  );
 });

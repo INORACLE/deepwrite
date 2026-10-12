@@ -4,11 +4,14 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 const t = createScopedTranslator("components.siteOfficialQuotaMergeDialog");
 
-const props = defineProps<{ pending: boolean }>();
+const props = defineProps<{
+  pending: boolean;
+  returnFocus?: HTMLElement | null;
+}>();
 const sourceKey = defineModel<string>("sourceKey", { required: true });
 const emit = defineEmits<{ close: []; submit: [] }>();
 const form = ref<HTMLFormElement | null>(null);
-const input = ref<HTMLInputElement | null>(null);
+const input = ref<HTMLTextAreaElement | null>(null);
 let previousFocus: HTMLElement | null = null;
 
 function close(): void {
@@ -24,7 +27,7 @@ function onKeydown(event: KeyboardEvent): void {
   if (event.key === "Tab") {
     const elements = Array.from(
       form.value?.querySelectorAll<HTMLElement>(
-        "input:not(:disabled), button:not(:disabled)"
+        "textarea:not(:disabled), button:not(:disabled)"
       ) ?? []
     );
     const first = elements[0];
@@ -61,15 +64,18 @@ watch(
 onMounted(() => {
   document.addEventListener("keydown", onKeydown, true);
   previousFocus =
-    document.activeElement instanceof HTMLElement
+    props.returnFocus ??
+    (document.activeElement instanceof HTMLElement
       ? document.activeElement
-      : null;
+      : null);
   input.value?.focus();
 });
 onBeforeUnmount(() => {
   document.removeEventListener("keydown", onKeydown, true);
   sourceKey.value = "";
-  previousFocus?.focus();
+  // The trigger is disabled while this dialog is open. Restore focus only
+  // after the parent's closing render has enabled it again.
+  void nextTick(() => previousFocus?.focus());
 });
 </script>
 
@@ -109,14 +115,14 @@ onBeforeUnmount(() => {
             {{ t("allUnusedQuotaFromTheSourceKeyTransfersTo") }}
           </p>
           <label for="site-quota-source-key">{{ t("sourceKey") }}</label>
-          <input
+          <textarea
             id="site-quota-source-key"
             ref="input"
             v-model="sourceKey"
-            type="password"
+            rows="4"
             autocomplete="new-password"
+            autocapitalize="off"
             :spellcheck="false"
-            :maxlength="1024"
             :placeholder="t('enterTheKeyProvidingTheQuota')"
             :disabled="pending"
           />
@@ -170,19 +176,21 @@ small {
   color: var(--text-tertiary);
   line-height: 1.6;
 }
-input {
+.site-quota-merge-dialog textarea {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  min-height: 40px;
+  min-height: 110px;
   padding: 10px 12px;
   border: 1px solid var(--theme-line);
   border-radius: 9px;
   background: var(--surface-raised);
   color: var(--text-primary);
   font: inherit;
+  line-height: 1.6;
+  resize: vertical;
 }
-input:focus-visible {
+.site-quota-merge-dialog textarea:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }

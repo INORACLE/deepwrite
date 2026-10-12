@@ -1,15 +1,11 @@
 import { safeStorage } from "electron";
 import {
+  isDeepWriteSiteOfficialModel,
   ModelSettingsSchema,
   type ModelConfigInput,
   type ModelSettings
 } from "@deepwrite/contracts";
 import type { DeepWriteFreeModelCatalog } from "./deepwrite-free-model-config";
-import {
-  DEEPWRITE_OFFICIAL_TOKEN_SECRET_ID,
-  isOfficialModelAvailable,
-  type DeepWriteOfficialModelCatalog
-} from "./deepwrite-official-model-config";
 import {
   synchronizeFreeModelState,
   toDiskModel,
@@ -29,7 +25,6 @@ import type {
 
 export interface ModelConfigCatalogs {
   freeCatalog: DeepWriteFreeModelCatalog;
-  officialCatalog: DeepWriteOfficialModelCatalog;
 }
 export type ModelConfigSnapshot = ModelConfigState & ModelConfigCatalogs;
 
@@ -59,39 +54,16 @@ export function withDeepWriteFreeApiKeys(
 export function toPublicSettings(
   settings: DiskModelSettings,
   secrets: DiskModelSecrets,
-  freeCatalog: DeepWriteFreeModelCatalog,
-  officialCatalog: DeepWriteOfficialModelCatalog
+  freeCatalog: DeepWriteFreeModelCatalog
 ): ModelSettings {
   return ModelSettingsSchema.parse({
     defaultModelId: settings.defaultModelId,
     models: settings.models.map((model) => ({
       ...model,
-      hasApiKey: Boolean(
-        secrets.encryptedApiKeys[
-          model.managedBy === "deepwrite-official"
-            ? DEEPWRITE_OFFICIAL_TOKEN_SECRET_ID
-            : model.id
-        ]
-      )
+      hasApiKey: Boolean(secrets.encryptedApiKeys[model.id])
     })),
     ...projectPublicFreeModelSettings(settings, freeCatalog, (modelId) =>
       Boolean(secrets.encryptedApiKeys[modelId])
-    ),
-    deepwriteOfficialModels: officialCatalog.models.map((model) => ({
-      ...model,
-      hasApiKey: Boolean(
-        secrets.encryptedApiKeys[DEEPWRITE_OFFICIAL_TOKEN_SECRET_ID]
-      )
-    })),
-    deepwriteOfficialEnabledModelIds: officialCatalog.models
-      .filter(
-        (model) =>
-          isOfficialModelAvailable(model) &&
-          !settings.disabledOfficialModelIds.includes(model.id)
-      )
-      .map((model) => model.id),
-    deepwriteOfficialTokenConfigured: Boolean(
-      secrets.encryptedApiKeys[DEEPWRITE_OFFICIAL_TOKEN_SECRET_ID]
     )
   });
 }
@@ -99,15 +71,9 @@ export function toPublicSettings(
 export function synchronizeState(
   settings: DiskModelSettings,
   secrets: DiskModelSecrets,
-  freeCatalog: DeepWriteFreeModelCatalog,
-  officialCatalog: DeepWriteOfficialModelCatalog
+  freeCatalog: DeepWriteFreeModelCatalog
 ): [DiskModelSettings, DiskModelSecrets] {
-  const nextSettings = synchronizeSettings(
-    settings,
-    secrets,
-    freeCatalog,
-    officialCatalog
-  );
+  const nextSettings = synchronizeSettings(settings, freeCatalog);
   return [
     nextSettings,
     {
@@ -122,46 +88,28 @@ export function synchronizeState(
 
 function synchronizeSettings(
   settings: DiskModelSettings,
-  secrets: DiskModelSecrets,
-  freeCatalog: DeepWriteFreeModelCatalog,
-  officialCatalog: DeepWriteOfficialModelCatalog
+  freeCatalog: DeepWriteFreeModelCatalog
 ): DiskModelSettings {
   const freeState = synchronizeFreeModelState(settings, freeCatalog);
-  const officialModelIds = new Set(
-    officialCatalog.models.map((model) => model.id)
-  );
-  const disabledOfficialModelIds = new Set(settings.disabledOfficialModelIds);
-  const officialModels = secrets.encryptedApiKeys[
-    DEEPWRITE_OFFICIAL_TOKEN_SECRET_ID
-  ]
-    ? officialCatalog.models
-        .filter(
-          (model) =>
-            isOfficialModelAvailable(model) &&
-            !disabledOfficialModelIds.has(model.id)
-        )
-        .map(toDiskModel)
-    : [];
   const freeModels = effectiveFreeModels(freeState, freeCatalog);
   const freeReservedIds = reservedFreeModelIds(freeState, freeCatalog);
-  const reservedModelIds = new Set([...officialModelIds, ...freeReservedIds]);
   const customModels = settings.models
-    .filter((model) => !model.managedBy && !reservedModelIds.has(model.id))
+    .filter((model) => !model.managedBy && !freeReservedIds.has(model.id))
     .map(toDiskModel);
-  const models = [...officialModels, ...freeModels, ...customModels];
+  const models = [...freeModels, ...customModels];
   const requestedDefaultModelId = settings.defaultModelId;
   const defaultModelId = models.some(
     (model) => model.id === requestedDefaultModelId
   )
     ? requestedDefaultModelId
-    : (models[0]?.id ?? "");
+    : (models.find(
+        (model) =>
+          !isDeepWriteSiteOfficialModel(model) || model.enabled !== false
+      )?.id ?? "");
   return {
     version: 2,
     defaultModelId,
     models,
-    disabledOfficialModelIds: [...disabledOfficialModelIds].filter((id) =>
-      officialModelIds.has(id)
-    ),
     ...freeState
   };
 }
@@ -169,28 +117,8 @@ function synchronizeSettings(
 export function synchronizeManagedModel(
   model: ModelConfigInput,
   freeCatalog: DeepWriteFreeModelCatalog,
-  officialCatalog: DeepWriteOfficialModelCatalog,
   enforceRemoteStatus = false
 ): ModelConfigInput {
-  if (model.managedBy === "deepwrite-official") {
-    if (
-      enforceRemoteStatus &&
-      officialCatalog.manifestAvailable &&
-      !officialCatalog.enabled
-    ) {
-      throw new Error(
-        officialCatalog.message || "DeepWrite 官方模型当前已暂停使用。"
-      );
-    }
-    const officialModel = officialCatalog.models.find(
-      (candidate) =>
-        candidate.id === model.id && isOfficialModelAvailable(candidate)
-    );
-    if (!officialModel) {
-      throw new Error("这个 DeepWrite 官方模型已不再受支持。");
-    }
-    return structuredClone(officialModel);
-  }
   if (model.managedBy !== "deepwrite-free") {
     return model;
   }

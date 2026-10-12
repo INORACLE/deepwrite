@@ -127,8 +127,7 @@ describe("ModelConfigStore managed free models", () => {
       `${JSON.stringify({
         version: 1,
         defaultModelId: "deepwrite-free-writing",
-        models: [managedModel("vendor/writer-v1"), customModel()],
-        disabledOfficialModelIds: []
+        models: [managedModel("vendor/writer-v1"), customModel()]
       })}\n`,
       "utf8"
     );

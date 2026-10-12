@@ -49,6 +49,23 @@ async function syncUsageModels(
   await ctx.requireModelUsageStore().syncConfiguredModels(settings.models);
 }
 
+async function validateSiteOfficialKey(
+  ctx: SiteOfficialModelCommandContext,
+  apiKey: string
+): Promise<void> {
+  let quota;
+  try {
+    quota = await queryDeepWriteSiteOfficialQuota(apiKey, ctx.remoteFetch);
+  } catch {
+    throw new Error(
+      "新官方小站模型密钥校验失败，请确认密钥有效且额度查询接口可用。"
+    );
+  }
+  if (!quota.unlimited && quota.remaining === 0) {
+    throw new Error("当前新官方小站密钥额度已用完，请补充额度后重试。");
+  }
+}
+
 function rejected(
   command: CommandEnvelope,
   code: string,
@@ -73,9 +90,10 @@ export async function handleSiteOfficialModelCommands(
   if (command.type === "models.saveSiteOfficialToken") {
     try {
       const store = ctx.requireModelConfigStore();
+      await validateSiteOfficialKey(ctx, command.payload.apiKey);
       const [current, catalog] = await Promise.all([
         store.list(),
-        loadDeepWriteSiteOfficialCatalog(ctx, command.payload.apiKey)
+        loadDeepWriteSiteOfficialCatalog(ctx)
       ]);
       const settings = ModelSettingsSchema.parse(
         await store.save(
@@ -101,8 +119,14 @@ export async function handleSiteOfficialModelCommands(
   if (command.type === "models.refreshSiteOfficial") {
     try {
       const store = ctx.requireModelConfigStore();
-      const { current, apiKey } = await resolveConfiguredKey(ctx);
-      const catalog = await loadDeepWriteSiteOfficialCatalog(ctx, apiKey);
+      const current = await store.list();
+      const configured = current.models.find(
+        (model) => isDeepWriteSiteOfficialModel(model) && model.hasApiKey
+      );
+      const apiKey = configured
+        ? await store.resolveDraftApiKey({ id: configured.id })
+        : "";
+      const catalog = await loadDeepWriteSiteOfficialCatalog(ctx);
       const settings = ModelSettingsSchema.parse(
         await store.save(
           saveDeepWriteSiteOfficialModelInput(current, apiKey, catalog)

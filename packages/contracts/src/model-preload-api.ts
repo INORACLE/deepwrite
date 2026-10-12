@@ -2,7 +2,6 @@ import type {
   ModelCapacityResult,
   ModelConnectionTestResult,
   ModelConfigInput,
-  OfficialModelBalance,
   ModelSettings,
   ModelSettingsInput,
   RemoteModelListInput,
@@ -21,10 +20,6 @@ export interface ModelPreloadApi {
     modelId: string,
     enabled: boolean
   ): Promise<ModelSettings>;
-  refreshOfficial(): Promise<ModelSettings>;
-  queryOfficialBalance(): Promise<OfficialModelBalance>;
-  saveOfficialToken(apiKey: string): Promise<ModelSettings>;
-  clearOfficialToken(): Promise<ModelSettings>;
   saveSiteOfficialToken(apiKey: string): Promise<ModelSettings>;
   clearSiteOfficialToken(): Promise<ModelSettings>;
   refreshSiteOfficial(): Promise<ModelSettings>;
@@ -33,10 +28,6 @@ export interface ModelPreloadApi {
     input: SiteOfficialQuotaMergeInput
   ): Promise<SiteOfficialQuotaMergeResult>;
   setSiteOfficialModelEnabled(
-    modelId: string,
-    enabled: boolean
-  ): Promise<ModelSettings>;
-  setOfficialModelEnabled(
     modelId: string,
     enabled: boolean
   ): Promise<ModelSettings>;

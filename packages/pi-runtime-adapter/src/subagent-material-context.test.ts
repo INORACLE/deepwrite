@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { inspectTranscript } from "./transcript.test-support";
 import type { StreamFn } from "@earendil-works/pi-agent-core";
 import {
   createModels,
@@ -24,7 +25,7 @@ function harness() {
   models.setProvider(faux.provider);
   const contexts: Context[] = [];
   const streamFn: StreamFn = (model, context, options) => {
-    contexts.push(context);
+    contexts.push(inspectTranscript(context));
     return models.streamSimple(model, context, options);
   };
   return {

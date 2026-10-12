@@ -109,7 +109,7 @@ function createHarness(overrides: HarnessOverrides = {}) {
   let runtimeAvailable = overrides.runtimeAvailable ?? true;
   const loaders = {
     loadModelSettings: vi.fn(async () => undefined),
-    loadOfficialModels: vi.fn(async () => undefined),
+    loadSiteOfficialModels: vi.fn(async () => undefined),
     loadShortAndScriptAgentSettings: vi.fn(async () => undefined),
     ensureLongAgentSettingsLoaded: vi.fn(async () => undefined),
     loadWorkspaceAgentSettings: vi.fn(async () => undefined),
@@ -381,13 +381,13 @@ describe("useWorkspaceFeatureHostCoordinator", () => {
     await harness.coordinator.openSettings("general");
     expect(harness.currentView.value).toBe("settings");
     expect(harness.loaders.loadModelSettings).toHaveBeenCalledOnce();
-    expect(harness.loaders.loadOfficialModels).not.toHaveBeenCalled();
+    expect(harness.loaders.loadSiteOfficialModels).not.toHaveBeenCalled();
     expect(harness.loaders.loadWorkspaceAgentSettings).toHaveBeenCalledOnce();
     expect(harness.loaders.loadLibraryAgentSettings).toHaveBeenCalledOnce();
 
     harness.coordinator.closeSettings();
-    await harness.coordinator.openSettings("official-models");
-    expect(harness.loaders.loadOfficialModels).toHaveBeenCalledOnce();
+    await harness.coordinator.openSettings("site-official-models");
+    expect(harness.loaders.loadSiteOfficialModels).toHaveBeenCalledOnce();
     expect(harness.loaders.loadModelSettings).toHaveBeenCalledOnce();
   });
 
@@ -416,7 +416,7 @@ describe("useWorkspaceFeatureHostCoordinator", () => {
     const loading = vi.fn(() => pending.promise);
     vi.mocked(loadSettingsFeature).mockImplementationOnce(loading);
     const harness = createHarness();
-    const opening = harness.coordinator.openSettings("official-models");
+    const opening = harness.coordinator.openSettings("site-official-models");
     await vi.waitFor(() => expect(loading).toHaveBeenCalledOnce());
     expect(harness.currentView.value).toBe("workspace");
 
@@ -426,7 +426,7 @@ describe("useWorkspaceFeatureHostCoordinator", () => {
 
     expect(harness.currentView.value).toBe("workspace");
     expect(harness.workspaceMainView.value).toBe("cloud-backup");
-    expect(harness.loaders.loadOfficialModels).not.toHaveBeenCalled();
+    expect(harness.loaders.loadSiteOfficialModels).not.toHaveBeenCalled();
   });
 
   it("contains rejecting background loaders without changing the selected page", async () => {

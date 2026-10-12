@@ -12,7 +12,10 @@ import {
 } from "./event-kinds";
 import { applyContextCompactionEvent } from "./context-compaction";
 import { uiMessage } from "../../ui-feedback";
-import { contextTokensFromUsage } from "../../utils/contextWindowUsage";
+import {
+  completedIdleCompactionTokens,
+  contextTokensFromUsage
+} from "../../utils/contextWindowUsage";
 
 const t = createScopedTranslator("workspace.events");
 
@@ -319,7 +322,11 @@ export function handleEvent(
     message.runtime = event.payload.runtime;
     if (event.payload.usage !== undefined) {
       message.usage = event.payload.usage;
-      message.contextTokens = contextTokensFromUsage(event.payload.usage) ?? 0;
+      // Completion carries usage from before afterRun compaction.
+      message.contextTokens =
+        completedIdleCompactionTokens(message) ??
+        contextTokensFromUsage(event.payload.usage) ??
+        0;
     }
     ctx.finishRun(runId);
     return;

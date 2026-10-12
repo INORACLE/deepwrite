@@ -1,21 +1,23 @@
-import { formatError } from "../i18n/errors";
 import { createScopedTranslator } from "../i18n";
 import { computed, ref } from "vue";
 import type { DeepWriteApi } from "@deepwrite/contracts";
 import { isDeepWriteSiteOfficialModel } from "@deepwrite/contracts/renderer";
 import type { useSettingsStore } from "../stores/settingsStore";
 import { beginSiteOfficialQuotaRequest } from "./siteOfficialQuotaRequests";
+import {
+  invalidSiteOfficialKeyLine,
+  mergeSiteOfficialKeyBatch,
+  notifySiteOfficialKeyBatch,
+  parseSiteOfficialKeyLines,
+  type SiteOfficialBatchNotifications
+} from "./siteOfficialKeyBatch";
 
 const t = createScopedTranslator("workspace.siteOfficialQuotaMerge");
 
 interface QuotaMergeContext {
   api(): DeepWriteApi | undefined;
   settingsStore: ReturnType<typeof useSettingsStore>;
-  notifications: {
-    warning(message: string): void;
-    error(message: string): void;
-    success(message: string): void;
-  };
+  notifications: SiteOfficialBatchNotifications;
 }
 
 export function useSiteOfficialQuotaMerge(context: QuotaMergeContext) {
@@ -58,9 +60,14 @@ export function useSiteOfficialQuotaMerge(context: QuotaMergeContext) {
 
   async function submit(): Promise<void> {
     if (pending.value || !open.value) return;
-    const source = sourceKey.value.trim();
-    if (!source || source.length > 1_024) {
-      notifications.warning(t("enterAValidSourceKey"));
+    const sources = parseSiteOfficialKeyLines(sourceKey.value);
+    const invalidLine = invalidSiteOfficialKeyLine(sources);
+    if (!sources.length || invalidLine !== undefined) {
+      notifications.warning(
+        invalidLine !== undefined
+          ? t("invalidKeyLine", { line: invalidLine })
+          : t("enterAValidSourceKey")
+      );
       return;
     }
     if (
@@ -85,19 +92,21 @@ export function useSiteOfficialQuotaMerge(context: QuotaMergeContext) {
     store.siteOfficialModelsSaving = true;
     const current = beginSiteOfficialQuotaRequest(store);
     try {
-      const result = await api.models.mergeSiteOfficialQuota({
-        sourceKey: source,
-        targetRevision
+      const result = await mergeSiteOfficialKeyBatch({
+        models: api.models,
+        sources,
+        quota: store.siteOfficialQuota,
+        current,
+        applyQuota: (quota) => {
+          store.siteOfficialQuota = quota;
+        }
       });
-      sourceKey.value = "";
-      open.value = false;
-      targetRevision = "";
-      if (current()) store.siteOfficialQuota = result.quota;
-      notifications.success(
-        t("transferredTheSourceKeyHasBeenPermanentlyDeactivated", {
-          transferred: result.transferred
-        })
-      );
+      notifySiteOfficialKeyBatch(result, notifications, sources.length > 1);
+      if (!result.failed.length) {
+        open.value = false;
+        targetRevision = "";
+      }
+      if (!result.succeeded.length) return;
       try {
         const quota = await api.models.querySiteOfficialQuota();
         if (current()) store.siteOfficialQuota = quota;
@@ -107,10 +116,6 @@ export function useSiteOfficialQuotaMerge(context: QuotaMergeContext) {
           t("quotaTransferredUsageHasNotRefreshedYetRefreshThe")
         );
       }
-    } catch (error: unknown) {
-      notifications.error(
-        formatError(error, t("quotaTransferFailedRefreshTheQuotaToCheckThe"))
-      );
     } finally {
       sourceKey.value = "";
       pending.value = false;

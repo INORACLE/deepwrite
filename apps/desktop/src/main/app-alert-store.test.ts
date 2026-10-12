@@ -1,8 +1,8 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
-import { AppAlertStore, DEFAULT_MODEL_ALERT_MESSAGES } from "./app-alert-store";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { AppAlertStore } from "./app-alert-store";
 
 const temporaryRoots: string[] = [];
 
@@ -20,6 +20,7 @@ async function temporaryRoot(label: string): Promise<string> {
 }
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   await Promise.all(
     temporaryRoots
       .splice(0)
@@ -184,7 +185,7 @@ describe("AppAlertStore", () => {
     expect(requestedUrls[1]).toContain("deepwrite_cache_bust=1001");
   });
 
-  it("uses the last validated cache when the remote address is unavailable", async () => {
+  it("keeps cached desktop alerts but hides model announcements when offline", async () => {
     const root = await temporaryRoot("deepwrite-alerts-cache-");
     await new AppAlertStore(root, {
       fetcher: async () =>
@@ -199,7 +200,7 @@ describe("AppAlertStore", () => {
     const cached = await offlineStore.getSnapshot();
 
     expect(cached.desktopMessages).toEqual(["缓存提醒"]);
-    expect(cached.modelMessages).toEqual(["缓存模型公告"]);
+    expect(cached.modelMessages).toEqual([]);
   });
 
   it("falls back safely when no valid remote or cached config exists", async () => {
@@ -210,7 +211,40 @@ describe("AppAlertStore", () => {
     const fallback = await store.getSnapshot();
 
     expect(fallback.desktopMessages).toEqual([]);
-    expect(fallback.modelMessages).toEqual(DEFAULT_MODEL_ALERT_MESSAGES);
+    expect(fallback.modelMessages).toEqual([]);
     expect(fallback.shouldShowDesktop).toBe(false);
   });
+
+  it("silently hides model announcements after a failed refresh and restores them on recovery", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const root = await temporaryRoot("deepwrite-alerts-model-recovery-");
+    let fail = false;
+    const store = new AppAlertStore(root, {
+      configUrl: "https://example.test/ALERT.json",
+      fetcher: async () => {
+        if (fail) throw new Error("offline");
+        return new Response(JSON.stringify(manifest()));
+      }
+    });
+    expect((await store.getSnapshot()).modelMessages).toEqual(["模型公告"]);
+    fail = true;
+    expect((await store.getSnapshot()).modelMessages).toEqual([]);
+    expect(warn).not.toHaveBeenCalled();
+    fail = false;
+    expect((await store.getSnapshot()).modelMessages).toEqual(["模型公告"]);
+  });
+
+  it.each([undefined, []])(
+    "accepts missing or empty model announcements: %j",
+    async (model) => {
+      const root = await temporaryRoot("deepwrite-alerts-model-empty-");
+      const snapshot = await new AppAlertStore(root, {
+        configUrl: "https://example.test/ALERT.json",
+        fetcher: async () =>
+          new Response(JSON.stringify({ desketop: [], model }))
+      }).getSnapshot();
+      expect(snapshot.modelMessages).toEqual([]);
+      expect(snapshot.shouldShowDesktop).toBe(false);
+    }
+  );
 });

@@ -184,6 +184,19 @@ it("工作包结束时把没有结束事件的子任务收尾，并清掉待分�
   });
 });
 
+it("没派出子任务就失败的包记下失败原因", () => {
+  const tracker = createSubagentRunTracker();
+  tracker.begin({ phase: "registry", unitIds: ["registry:merge"] });
+  tracker.end("failed", "方案、阶段或目标状态与任务快照不一致。");
+  expect(tracker.packages.value[0]).toMatchObject({
+    outcome: "failed",
+    failureReason: "方案、阶段或目标状态与任务快照不一致。"
+  });
+  tracker.begin({ phase: "registry", unitIds: ["registry:merge"] });
+  tracker.end("completed");
+  expect(tracker.packages.value[0]!.failureReason).toBeUndefined();
+});
+
 it("只保留最近几个工作包，没派出任何子任务的已结束包不占位", () => {
   const tracker = createSubagentRunTracker({ keepPackages: 2 });
   for (const phase of ["read", "integrate", "review"]) {

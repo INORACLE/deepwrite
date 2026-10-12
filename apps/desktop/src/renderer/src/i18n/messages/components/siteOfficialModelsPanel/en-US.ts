@@ -8,7 +8,7 @@ export default {
   deepWriteOfficialSite: "DeepWrite official site",
   officialSiteModelsAndKey: "Official site models and key",
   connectToTheDeepWriteApiGatewayUsingAModelKey:
-    "Connect to the DeepWriteApi gateway using a model key issued by the official site. Models appear in settings and selectors after you configure and save a key.",
+    "Browse official site models and prices without a key. Add a model key issued by the site to enable models, test connections, and view quota.",
   openSiteStoreInBrowser: "Open site store in browser",
   siteStore: "Site store",
   refreshing: "Refreshing…",
@@ -18,11 +18,13 @@ export default {
   valueModelsEnabledTheKeyIsNeverReturnedTo:
     "{arg0} models enabled. The key is never returned to the page as plain text.",
   relatedModelsJoinTheListAfterYouSaveA:
-    "Related models join the list after you save a key.",
+    "Browse the model catalog directly. Save a key to enable and use models.",
   configured: "Configured",
   notConfigured: "Not configured",
   modelKey: "Model key",
-  enterOfficialSiteModelKey: "Enter official site model key",
+  enterOfficialSiteModelKey: "Enter one official site model key per line",
+  multipleKeysDescription:
+    "Enter one key per line. A single key is saved directly. With multiple keys, the first is saved and the remaining keys transfer their unused quota into it one by one. Successfully transferred source keys are permanently revoked.",
   cancel: "Cancel",
   saving: "Saving…",
   updateKey: "Update key",
@@ -36,12 +38,12 @@ export default {
   valueUnlimited: "{arg0} / Unlimited",
   currentKeyQuotaProgress: "Current key quota progress",
   transferTheSourceKeySRemainingQuotaToThe:
-    "Transfer the source key's remaining quota to the current key",
+    "Transfer each source key's remaining quota to the current key",
   addQuota: "Add quota",
   modelCatalog: "Model catalog",
   modelsFromTheOfficialSite: "Models from the official site",
   valueModels: "{arg0} models",
-  awaitingConfiguration: "Awaiting configuration",
+  awaitingConfiguration: "No models",
   available: "Available",
   input: "Input",
   output: "/ Output",
@@ -51,7 +53,7 @@ export default {
   testConnection: "Test connection",
   valueEnabledStatus: "{arg0} enabled status",
   officialSiteModelsAppearHereAfterYouAddA:
-    "Official site models appear here after you add a model key.",
+    "No models are currently available. Use the refresh button to load the catalog again.",
   inputOutputCachePerMillionTokensMessage:
     "Input {arg0} / Output {arg1} / Cache {arg2} (per million tokens)"
 };

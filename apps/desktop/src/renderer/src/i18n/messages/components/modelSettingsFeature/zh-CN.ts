@@ -12,7 +12,6 @@ export default {
     "添加自定义模型后，可在这里测试连接、维护密钥并设为全局默认模型。",
   thisConversationStillUsesDeepWriteFauxAddAModel:
     "当前对话继续使用 DeepWrite Faux。添加模型并设为默认后，新的请求会走真实 Provider。",
-  legacyOfficialModels: "旧官方小站模型",
   officialSiteModels: "新官方小站模型",
   deepWriteFreeModels: "DeepWrite 免费模型",
   reasoningValue: "思考：{arg0}",

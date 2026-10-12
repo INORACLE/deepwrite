@@ -151,8 +151,10 @@ export class AgentRunKernel {
     const outputGuard = plan.requiredOutputTool
       ? createRequiredOutputGuard(agent, plan.requiredOutputTool)
       : undefined;
-    if (outputGuard) agent.shouldStopAfterTurn = () => outputGuard.failed;
-    else delete agent.shouldStopAfterTurn;
+    if (outputGuard) {
+      agent.finishTurn = () =>
+        outputGuard.failed ? { action: "end" } : undefined;
+    } else delete agent.finishTurn;
 
     let settled = false;
     let terminalEmitted = false;

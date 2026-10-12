@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AgentUsage, ModelConfig } from "@deepwrite/contracts";
 import type { ChatMessage } from "../types/conversation";
+import { parseStoredMessage } from "../composables/agent-conversation/parse-message";
 import {
   contextTokensFromUsage,
   createContextWindowMeasurement,
@@ -151,6 +152,51 @@ describe("context window usage", () => {
     message.contextTokens = 0;
     expect(latestModelContextTokens([message], model)).toBeUndefined();
   });
+
+  it.each(["prune", "summary"] as const)(
+    "restores the post-run %s measurement even when saved terminal usage is stale",
+    (level) => {
+      const saved = assistantMessage("compacted", 100_000, {
+        contextTokens: 100_000,
+        contextCompactions: [
+          {
+            id: "post-run-compaction",
+            status: "completed",
+            reason: "idle",
+            level,
+            createdAt: "2026-08-28T08:00:00.000Z",
+            tokensBefore: 100_000,
+            tokensAfter: 30_000
+          }
+        ]
+      });
+      const restored = parseStoredMessage(JSON.parse(JSON.stringify(saved)));
+      if (!restored) throw new Error("Stored message did not parse");
+
+      expect(latestModelContextTokens([restored], model)).toBe(30_000);
+      expect(restored.usage?.totalTokens).toBe(100_000);
+    }
+  );
+
+  it.each(["running", "failed"] as const)(
+    "keeps the measured value when a post-run compaction is %s",
+    (status) => {
+      const message = assistantMessage("uncompacted", 100_000, {
+        contextTokens: 100_000,
+        contextCompactions: [
+          {
+            id: "unfinished-compaction",
+            status,
+            reason: "idle",
+            createdAt: "2026-08-28T08:00:00.000Z",
+            tokensAfter: 30_000
+          }
+        ]
+      });
+
+      expect(latestModelContextTokens([message], model)).toBe(100_000);
+    }
+  );
 
   it("clamps only the ring drawing when usage exceeds the context window", () => {
     expect(createContextWindowMeasurement(300_000, 272_000)).toEqual({

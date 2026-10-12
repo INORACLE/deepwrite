@@ -1,0 +1,115 @@
+import {
+  isModelQuotaExhausted,
+  type DeepWriteApi,
+  type LongBookDecompositionJob
+} from "@deepwrite/contracts/renderer";
+import { startExtrasAgentTask } from "../agent-runtime/extrasAgentTask";
+import type { createSubagentRunTracker } from "../agent-runtime/subagentRunTracker";
+import { getErrorPayload } from "../../i18n/errors";
+import { createScopedTranslator } from "../../i18n";
+
+const t = createScopedTranslator("extras.longBookDecomposition");
+
+export const decompositionFailureMessage = (cause: unknown): string =>
+  getErrorPayload(cause)?.message ??
+  (cause instanceof Error
+    ? getErrorPayload(cause.cause)?.message
+    : undefined) ??
+  (cause instanceof Error ? cause.message : String(cause));
+
+function capacityError(cause: unknown): boolean {
+  if (!cause || typeof cause !== "object") return false;
+  const value = cause as { code?: unknown; cause?: unknown };
+  return (
+    value.code === "agent.capacity_reached" ||
+    value.code === "agent.extras_capacity_reached" ||
+    (value.cause && value.cause !== cause ? capacityError(value.cause) : false)
+  );
+}
+
+/** One package's admission, child events and terminal outcome. */
+export function startDecompositionPackage(
+  api: DeepWriteApi,
+  current: LongBookDecompositionJob,
+  phase: "read" | "registry" | "integrate" | "review",
+  unitIds: string[],
+  subtasks: ReturnType<typeof createSubagentRunTracker>,
+  callbacks: {
+    onAccepted(snapshot: Promise<LongBookDecompositionJob>): void;
+    onOutput(): void;
+  }
+) {
+  const chosen =
+    phase === "read" ? current.models.reading : current.models.integration;
+  let acceptedJob: Promise<LongBookDecompositionJob> | undefined;
+  let quotaFailure: string | undefined;
+  subtasks.begin({ phase, unitIds });
+  const handle = startExtrasAgentTask(
+    api,
+    {
+      modelId: chosen.modelId,
+      thinkingLevel: chosen.thinkingLevel,
+      task: {
+        agentId: "long-book-decomposition",
+        profileId: current.profile.id,
+        input: { jobId: current.id, phase, unitIds }
+      }
+    },
+    {
+      onAccepted: () => {
+        acceptedJob = api.longBookDecomposition.getJob(current.id);
+        callbacks.onAccepted(acceptedJob);
+      },
+      ...subtasks.parentCallbacks,
+      onSubagentEvent: (event) => {
+        subtasks.handleEvent(event);
+        if (
+          event.type !== "subagent.completed" ||
+          event.payload.status !== "error" ||
+          quotaFailure ||
+          !isModelQuotaExhausted(
+            event.payload.errorMessage ?? event.payload.summary
+          )
+        )
+          return;
+        quotaFailure = event.payload.errorMessage ?? event.payload.summary;
+        // The parent may still be waiting for other children or another model
+        // turn. Stop the whole package as soon as account exhaustion is known.
+        handle.dispose();
+      },
+      onOutput: callbacks.onOutput
+    }
+  );
+  const outcome = (async () => {
+    let failure: string | undefined;
+    let capacity = false;
+    let stopped = false;
+    let quota = false;
+    try {
+      stopped = (await handle.outcome).status === "stopped";
+    } catch (cause) {
+      capacity = capacityError(cause);
+      quota = isModelQuotaExhausted(cause);
+      failure = decompositionFailureMessage(cause);
+    }
+    if (quotaFailure) {
+      quota = true;
+      failure = quotaFailure;
+    }
+    if (quota) failure = t("quotaError", { reason: failure ?? "" });
+    subtasks.end(
+      quota || stopped || capacity
+        ? "stopped"
+        : failure
+          ? "failed"
+          : "completed",
+      failure
+    );
+    return { failure, capacity, stopped, quota };
+  })();
+  return {
+    handle,
+    outcome,
+    claimedJob: () => acceptedJob?.catch(() => undefined)
+  };
+}

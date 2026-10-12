@@ -38,28 +38,40 @@ const current: ModelSettings = {
   defaultModelId: "deepwrite-site-official-writer-test"
 };
 
-function setup(status: number, remaining: number | null) {
-  const remoteFetch = vi.fn(async (url: string, init?: RequestInit) => {
+function setup(
+  quotaStatus: number,
+  remaining: number | null,
+  catalogStatus = 200
+) {
+  const remoteFetch = vi.fn(async (rawUrl: string, init?: RequestInit) => {
+    const url = new URL(rawUrl);
     const headers = new Headers(init?.headers);
-    expect(
-      headers.get("x-goog-api-key") ??
-        headers.get("Authorization")?.replace(/^Bearer /u, "")
-    ).toBe(replacementKey);
-    if (url.includes("/key/quota")) {
+    if (url.pathname === "/v1/key/quota") {
+      expect(headers.get("Authorization")).toBe(`Bearer ${replacementKey}`);
       return remaining === null
-        ? Response.json({ error: { code: "invalid_api_key" } }, { status: 401 })
-        : Response.json({
-            object: "api_key_quota",
-            unlimited: false,
-            remaining,
-            used: 10 - remaining,
-            total: 10
-          });
+        ? Response.json(
+            { error: { message: `untrusted ${replacementKey}` } },
+            { status: quotaStatus }
+          )
+        : Response.json(
+            {
+              object: "api_key_quota",
+              unlimited: false,
+              remaining,
+              used: 10 - remaining,
+              total: 10
+            },
+            { status: quotaStatus }
+          );
     }
-    if (url.includes("/v1beta/models")) {
-      return Response.json({ error: { code: "invalid_api_key" } }, { status });
-    }
-    return Response.json({ data: [{ id: "writer-test" }] });
+    expect(url.pathname).toBe("/api/v1/public/models");
+    expect(url.searchParams.has("key")).toBe(false);
+    expect(headers.has("Authorization")).toBe(false);
+    expect(headers.has("x-goog-api-key")).toBe(false);
+    return Response.json(
+      { object: "list", data: [{ id: "writer-test" }] },
+      { status: catalogStatus }
+    );
   });
   const store = {
     list: vi.fn(async () => current),
@@ -70,8 +82,9 @@ function setup(status: number, remaining: number | null) {
   const ctx = {
     requireModelConfigStore: () => store,
     requireModelUsageStore: () => ({ syncConfiguredModels }),
-    listRemoteModels: (input: ListRemoteModelsInput) =>
-      listRemoteModels(input, remoteFetch),
+    listRemoteModels: vi.fn((input: ListRemoteModelsInput) =>
+      listRemoteModels(input, remoteFetch)
+    ),
     remoteFetch
   } as unknown as ModelCommandContext;
   const command = CommandEnvelopeSchema.parse(
@@ -84,10 +97,10 @@ function setup(status: number, remaining: number | null) {
   return { ctx, command, remoteFetch, store, syncConfiguredModels };
 }
 
-describe("new-site replacement key validation", () => {
-  it("distinguishes an exhausted key from invalid credentials without saving it", async () => {
+describe("new-site key validation with an anonymous model catalog", () => {
+  it("rejects an exhausted replacement key without overwriting the current key", async () => {
     const { ctx, command, store, remoteFetch, syncConfiguredModels } = setup(
-      401,
+      200,
       0
     );
     const result = await handleModelCommands(ctx, command);
@@ -98,48 +111,62 @@ describe("new-site replacement key validation", () => {
     expect(store.save).not.toHaveBeenCalled();
     expect(store.resolveDraftApiKey).not.toHaveBeenCalled();
     expect(syncConfiguredModels).not.toHaveBeenCalled();
-    expect(remoteFetch).toHaveBeenCalledTimes(3);
+    expect(remoteFetch).toHaveBeenCalledOnce();
     expect(JSON.stringify(result)).not.toContain(replacementKey);
   });
 
-  it("identifies the rejected endpoint when quota authentication succeeds", async () => {
-    const { ctx, command, store } = setup(403, 5);
-    const result = await handleModelCommands(ctx, command);
-    expect(result).toMatchObject({
-      status: "rejected",
-      error: {
-        message: expect.stringContaining("/v1beta/models：HTTP 403")
-      }
+  it.each([401, 403, 503])(
+    "does not accept a replacement key when quota validation returns HTTP %i",
+    async (status) => {
+      const { ctx, command, store, remoteFetch } = setup(status, null);
+      const result = await handleModelCommands(ctx, command);
+      expect(result).toMatchObject({
+        status: "rejected",
+        error: { message: expect.stringContaining("密钥校验失败") }
+      });
+      expect(store.save).not.toHaveBeenCalled();
+      expect(ctx.listRemoteModels).not.toHaveBeenCalled();
+      expect(remoteFetch).toHaveBeenCalledOnce();
+      expect(JSON.stringify(result)).not.toContain(replacementKey);
+    }
+  );
+
+  it("validates the key through quota and loads the catalog without credentials", async () => {
+    const { ctx, command, store, remoteFetch } = setup(200, 5);
+    await expect(handleModelCommands(ctx, command)).resolves.toMatchObject({
+      status: "accepted"
     });
-    expect(result?.status === "rejected" && result.error.message).toContain(
-      "密钥额度查询成功"
+    expect(store.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        models: [expect.objectContaining({ apiKey: replacementKey })]
+      })
     );
-    expect(store.save).not.toHaveBeenCalled();
-  });
-
-  it("retains the model authentication failure when quota cannot be queried", async () => {
-    const { ctx, command } = setup(401, null);
-    await expect(handleModelCommands(ctx, command)).resolves.toMatchObject({
-      status: "rejected",
-      error: {
-        message: expect.stringContaining("/v1beta/models：HTTP 401")
-      }
-    });
-  });
-
-  it("does not diagnose network failures as invalid keys", async () => {
-    const { ctx, command, remoteFetch } = setup(503, null);
-    await expect(handleModelCommands(ctx, command)).resolves.toMatchObject({
-      status: "rejected",
-      error: {
-        message: expect.stringContaining("/v1beta/models：HTTP 503")
-      }
-    });
+    expect(store.resolveDraftApiKey).not.toHaveBeenCalled();
     expect(remoteFetch).toHaveBeenCalledTimes(2);
+    expect(ctx.listRemoteModels).toHaveBeenCalledOnce();
   });
 
-  it("does not expose an untrusted failure containing the replacement key", async () => {
-    const { ctx, command, store } = setup(503, null);
+  it.each([403, 503])(
+    "reports a public catalog HTTP %i failure independently of key validation",
+    async (status) => {
+      const { ctx, command, store, remoteFetch } = setup(200, 5, status);
+      const result = await handleModelCommands(ctx, command);
+      expect(result).toMatchObject({
+        status: "rejected",
+        error: {
+          message: expect.stringContaining(
+            `/api/v1/public/models：HTTP ${status}`
+          )
+        }
+      });
+      expect(store.save).not.toHaveBeenCalled();
+      expect(remoteFetch).toHaveBeenCalledTimes(2);
+      expect(JSON.stringify(result)).not.toContain(replacementKey);
+    }
+  );
+
+  it("does not expose untrusted catalog failures containing a key", async () => {
+    const { ctx, command, store } = setup(200, 5);
     ctx.listRemoteModels = vi.fn(async () => {
       throw new Error(`request failed with ${replacementKey}`);
     });
@@ -149,20 +176,21 @@ describe("new-site replacement key validation", () => {
     expect(store.save).not.toHaveBeenCalled();
   });
 
-  it("holds the key operation lock until both catalog requests finish", async () => {
-    const { ctx, command, store } = setup(503, null);
+  it("holds the key operation lock until the public catalog request settles", async () => {
+    const { ctx, command, store } = setup(200, 5);
     let release!: () => void;
     const pending = new Promise<void>((resolve) => {
       release = resolve;
     });
-    ctx.listRemoteModels = vi.fn(async (input) => {
-      if (input.api === "google-generative-ai") await pending;
-      else throw new Error("catalog unavailable");
+    ctx.listRemoteModels = vi.fn(async () => {
+      await pending;
       return [];
     });
     const saving = handleModelCommands(ctx, command);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await vi.waitFor(() =>
+        expect(ctx.listRemoteModels).toHaveBeenCalledOnce()
+      );
       expect(siteOfficialOperationState(store).busy).toBe(true);
     } finally {
       release();

@@ -13,7 +13,6 @@ export interface DiskModelSettings {
   version: 2;
   defaultModelId: string;
   models: DiskModelConfig[];
-  disabledOfficialModelIds: string[];
   enabledFreeModelIds: string[];
   knownFreeModels: DiskModelConfig[];
   deprecatedFreeModels: DiskModelConfig[];
@@ -23,7 +22,6 @@ export const EMPTY_DISK_MODEL_SETTINGS: DiskModelSettings = {
   version: 2,
   defaultModelId: "",
   models: [],
-  disabledOfficialModelIds: [],
   enabledFreeModelIds: [],
   knownFreeModels: [],
   deprecatedFreeModels: []
@@ -98,7 +96,6 @@ export function normalizeDiskModelSettings(raw: unknown): DiskModelSettings {
         ? raw.defaultModelId
         : "",
     models,
-    disabledOfficialModelIds: normalizeIds(raw.disabledOfficialModelIds),
     enabledFreeModelIds,
     knownFreeModels,
     deprecatedFreeModels: isV2

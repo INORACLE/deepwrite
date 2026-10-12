@@ -15,6 +15,7 @@ import {
 } from "../utils/customModelProvider";
 import AppIcon from "./AppIcon.vue";
 import ModelAdvancedConfigDialog from "./ModelAdvancedConfigDialog.vue";
+import ModelAnnouncementNotice from "./ModelAnnouncementNotice.vue";
 import ModelEditorPanel from "./ModelEditorPanel.vue";
 import { MODEL_PROVIDER_OPTIONS } from "./modelProviderPresets";
 import { thinkingLabel } from "./modelSettingsDraft";
@@ -106,22 +107,11 @@ const knownUserProviders = computed(() =>
 
     <div class="dialog-content model-config-content">
       <div ref="modelConfigScrollArea" class="model-config-scroll-area">
-        <div
-          v-if="modelScope === 'all' && modelAlertMessages.length > 0"
-          class="dialog-description model-price-notice"
-          :aria-label="t('modelAnnouncements')"
-        >
-          <button
-            v-for="(message, index) in modelAlertMessages"
-            :key="`${index}:${message}`"
-            class="model-price-notice-link"
-            type="button"
-            :title="t('configureOfficialModels')"
-            @click="emit('openOfficialModels')"
-          >
-            {{ message }}
-          </button>
-        </div>
+        <ModelAnnouncementNotice
+          v-if="!embedded"
+          :messages="modelAlertMessages"
+          @open-official-models="emit('openOfficialModels')"
+        />
 
         <div v-if="modelLoading" class="dialog-note">
           {{ t("readingModelSettings") }}
@@ -217,12 +207,10 @@ const knownUserProviders = computed(() =>
                     <strong>{{ row.model.label }}</strong>
                     <small>
                       {{
-                        row.model.managedBy === "deepwrite-official"
-                          ? t("legacyOfficialModels")
+                        isDeepWriteSiteOfficialModel(row.model)
+                          ? t("officialSiteModels")
                           : row.model.managedBy === "deepwrite-free"
-                            ? isDeepWriteSiteOfficialModel(row.model)
-                              ? t("officialSiteModels")
-                              : t("deepWriteFreeModels")
+                            ? t("deepWriteFreeModels")
                             : row.model.provider
                       }}
                       · {{ row.model.modelId }} · {{ row.model.api }}

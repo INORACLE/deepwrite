@@ -231,7 +231,19 @@ export default {
     quotaTransferredUsageHasNotRefreshedYetRefreshThe:
       "Quota transferred. Usage has not refreshed yet. Refresh the page shortly.",
     quotaTransferFailedRefreshTheQuotaToCheckThe:
-      "Quota transfer failed. Refresh the quota to check the result before trying again."
+      "Quota transfer failed. Refresh the quota to check the result before trying again.",
+    invalidKeyLine:
+      "The key on line {line} is too long. Enter one key per line.",
+    keyNotTransferred: "Not transferred: {reason}",
+    targetKeyNotSaved:
+      "The target key on line {line} was not saved: {reason}. No other keys transferred quota.",
+    duplicateKeyLine:
+      "Same key as line {line}; no duplicate transfer was attempted.",
+    failedKeyLine: "Line {line}: {reason}",
+    batchTransferResult:
+      "Quota transfer result: {succeeded} succeeded, {failed} failed or not transferred. {details}",
+    allSourceKeysTransferred:
+      "Transferred quota from {count} source keys to the current key. The source keys have been permanently revoked."
   },
   popupSelect: {
     modelsSelected: "{length} models selected"

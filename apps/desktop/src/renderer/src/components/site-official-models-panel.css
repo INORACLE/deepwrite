@@ -46,7 +46,6 @@
   gap: 8px;
 }
 
-.site-token-card,
 .site-quota-card,
 .site-model-card {
   overflow: hidden;
@@ -107,29 +106,12 @@
   transition: width 0.2s ease;
 }
 
-.site-token-card {
-  padding: 16px;
-}
-
-.site-token-card.is-configured {
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--theme-line));
-}
-
-.site-token-status {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-}
-
-.site-token-status > div,
 .site-model-details {
   display: grid;
   min-width: 0;
   gap: 4px;
 }
 
-.site-token-status small,
 .site-model-details small {
   overflow: hidden;
   color: var(--text-tertiary);
@@ -138,7 +120,6 @@
   white-space: nowrap;
 }
 
-.site-token-icon,
 .site-model-logo {
   display: grid;
   place-items: center;
@@ -146,15 +127,14 @@
   border-radius: 10px;
   background: var(--surface-muted);
   color: var(--text-secondary);
+  width: 36px;
+  height: 36px;
+  font-size: 13px;
+  font-weight: 700;
 }
 
-.site-token-icon {
-  width: 40px;
-  height: 40px;
-}
-
-.site-token-badge,
 .site-model-available {
+  flex-shrink: 0;
   padding: 3px 8px;
   border-radius: 999px;
   background: var(--accent-soft);
@@ -162,51 +142,6 @@
   font-size: 10px;
 }
 
-.site-token-form {
-  display: grid;
-  gap: 12px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--theme-line-soft);
-}
-
-.site-token-form label {
-  display: grid;
-  gap: 7px;
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.site-token-form input {
-  width: 100%;
-  min-height: 38px;
-  padding: 0 11px;
-  border: 1px solid var(--theme-line);
-  border-radius: 9px;
-  outline: 0;
-  background: var(--surface-main);
-  color: var(--text-primary);
-}
-
-.site-token-form input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-soft);
-}
-
-.site-token-actions,
-.site-token-form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.site-token-form-actions {
-  margin-top: 0;
-}
-
-.site-token-actions button,
-.site-token-form-actions button,
 .site-model-test,
 .site-models-refresh,
 .site-shop-button {
@@ -234,19 +169,6 @@
   opacity: 0.9;
 }
 
-.site-token-actions .is-primary,
-.site-token-form-actions .is-primary {
-  border-color: color-mix(in srgb, var(--text-primary) 82%, transparent);
-  background: var(--text-primary);
-  color: var(--surface-main);
-}
-
-.site-token-actions .is-remove {
-  color: var(--text-secondary);
-}
-
-.site-token-actions button:disabled,
-.site-token-form-actions button:disabled,
 .site-model-test:disabled,
 .site-models-refresh:disabled,
 .site-model-toggle:disabled {
@@ -292,17 +214,26 @@
   border-top: 1px solid var(--theme-line-soft);
 }
 
-.site-model-logo {
-  width: 36px;
-  height: 36px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
 .site-model-title-row {
   display: flex;
   align-items: center;
+  min-width: 0;
   gap: 8px;
+}
+
+.site-model-title-row strong,
+.site-model-description {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.site-model-description {
+  flex: 1 1 auto;
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+  line-height: 1.5;
 }
 
 .site-model-actions {
@@ -394,6 +325,7 @@
   gap: 12px;
   margin-top: 12px;
 }
+
 .site-quota-footer small {
   color: var(--text-tertiary);
   line-height: 1.6;

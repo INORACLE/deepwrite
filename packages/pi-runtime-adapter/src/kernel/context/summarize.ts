@@ -5,6 +5,7 @@ import type {
   ThinkingLevel as PiThinkingLevel
 } from "@earendil-works/pi-agent-core";
 import {
+  normalizeContext,
   isRetryableAssistantError,
   type Api,
   type AssistantMessage,
@@ -104,7 +105,7 @@ async function complete(
     ]);
     const stream = streamFn(
       model,
-      {
+      normalizeContext({
         systemPrompt: SUMMARY_SYSTEM_PROMPT,
         messages: [
           {
@@ -113,7 +114,7 @@ async function complete(
             timestamp: Date.now()
           }
         ]
-      },
+      }),
       {
         maxTokens: Math.min(
           request.maxTokens,

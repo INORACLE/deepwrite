@@ -111,9 +111,9 @@ describe("layout store", () => {
     expect(refs.workspaceMainView.value).toBe("directory");
     expect(refs.activePrimaryFeature.value).toBe("directory");
 
-    store.showSettings("official-models");
+    store.showSettings("site-official-models");
     expect(refs.currentView.value).toBe("settings");
-    expect(refs.settingsInitialCategory.value).toBe("official-models");
+    expect(refs.settingsInitialCategory.value).toBe("site-official-models");
     store.showWorkspace();
     expect(refs.currentView.value).toBe("workspace");
 

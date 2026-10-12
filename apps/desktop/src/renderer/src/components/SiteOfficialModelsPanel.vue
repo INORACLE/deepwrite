@@ -11,6 +11,7 @@ import { isDeepWriteSiteOfficialModel } from "@deepwrite/contracts/renderer";
 import { uiMessage } from "../ui-feedback";
 import AppIcon from "./AppIcon.vue";
 import SiteOfficialQuotaMergeDialog from "./SiteOfficialQuotaMergeDialog.vue";
+import SiteOfficialTokenCard from "./SiteOfficialTokenCard.vue";
 import { useSettingsStore } from "../stores/settingsStore";
 import { useSiteOfficialQuotaMerge } from "../composables/useSiteOfficialQuotaMerge";
 import { toModelInput } from "./modelSettingsDraft";
@@ -38,6 +39,7 @@ const quotaMerge = useSiteOfficialQuotaMerge({
   settingsStore: useSettingsStore(),
   notifications: uiMessage
 });
+const quotaMergeTrigger = ref<HTMLButtonElement | null>(null);
 const {
   open: mergeOpen,
   sourceKey,
@@ -48,8 +50,6 @@ const controlsBusy = computed(
   () =>
     props.saving || props.refreshing || mergeOpen.value || mergePending.value
 );
-const tokenEditorOpen = ref(false);
-const tokenDraft = ref("");
 const configuredModels = computed(
   () => props.settings?.models.filter(isDeepWriteSiteOfficialModel) ?? []
 );
@@ -66,26 +66,6 @@ const quotaUsedPercentage = computed(() => {
     Math.max(0, (props.quota.used / props.quota.total) * 100)
   );
 });
-
-function openTokenEditor(): void {
-  tokenDraft.value = "";
-  tokenEditorOpen.value = true;
-}
-
-function closeTokenEditor(): void {
-  tokenDraft.value = "";
-  tokenEditorOpen.value = false;
-}
-
-function submitToken(): void {
-  const apiKey = tokenDraft.value.trim();
-  if (!apiKey) {
-    uiMessage.warning(t("enterAnOfficialSiteModelKey"));
-    return;
-  }
-  emit("saveToken", apiKey);
-  closeTokenEditor();
-}
 
 function testModel(model: ModelConfig): void {
   emit("test", toModelInput(model));
@@ -154,7 +134,7 @@ function quotaSummary(): string {
         <button
           class="site-models-refresh"
           type="button"
-          :disabled="controlsBusy || !tokenConfigured"
+          :disabled="controlsBusy"
           @click="emit('refresh')"
         >
           <AppIcon name="history" :size="15" />
@@ -163,89 +143,14 @@ function quotaSummary(): string {
       </div>
     </header>
 
-    <section
-      class="site-token-card"
-      :class="{ 'is-configured': tokenConfigured }"
-    >
-      <div class="site-token-status">
-        <span class="site-token-icon">
-          <AppIcon name="model" :size="20" />
-        </span>
-        <div>
-          <strong>{{
-            tokenConfigured ? t("siteKeyAdded") : t("addYourSiteKey")
-          }}</strong>
-          <small>
-            {{
-              tokenConfigured
-                ? t("valueModelsEnabledTheKeyIsNeverReturnedTo", {
-                    arg0: enabledModelCount
-                  })
-                : t("relatedModelsJoinTheListAfterYouSaveA")
-            }}
-          </small>
-        </div>
-        <span class="site-token-badge">
-          {{ tokenConfigured ? t("configured") : t("notConfigured") }}
-        </span>
-      </div>
-
-      <form
-        v-if="tokenEditorOpen"
-        class="site-token-form"
-        @submit.prevent="submitToken"
-      >
-        <label>
-          <span>{{ t("modelKey") }}</span>
-          <input
-            v-model="tokenDraft"
-            type="password"
-            autocomplete="new-password"
-            :placeholder="t('enterOfficialSiteModelKey')"
-            :disabled="controlsBusy"
-          />
-        </label>
-        <div class="site-token-form-actions">
-          <button
-            type="button"
-            :disabled="controlsBusy"
-            @click="closeTokenEditor"
-          >
-            {{ t("cancel") }}
-          </button>
-          <button class="is-primary" type="submit" :disabled="controlsBusy">
-            {{
-              saving
-                ? t("saving")
-                : tokenConfigured
-                  ? t("updateKey")
-                  : t("addKey")
-            }}
-          </button>
-        </div>
-      </form>
-
-      <div v-else class="site-token-actions">
-        <button
-          class="is-primary"
-          type="button"
-          :disabled="controlsBusy"
-          @click="openTokenEditor"
-        >
-          <AppIcon name="plus" :size="15" />
-          {{ tokenConfigured ? t("replaceKey") : t("addKey") }}
-        </button>
-        <button
-          v-if="tokenConfigured"
-          class="is-remove"
-          type="button"
-          :disabled="controlsBusy"
-          @click="emit('clearToken')"
-        >
-          {{ t("removeKey") }}
-        </button>
-      </div>
-    </section>
+    <SiteOfficialTokenCard
+      :configured="tokenConfigured"
+      :enabled-model-count="enabledModelCount"
+      :busy="controlsBusy"
+      :saving="saving"
+      @save-token="emit('saveToken', $event)"
+      @clear-token="emit('clearToken')"
+    />
 
     <section class="site-quota-card" :aria-label="t('officialSiteKeyQuota')">
       <div class="site-quota-heading">
@@ -284,6 +189,7 @@ function quotaSummary(): string {
       <div class="site-quota-footer">
         <small>{{ quotaSummary() }}</small>
         <button
+          ref="quotaMergeTrigger"
           class="site-models-refresh"
           type="button"
           :disabled="!!mergeDisabledReason || controlsBusy"
@@ -326,8 +232,15 @@ function quotaSummary(): string {
         }}</span>
         <div class="site-model-details">
           <div class="site-model-title-row">
-            <strong>{{ model.label }}</strong>
+            <strong :title="model.label">{{ model.label }}</strong>
             <span class="site-model-available">{{ t("available") }}</span>
+            <span
+              v-if="model.description?.trim()"
+              class="site-model-description"
+              :title="model.description"
+            >
+              {{ model.description }}
+            </span>
           </div>
           <small>
             {{ model.provider }} · {{ model.modelId }} · {{ model.api }}
@@ -347,7 +260,9 @@ function quotaSummary(): string {
           <button
             class="site-model-test"
             type="button"
-            :disabled="controlsBusy || testingModelId !== null"
+            :disabled="
+              controlsBusy || testingModelId !== null || !model.hasApiKey
+            "
             @click="testModel(model)"
           >
             {{
@@ -364,7 +279,7 @@ function quotaSummary(): string {
                 arg0: model.label
               })
             "
-            :disabled="controlsBusy"
+            :disabled="controlsBusy || !model.hasApiKey"
             @click="toggleModel(model)"
           >
             <span />
@@ -379,6 +294,7 @@ function quotaSummary(): string {
       v-if="mergeOpen"
       v-model:source-key="sourceKey"
       :pending="mergePending"
+      :return-focus="quotaMergeTrigger"
       @close="quotaMerge.close"
       @submit="quotaMerge.submit"
     />

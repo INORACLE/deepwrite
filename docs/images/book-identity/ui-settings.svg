@@ -48,7 +48,6 @@
   <text class="nav" x="44" y="284">用量</text>
   <text class="nav" x="44" y="306">免费模型</text>
   <text class="nav" x="44" y="328">自定义模型</text>
-  <text class="nav" x="44" y="350">旧官方小站模型</text>
   <text class="nav" x="44" y="372">新官方小站模型</text>
   <text class="nav" x="44" y="394">语音模型</text>
   <rect x="34" y="402" width="182" height="28" rx="7" fill="#EAE8E1"/>

@@ -133,7 +133,6 @@ import modelSettingsDraft from "./modelSettingsDraft/en-US";
 import modelSettingsFeature from "./modelSettingsFeature/en-US";
 import modelUsageModuleMeta from "./modelUsageModuleMeta/en-US";
 import modelUsagePanel from "./modelUsagePanel/en-US";
-import officialModelsPanel from "./officialModelsPanel/en-US";
 import plotStructureDialog from "./plotStructureDialog/en-US";
 import popupSelect from "./popupSelect/en-US";
 import previewOutlinePopover from "./previewOutlinePopover/en-US";
@@ -321,7 +320,6 @@ export default {
   modelSettingsFeature,
   modelUsageModuleMeta,
   modelUsagePanel,
-  officialModelsPanel,
   plotStructureDialog,
   popupSelect,
   previewOutlinePopover,

@@ -47,6 +47,7 @@ export * from "./material-query";
 export * from "./material-stages";
 export * from "./models";
 export * from "./model-usage";
+export * from "./model-provider-errors";
 export * from "./preload-api";
 export * from "./renderer-state";
 export * from "./session";

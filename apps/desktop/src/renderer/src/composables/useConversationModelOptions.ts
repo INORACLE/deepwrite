@@ -36,10 +36,7 @@ const MODEL_GROUPS = [
 ] as const;
 
 function modelGroup(model: ModelConfig): string {
-  if (
-    isDeepWriteSiteOfficialModel(model) ||
-    model.managedBy === "deepwrite-official"
-  ) {
+  if (isDeepWriteSiteOfficialModel(model)) {
     return "official";
   }
   return model.managedBy === "deepwrite-free" ? "free" : "custom";

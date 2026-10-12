@@ -12,25 +12,6 @@ export function createModelApiTestFixture(): DeepWriteApi["models"] {
     async setFreeModelEnabled() {
       return { models: [], defaultModelId: "" };
     },
-    async refreshOfficial() {
-      return { models: [], defaultModelId: "" };
-    },
-    async queryOfficialBalance() {
-      return {
-        queriedAt: "2026-07-06T10:04:00.000Z",
-        accountBalance: 0,
-        accountBalanceYuan: 0,
-        keyQuotaRemaining: 0,
-        keyQuotaRemainingYuan: 0,
-        quotaPerUnit: 10_000
-      };
-    },
-    async saveOfficialToken() {
-      return { models: [], defaultModelId: "" };
-    },
-    async clearOfficialToken() {
-      return { models: [], defaultModelId: "" };
-    },
     async saveSiteOfficialToken() {
       return { models: [], defaultModelId: "" };
     },
@@ -63,9 +44,6 @@ export function createModelApiTestFixture(): DeepWriteApi["models"] {
       };
     },
     async setSiteOfficialModelEnabled() {
-      return { models: [], defaultModelId: "" };
-    },
-    async setOfficialModelEnabled() {
       return { models: [], defaultModelId: "" };
     },
     async save(settings) {

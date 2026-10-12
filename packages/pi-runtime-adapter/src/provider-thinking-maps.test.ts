@@ -5,10 +5,10 @@ import { buildProviderRuntime } from "./provider-runtime";
 describe("PI thinking level compatibility", () => {
   it("preserves built-in thinking maps while carrying max and custom levels", () => {
     const builtinConfig: AgentProviderRuntimeConfig = {
-      id: "deepseek-v4-flash",
-      label: "DeepSeek V4 Flash",
+      id: "deepseek-v4-pro",
+      label: "DeepSeek V4 Pro",
       provider: "deepseek",
-      modelId: "deepseek-v4-flash",
+      modelId: "deepseek-v4-pro",
       api: "openai-completions",
       baseUrl: "",
       reasoning: false,
@@ -28,15 +28,15 @@ describe("PI thinking level compatibility", () => {
     expect(
       buildProviderRuntime(builtinConfig, undefined, "low").model
         .thinkingLevelMap
-    ).toMatchObject({ low: "low", max: "max" });
+    ).toMatchObject({ high: "high", max: "max" });
     expect(
       buildProviderRuntime(builtinConfig, undefined, "xhigh").model
         .thinkingLevelMap
-    ).toMatchObject({ low: "low", max: "max" });
+    ).toMatchObject({ high: "high", max: "max" });
     expect(
       buildProviderRuntime(builtinConfig, undefined, "max").model
         .thinkingLevelMap
-    ).toMatchObject({ low: "low", max: "max", xhigh: "max" });
+    ).toMatchObject({ high: "high", max: "max", xhigh: "max" });
 
     const customConfig: AgentProviderRuntimeConfig = {
       ...builtinConfig,

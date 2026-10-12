@@ -156,6 +156,8 @@ export default {
   resolution_fixed: "Fixed",
   subtasks: "Subtasks",
   subtasksEmpty: "The lead agent is planning this package's subtasks…",
+  subtasksEndedEmpty: "This package ended without delegating any subtask.",
+  subtasksFailed: "This package could not start: {reason}",
   subtaskFilterEmpty: "No subtasks match this filter.",
   subtaskLead: "Phase lead",
   subtaskLeadHint: "{count} planned",
@@ -234,6 +236,9 @@ export default {
   idle: "Ready",
   running: "Running",
   stopped: "Stopped",
+  quotaPaused: "Model quota exhausted · paused",
+  quotaError:
+    "Model quota exhausted. The task is paused. Restore quota, then continue.\n{reason}",
   failed: "Failed",
   writing: "Saving",
   pending: "Pending",

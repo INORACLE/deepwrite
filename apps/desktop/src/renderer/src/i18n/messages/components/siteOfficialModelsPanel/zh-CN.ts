@@ -8,7 +8,7 @@ export default {
   deepWriteOfficialSite: "DeepWrite 新官方小站",
   officialSiteModelsAndKey: "新官方小站模型与密钥",
   connectToTheDeepWriteApiGatewayUsingAModelKey:
-    "使用新官方小站签发的模型密钥连接 DeepWriteApi 网关。密钥由你自行配置，保存后模型才会出现在模型配置与选择器中。",
+    "无需密钥即可查看新官方小站的模型和价格。添加小站签发的模型密钥后，即可启用模型、测试联通和查询额度。",
   openSiteStoreInBrowser: "在浏览器中打开小站店铺",
   siteStore: "小站店铺",
   refreshing: "刷新中…",
@@ -18,11 +18,13 @@ export default {
   valueModelsEnabledTheKeyIsNeverReturnedTo:
     "已启用 {arg0} 个模型，密钥明文不会回传到页面。",
   relatedModelsJoinTheListAfterYouSaveA:
-    "保存密钥后，相关模型才会加入模型列表。",
+    "可直接浏览模型目录；保存密钥后即可启用和使用模型。",
   configured: "已配置",
   notConfigured: "未配置",
   modelKey: "模型密钥",
-  enterOfficialSiteModelKey: "请输入新官方小站模型密钥",
+  enterOfficialSiteModelKey: "每行填写一个新小站模型密钥",
+  multipleKeysDescription:
+    "每行一个密钥。只填一个时直接保存；填写多个时保存第一个，其余密钥的剩余额度逐个转入第一个。转入成功的来源密钥将永久注销。",
   cancel: "取消",
   saving: "保存中…",
   updateKey: "更新密钥",
@@ -35,12 +37,13 @@ export default {
   usedTotalQuota: "已使用 / 总额度",
   valueUnlimited: "{arg0} / 无限",
   currentKeyQuotaProgress: "当前密钥额度使用进度",
-  transferTheSourceKeySRemainingQuotaToThe: "将来源 Key 的剩余额度转入当前密钥",
+  transferTheSourceKeySRemainingQuotaToThe:
+    "将来源密钥的剩余额度逐个转入当前密钥",
   addQuota: "增加额度",
   modelCatalog: "模型目录",
   modelsFromTheOfficialSite: "新小站提供模型",
   valueModels: "{arg0} 个模型",
-  awaitingConfiguration: "等待配置",
+  awaitingConfiguration: "暂无模型",
   available: "可用",
   input: "输入",
   output: "/ 输出",
@@ -50,7 +53,7 @@ export default {
   testConnection: "测试联通",
   valueEnabledStatus: "{arg0}启用状态",
   officialSiteModelsAppearHereAfterYouAddA:
-    "添加模型密钥后，新官方小站的相关模型会在这里出现。",
+    "暂时没有可用模型，可点击右上角刷新重新获取目录。",
   inputOutputCachePerMillionTokensMessage:
     "输入 {arg0} / 输出 {arg1} / 缓存 {arg2}（每百万 Token）"
 };

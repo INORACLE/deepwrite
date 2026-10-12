@@ -65,7 +65,10 @@ export function useModelSettingsCoordinator(
 
   async function loadAppAlerts(): Promise<void> {
     const api = context.api()?.appAlerts;
-    if (!api) return;
+    if (!api) {
+      settingsStore.modelAlertMessages = [];
+      return;
+    }
     try {
       const snapshot = await api.get();
       settingsStore.modelAlertMessages = [...snapshot.modelMessages];
@@ -73,11 +76,8 @@ export function useModelSettingsCoordinator(
         settingsStore.startupAlertMessages = [...snapshot.desktopMessages];
         settingsStore.startupAlertRevision = snapshot.desktopRevision;
       }
-    } catch (error: unknown) {
-      console.warn(
-        "DeepWrite app alerts could not be loaded:",
-        errorMessage(error, "unknown error")
-      );
+    } catch {
+      settingsStore.modelAlertMessages = [];
     }
   }
 
@@ -128,121 +128,6 @@ export function useModelSettingsCoordinator(
       if (requestSequence === modelUsageRequestSequence) {
         settingsStore.modelUsageLoading = false;
       }
-    }
-  }
-
-  async function queryOfficialModelUsage(api: DeepWriteApi) {
-    return api.modelUsage.query({ managedBy: "deepwrite-official" });
-  }
-
-  async function queryOfficialBalance(api: DeepWriteApi) {
-    try {
-      return await api.models.queryOfficialBalance();
-    } catch (error: unknown) {
-      uiMessage.warning(
-        errorMessage(error, t("failedToQueryOfficialModelSpending"))
-      );
-      return null;
-    }
-  }
-
-  async function loadOfficialModels(): Promise<void> {
-    const api = context.api();
-    if (!api) return;
-    try {
-      const snapshot = await settingsStore.ensureOfficialModelsLoaded(
-        async () => {
-          const settings = await api.models.refreshOfficial();
-          const [usageDashboard, balance] = await Promise.all([
-            queryOfficialModelUsage(api),
-            queryOfficialBalance(api)
-          ]);
-          return { settings, usageDashboard, balance };
-        }
-      );
-      applyLoadedModelSettings(snapshot.settings);
-    } catch (error: unknown) {
-      uiMessage.error(errorMessage(error, t("failedToLoadOfficialModels")));
-    }
-  }
-
-  async function saveOfficialToken(apiKey: string): Promise<void> {
-    const api = context.api();
-    if (!api || settingsStore.officialModelsSaving) return;
-    settingsStore.officialModelsSaving = true;
-    try {
-      const settings = await api.models.saveOfficialToken(apiKey);
-      const [usageDashboard, balance] = await Promise.all([
-        queryOfficialModelUsage(api),
-        queryOfficialBalance(api)
-      ]);
-      settingsStore.markLoaded("officialModels", {
-        settings,
-        usageDashboard,
-        balance
-      });
-      applyLoadedModelSettings(settings);
-      uiMessage.success(
-        t("officialTokenSavedSecurelyOfficialModelsAreReadyTo")
-      );
-    } catch (error: unknown) {
-      uiMessage.error(errorMessage(error, t("failedToSaveOfficialToken")));
-    } finally {
-      settingsStore.officialModelsSaving = false;
-    }
-  }
-
-  async function clearOfficialToken(): Promise<void> {
-    const api = context.api();
-    if (!api || settingsStore.officialModelsSaving) return;
-    settingsStore.officialModelsSaving = true;
-    try {
-      const settings = await api.models.clearOfficialToken();
-      const [usageDashboard, balance] = await Promise.all([
-        queryOfficialModelUsage(api),
-        queryOfficialBalance(api)
-      ]);
-      settingsStore.markLoaded("officialModels", {
-        settings,
-        usageDashboard,
-        balance
-      });
-      applyLoadedModelSettings(settings);
-      uiMessage.info(t("officialTokenRemovedUsageHistoryRemainsInTheLocal"));
-    } catch (error: unknown) {
-      uiMessage.error(errorMessage(error, t("failedToRemoveOfficialToken")));
-    } finally {
-      settingsStore.officialModelsSaving = false;
-    }
-  }
-
-  async function setOfficialModelEnabled(
-    modelId: string,
-    enabled: boolean
-  ): Promise<void> {
-    const api = context.api();
-    if (!api || settingsStore.officialModelsSaving) return;
-    settingsStore.officialModelsSaving = true;
-    try {
-      const settings = await api.models.setOfficialModelEnabled(
-        modelId,
-        enabled
-      );
-      settingsStore.markLoaded("officialModels", {
-        settings,
-        usageDashboard: settingsStore.officialModelUsageDashboard,
-        balance: settingsStore.officialModelBalance
-      });
-      applyLoadedModelSettings(settings);
-      uiMessage.success(
-        enabled
-          ? t("modelEnabledAndAddedToModelSettings")
-          : t("modelDisabledAndHiddenFromModelSettings")
-      );
-    } catch (error: unknown) {
-      uiMessage.error(errorMessage(error, t("failedToUpdateModelStatus")));
-    } finally {
-      settingsStore.officialModelsSaving = false;
     }
   }
 
@@ -363,10 +248,6 @@ export function useModelSettingsCoordinator(
     loadAppAlerts,
     closeStartupAlert,
     loadModelUsage,
-    loadOfficialModels,
-    saveOfficialToken,
-    clearOfficialToken,
-    setOfficialModelEnabled,
     saveModelSettings,
     refreshFreeModels,
     setFreeModelEnabled,

@@ -36,6 +36,7 @@ export class UpdateService {
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = false;
     autoUpdater.allowPrerelease = false;
+    autoUpdater.allowDowngrade = false;
     autoUpdater.on("download-progress", (progress: ProgressInfo) => {
       this.patchState({
         status: "downloading",
@@ -150,6 +151,10 @@ export class UpdateService {
         return this.replaceState({ ...availableState, status: "unsupported" });
       }
 
+      // The manifest has passed DeepWrite's character ordering. Permit the
+      // download when the native updater considers that version numerically older.
+      autoUpdater.allowDowngrade =
+        autoUpdater.currentVersion.compare(manifest.version) > 0;
       autoUpdater.setFeedURL({ provider: "generic", url: manifest.feedUrl });
       const result = await autoUpdater.checkForUpdates();
       if (!result?.updateInfo) {
@@ -159,6 +164,9 @@ export class UpdateService {
         throw new Error(
           `update.json 版本 ${manifest.version} 与 Release 更新清单版本 ${result.updateInfo.version} 不一致。`
         );
+      }
+      if (!result.isUpdateAvailable) {
+        throw new Error("更新器未能准备可下载的更新，请稍后重试。");
       }
       return this.replaceState(availableState);
     } catch (error: unknown) {

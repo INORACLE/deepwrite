@@ -25,7 +25,7 @@ const model: Model<"openai-completions"> = {
   name: "Retry Test Model",
   api: "openai-completions",
   provider: "custom",
-  baseUrl: "http://127.0.0.1/v1",
+  baseUrl: "https://provider.example.test/v1",
   reasoning: false,
   input: ["text"],
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
@@ -199,8 +199,13 @@ describe("agent turn retry coordinator", () => {
     ]);
     expect(
       contexts.map((context) => context.messages.map((message) => message.role))
-    ).toEqual([["user"], ["user"], ["user"]]);
+    ).toEqual([
+      ["system", "user"],
+      ["system", "user"],
+      ["system", "user"]
+    ]);
     expect(agent.state.messages.map((message) => message.role)).toEqual([
+      "system",
       "user",
       "assistant"
     ]);
@@ -279,9 +284,9 @@ describe("agent turn retry coordinator", () => {
 
     expect(toolExecutions).toBe(1);
     expect(requestRoles).toEqual([
-      ["user"],
-      ["user", "assistant", "toolResult"],
-      ["user", "assistant", "toolResult"]
+      ["system", "user"],
+      ["system", "user", "assistant", "toolResult"],
+      ["system", "user", "assistant", "toolResult"]
     ]);
     expect(attempts).toEqual([
       { turnId: "run_tool_retry:turn:1", attempt: 1, maxAttempts: 2 },
@@ -336,7 +341,7 @@ describe("agent turn retry coordinator", () => {
     expect(retries).toHaveLength(5);
     expect(retries.at(-1)).toMatchObject({ failedAttempt: 5, nextAttempt: 6 });
     expect(failures).toHaveLength(1);
-    expect(agent.state.messages).toHaveLength(2);
+    expect(agent.state.messages).toHaveLength(3);
     expect(agent.state.messages.at(-1)).toMatchObject({
       role: "assistant",
       stopReason: "error"

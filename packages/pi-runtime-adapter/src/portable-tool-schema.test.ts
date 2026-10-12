@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { Type } from "@earendil-works/pi-ai";
+import { Type, normalizeContext } from "@earendil-works/pi-ai";
 import type {
   AgentProviderRuntimeConfig,
   WorkspaceRuntimeContext
@@ -55,11 +55,11 @@ async function captureToolParameters(
   let payload: unknown;
   const stream = await streamFn(
     model,
-    {
+    normalizeContext({
       systemPrompt: "Use the available tool.",
       messages: [{ role: "user", content: "Edit the text.", timestamp: 0 }],
       tools: [tool]
-    },
+    }),
     {
       onPayload: (value) => {
         payload = value;

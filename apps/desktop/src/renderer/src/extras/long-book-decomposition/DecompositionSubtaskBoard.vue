@@ -55,6 +55,15 @@ const parentTone = computed(() => {
     ? "is-warning"
     : "is-accent";
 });
+/** An ended package shows how it ended; only a running one is still planning. */
+const emptyText = computed(() => {
+  const pkg = latest.value;
+  if (rows.value.length) return t("subtaskFilterEmpty");
+  if (!pkg?.endedAt) return t("subtasksEmpty");
+  return pkg.failureReason
+    ? t("subtasksFailed", { reason: pkg.failureReason })
+    : t("subtasksEndedEmpty");
+});
 const phaseLabel = (pkg: TrackedSubagentPackage) =>
   pkg.phase === "registry"
     ? t("registryPhase")
@@ -138,7 +147,7 @@ watch(
       @open="selected = { package: latest.id, key: $event }"
     />
     <p v-else class="decomposition-subtasks-empty">
-      {{ t(rows.length ? "subtaskFilterEmpty" : "subtasksEmpty") }}
+      {{ emptyText }}
     </p>
     <details
       v-for="pkg in earlier"

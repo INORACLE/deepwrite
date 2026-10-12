@@ -5,6 +5,7 @@ import type {
   ModelUsageQueryInput
 } from "@deepwrite/contracts";
 import AppIcon from "./AppIcon.vue";
+import ModelAnnouncementNotice from "./ModelAnnouncementNotice.vue";
 import { useModelUsagePanel } from "../composables/useModelUsagePanel";
 
 const t = createScopedTranslator("components.modelUsagePanel");
@@ -12,9 +13,11 @@ const t = createScopedTranslator("components.modelUsagePanel");
 const props = defineProps<{
   dashboard: ModelUsageDashboard | null;
   loading: boolean;
+  modelAlertMessages: readonly string[];
 }>();
 const emit = defineEmits<{
   query: [input: ModelUsageQueryInput];
+  openOfficialModels: [];
 }>();
 const {
   isEmpty,
@@ -62,9 +65,11 @@ const {
         <h2 id="model-usage-title">
           {{ t("modelUsage") }}
         </h2>
-        <p>
-          {{ t("viewTokenUsageByModelAndModuleOnThis") }}
-        </p>
+        <ModelAnnouncementNotice
+          class="usage-notice"
+          :messages="modelAlertMessages"
+          @open-official-models="emit('openOfficialModels')"
+        />
       </div>
       <button
         type="button"

@@ -3,6 +3,12 @@ import { EnvelopeBaseSchema } from "./envelope";
 import { AgentUsageSchema } from "./agent-usage";
 import { ModelManagedBySchema } from "./models";
 
+// Retired official-site ownership remains readable in the usage ledger only.
+const ModelUsageManagedBySchema = z.union([
+  ModelManagedBySchema,
+  z.literal("deepwrite-official")
+]);
+
 export const MODEL_USAGE_MODULES = [
   "book-identity",
   "short-writing",
@@ -49,7 +55,7 @@ export const ModelUsageModelSnapshotSchema = z.object({
   provider: z.string().trim().min(1).max(120),
   modelId: z.string().trim().min(1).max(240),
   api: z.string().trim().min(1).max(120).optional(),
-  managedBy: ModelManagedBySchema.optional()
+  managedBy: ModelUsageManagedBySchema.optional()
 });
 export type ModelUsageModelSnapshot = z.infer<
   typeof ModelUsageModelSnapshotSchema
@@ -74,7 +80,7 @@ export const ModelUsageQueryInputSchema = z
       .array(z.string().trim().min(1).max(120))
       .max(100)
       .optional(),
-    managedBy: ModelManagedBySchema.optional(),
+    managedBy: ModelUsageManagedBySchema.optional(),
     modules: z
       .array(ModelUsageModuleSchema)
       .max(MODEL_USAGE_MODULES.length)

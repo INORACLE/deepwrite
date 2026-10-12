@@ -19,7 +19,6 @@ import {
   type ModelUsageDashboard,
   type ModelUsageQueryInput,
   type MoreFeaturesSettings,
-  type OfficialModelBalance,
   type SiteOfficialQuota,
   type TextViewMode,
   type WorkspacePaneLayout,
@@ -35,8 +34,8 @@ import GeneralSettingsPanel from "./GeneralSettingsPanel.vue";
 import StorageSettingsPanel from "./StorageSettingsPanel.vue";
 import LibraryAgentSettingsPanel from "./LibraryAgentSettingsPanel.vue";
 import ModelSettingsFeature from "./ModelSettingsFeature.vue";
+import ModelAnnouncementNotice from "./ModelAnnouncementNotice.vue";
 import ModelUsagePanel from "./ModelUsagePanel.vue";
-import OfficialModelsPanel from "./OfficialModelsPanel.vue";
 import ShortAgentSettingsPanel from "./ShortAgentSettingsPanel.vue";
 import SiteOfficialModelsPanel from "./SiteOfficialModelsPanel.vue";
 import ImageModelSettingsPanel from "./ImageModelSettingsPanel.vue";
@@ -78,6 +77,7 @@ const props = defineProps<{
   modelUsageDashboard: ModelUsageDashboard | null;
   modelUsageLoading: boolean;
   modelSettings: ModelSettings | null;
+  modelAlertMessages: readonly string[];
   modelLoading: boolean;
   modelSaving: boolean;
   freeModelsRefreshing: boolean;
@@ -88,10 +88,6 @@ const props = defineProps<{
   modelError: string | null;
   modelTestMessage: string | null;
   testingModelId: string | null;
-  officialModelUsageDashboard: ModelUsageDashboard | null;
-  officialModelBalance: OfficialModelBalance | null;
-  officialModelsLoading: boolean;
-  officialModelsSaving: boolean;
   libraryAgentSettings: LibraryAgentSettings | null;
   libraryAgentLoading: boolean;
   libraryAgentSaving: boolean;
@@ -124,15 +120,11 @@ const emit = defineEmits<{
   loadModels: [];
   saveModels: [settings: ModelSettingsInput];
   testModel: [model: ModelConfigInput];
-  loadOfficialModels: [];
   loadSiteOfficialModels: [];
-  saveOfficialToken: [apiKey: string];
-  clearOfficialToken: [];
   saveSiteOfficialToken: [apiKey: string];
   clearSiteOfficialToken: [];
   refreshSiteOfficialModels: [];
   setSiteOfficialModelEnabled: [modelId: string, enabled: boolean];
-  setOfficialModelEnabled: [modelId: string, enabled: boolean];
   refreshFreeModels: [];
   setFreeModelEnabled: [modelId: string, enabled: boolean];
 }>();
@@ -165,9 +157,6 @@ const activeLabel = computed(() => {
 });
 
 async function selectCategory(id: string): Promise<void> {
-  if (id === "official-models") {
-    emit("loadOfficialModels");
-  }
   if (id === "custom-models") {
     emit("loadModels");
   }
@@ -224,6 +213,13 @@ async function selectCategory(id: string): Promise<void> {
     <main class="settings-content">
       <div class="settings-content-inner">
         <h1 class="settings-title">{{ activeLabel }}</h1>
+
+        <ModelAnnouncementNotice
+          v-if="activeCategory === 'custom-models'"
+          class="custom-models-notice"
+          :messages="modelAlertMessages"
+          @open-official-models="selectCategory('site-official-models')"
+        />
 
         <StorageSettingsPanel
           v-if="activeCategory === 'directory'"
@@ -282,7 +278,9 @@ async function selectCategory(id: string): Promise<void> {
           v-else-if="activeCategory === 'usage'"
           :dashboard="modelUsageDashboard"
           :loading="modelUsageLoading"
+          :model-alert-messages="modelAlertMessages"
           @query="emit('loadModelUsage', $event)"
+          @open-official-models="selectCategory('site-official-models')"
         />
 
         <FreeModelsPanel
@@ -291,7 +289,9 @@ async function selectCategory(id: string): Promise<void> {
           :refreshing="freeModelsRefreshing"
           :saving="freeModelsSaving"
           :testing-model-id="testingModelId"
+          :model-alert-messages="modelAlertMessages"
           @refresh="emit('refreshFreeModels')"
+          @open-official-models="selectCategory('site-official-models')"
           @test="emit('testModel', $event)"
           @set-model-enabled="
             emit('setFreeModelEnabled', $event.modelId, $event.enabled)
@@ -309,24 +309,10 @@ async function selectCategory(id: string): Promise<void> {
           :model-error="modelError"
           :model-test-message="modelTestMessage"
           :testing-model-id="testingModelId"
-          :model-alert-messages="[]"
+          :model-alert-messages="modelAlertMessages"
+          @open-official-models="selectCategory('site-official-models')"
           @save-models="emit('saveModels', $event)"
           @test-model="emit('testModel', $event)"
-        />
-
-        <OfficialModelsPanel
-          v-else-if="activeCategory === 'official-models'"
-          :settings="modelSettings"
-          :dashboard="officialModelUsageDashboard"
-          :balance="officialModelBalance"
-          :loading="officialModelsLoading"
-          :saving="officialModelsSaving"
-          @load="emit('loadOfficialModels')"
-          @save-token="emit('saveOfficialToken', $event)"
-          @clear-token="emit('clearOfficialToken')"
-          @set-model-enabled="
-            emit('setOfficialModelEnabled', $event.modelId, $event.enabled)
-          "
         />
 
         <SiteOfficialModelsPanel

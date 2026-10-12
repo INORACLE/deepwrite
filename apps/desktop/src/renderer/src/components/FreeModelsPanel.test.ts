@@ -21,7 +21,10 @@ describe("FreeModelsPanel", () => {
     expect(source).toContain("retiredModels");
     expect(source).not.toContain("onMounted");
     expect(source).toContain("refreshList");
-    expect(source).toContain("chooseWhichFreeModelsAppearInModelSettingsAnd");
+    expect(source).toContain("<ModelAnnouncementNotice");
+    expect(source).not.toContain(
+      "chooseWhichFreeModelsAppearInModelSettingsAnd"
+    );
   });
 
   it("uses the persisted enabled ids for switches", () => {

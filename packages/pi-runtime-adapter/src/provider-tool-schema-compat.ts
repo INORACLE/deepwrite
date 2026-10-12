@@ -1,4 +1,8 @@
-import type { Context } from "@earendil-works/pi-ai";
+import {
+  getDeclaredTools,
+  normalizeContext,
+  type Context
+} from "@earendil-works/pi-ai";
 
 function isSchemaRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -58,8 +62,7 @@ export function assertProviderToolParameterSchema(
 export function enforceProviderToolSchemaCompatibility(
   context: Context
 ): Context {
-  if (!context.tools?.length) return context;
-  for (const tool of context.tools) {
+  for (const tool of getDeclaredTools(normalizeContext(context).messages)) {
     assertProviderToolParameterSchema(tool.name, tool.parameters);
   }
   return context;

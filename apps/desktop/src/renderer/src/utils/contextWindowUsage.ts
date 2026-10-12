@@ -27,6 +27,20 @@ export function contextTokensFromUsage(
   return componentTotal > 0 ? componentTotal : undefined;
 }
 
+/** The final model call predates a successful post-run compaction. */
+export function completedIdleCompactionTokens(
+  message: ChatMessage
+): number | undefined {
+  return [...(message.contextCompactions ?? [])]
+    .reverse()
+    .find(
+      (item) =>
+        item.status === "completed" &&
+        item.reason === "idle" &&
+        item.tokensAfter !== undefined
+    )?.tokensAfter;
+}
+
 export function runtimeMatchesModel(
   runtime: AgentRuntimeRef | undefined,
   model: ModelConfig
@@ -53,6 +67,12 @@ export function latestModelContextTokens(
       continue;
     }
 
+    // Older histories may have saved terminal usage over the post-run value.
+    const idleTokens = completedIdleCompactionTokens(message);
+    if (idleTokens !== undefined) {
+      return idleTokens > 0 ? idleTokens : undefined;
+    }
+
     if (message.contextTokens !== undefined) {
       return message.contextTokens > 0 ? message.contextTokens : undefined;
     }
@@ -62,12 +82,7 @@ export function latestModelContextTokens(
       .find(
         (item) => item.status === "completed" && item.tokensAfter !== undefined
       );
-    if (
-      compaction &&
-      (message.status === "streaming" ||
-        compaction.reason === "idle" ||
-        !message.usage)
-    )
+    if (compaction && (message.status === "streaming" || !message.usage))
       return compaction.tokensAfter;
     const usedTokens = contextTokensFromUsage(message.usage);
     if (usedTokens !== undefined) return usedTokens;

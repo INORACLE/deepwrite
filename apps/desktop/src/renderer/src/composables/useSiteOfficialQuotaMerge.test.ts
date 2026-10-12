@@ -97,6 +97,148 @@ describe("quota merge UI behavior", () => {
     expect(models.querySiteOfficialQuota).not.toHaveBeenCalled();
   });
 
+  it("preserves single-key saving without attempting a transfer", async () => {
+    const { models, store, coordinator } = setup();
+    await coordinator.saveSiteOfficialToken(" target_test_only_invalid ");
+    expect(models.saveSiteOfficialToken).toHaveBeenCalledExactlyOnceWith(
+      "target_test_only_invalid"
+    );
+    expect(models.mergeSiteOfficialQuota).not.toHaveBeenCalled();
+    expect(models.querySiteOfficialQuota).toHaveBeenCalledOnce();
+    expect(store.siteOfficialModelsSaving).toBe(false);
+  });
+
+  it("saves only the first key and continues past a failed source with its original line number", async () => {
+    const { models, notifications, coordinator, store } = setup();
+    models.mergeSiteOfficialQuota.mockRejectedValueOnce({
+      code: "invalid_source_key",
+      message: "来源 Key 无效、已注销或已过期，请检查后重试。"
+    });
+    await coordinator.saveSiteOfficialToken(
+      " target_test_only_invalid\r\n failed_test_only_invalid\r\n\r\n source_test_only_invalid \r\n last_test_only_invalid "
+    );
+    expect(models.saveSiteOfficialToken).toHaveBeenCalledExactlyOnceWith(
+      "target_test_only_invalid"
+    );
+    expect(models.mergeSiteOfficialQuota.mock.calls).toEqual([
+      [{ sourceKey: "failed_test_only_invalid", targetRevision }],
+      [{ sourceKey: "source_test_only_invalid", targetRevision }],
+      [{ sourceKey: "last_test_only_invalid", targetRevision }]
+    ]);
+    expect(models.querySiteOfficialQuota).toHaveBeenCalledTimes(2);
+    expect(notifications.warning).toHaveBeenCalledWith(
+      expect.stringMatching(/成功 2 个.*第 2 行：来源 Key 无效/u),
+      { duration: 15_000 }
+    );
+    expect(JSON.stringify(notifications.warning.mock.calls)).not.toContain(
+      "failed_test_only_invalid"
+    );
+    expect(store.siteOfficialModelsSaving).toBe(false);
+  });
+
+  it("does not transfer sources if saving the first key fails", async () => {
+    const { models, coordinator, notifications } = setup();
+    models.saveSiteOfficialToken.mockRejectedValueOnce({
+      code: "models.save_site_official_token_failed",
+      message: "第一行密钥无效"
+    });
+    await coordinator.saveSiteOfficialToken(
+      "target_test_only_invalid\nsource_test_only_invalid"
+    );
+    expect(models.mergeSiteOfficialQuota).not.toHaveBeenCalled();
+    expect(models.querySiteOfficialQuota).not.toHaveBeenCalled();
+    expect(notifications.error).toHaveBeenCalledWith(
+      expect.stringMatching(/第 1 行密钥未保存：第一行密钥无效.*均未转入/u)
+    );
+  });
+
+  it("reports every unattempted source when the saved target quota is unavailable", async () => {
+    const { models, coordinator, notifications, store } = setup();
+    models.querySiteOfficialQuota.mockRejectedValueOnce(new Error("offline"));
+    await coordinator.saveSiteOfficialToken(
+      "target_test_only_invalid\nsource_test_only_invalid\nlast_test_only_invalid"
+    );
+    expect(models.mergeSiteOfficialQuota).not.toHaveBeenCalled();
+    expect(notifications.error).toHaveBeenCalledWith(
+      expect.stringMatching(/第 2 行：尚未转入.*第 3 行：尚未转入/u),
+      { duration: 15_000 }
+    );
+    expect(store.siteOfficialQuota).toBeNull();
+  });
+
+  it("does not repeat a transfer for duplicated sources or the first saved key", async () => {
+    const { models, coordinator, notifications } = setup();
+    await coordinator.saveSiteOfficialToken(
+      "target_test_only_invalid\nsource_test_only_invalid\ntarget_test_only_invalid\nsource_test_only_invalid"
+    );
+    expect(models.mergeSiteOfficialQuota).toHaveBeenCalledExactlyOnceWith({
+      sourceKey: "source_test_only_invalid",
+      targetRevision
+    });
+    expect(notifications.warning).toHaveBeenCalledWith(
+      expect.stringMatching(/第 3 行：与第 1 行.*第 4 行：与第 2 行/u),
+      { duration: 15_000 }
+    );
+  });
+
+  it("validates each key before saving or transferring any quota", async () => {
+    const { models, coordinator, merge, notifications } = setup();
+    const input = `target_test_only_invalid\n${"x".repeat(1_025)}`;
+    await coordinator.saveSiteOfficialToken(input);
+    merge.show();
+    merge.sourceKey.value = input;
+    await merge.submit();
+    expect(models.saveSiteOfficialToken).not.toHaveBeenCalled();
+    expect(models.mergeSiteOfficialQuota).not.toHaveBeenCalled();
+    expect(notifications.warning).toHaveBeenCalledTimes(2);
+    expect(notifications.warning).toHaveBeenLastCalledWith(
+      expect.stringContaining("第 2 行密钥过长")
+    );
+  });
+
+  it("continues after a source cannot transfer unlimited quota", async () => {
+    const { models, coordinator, notifications } = setup();
+    models.mergeSiteOfficialQuota.mockRejectedValueOnce({
+      code: "unlimited_key",
+      message: "无限额度密钥不支持额度转入。"
+    });
+    await coordinator.saveSiteOfficialToken(
+      "target_test_only_invalid\nunlimited_test_only_invalid\nsource_test_only_invalid"
+    );
+    expect(models.mergeSiteOfficialQuota).toHaveBeenCalledTimes(2);
+    expect(notifications.warning).toHaveBeenCalledWith(
+      expect.stringMatching(/成功 1 个.*第 2 行：无限额度/u),
+      { duration: 15_000 }
+    );
+  });
+
+  it("retains transferred quota when refreshing after multiline saving fails", async () => {
+    const { models, coordinator, store } = setup();
+    models.querySiteOfficialQuota.mockResolvedValueOnce(quota);
+    models.querySiteOfficialQuota.mockRejectedValueOnce(new Error("offline"));
+    await coordinator.saveSiteOfficialToken(
+      "target_test_only_invalid\nsource_test_only_invalid\nlast_test_only_invalid"
+    );
+    expect(store.siteOfficialQuota?.remaining).toBe(3);
+    expect(store.siteOfficialModelsSaving).toBe(false);
+  });
+
+  it("does not echo pasted keys from unexpected errors into batch notifications", async () => {
+    const { models, coordinator, notifications } = setup();
+    models.mergeSiteOfficialQuota.mockRejectedValueOnce(
+      new Error(
+        "failed with target_test_only_invalid and source_test_only_invalid"
+      )
+    );
+    await coordinator.saveSiteOfficialToken(
+      "target_test_only_invalid\nsource_test_only_invalid"
+    );
+    const messages = JSON.stringify(notifications.error.mock.calls);
+    expect(messages).toContain("第 2 行");
+    expect(messages).not.toContain("target_test_only_invalid");
+    expect(messages).not.toContain("source_test_only_invalid");
+  });
+
   it("allows exhausted targets, validates empty input through a toast, and clears cancelled input", async () => {
     const { merge, models, notifications } = setup();
     expect(merge.disabledReason.value).toBe("");
@@ -172,11 +314,91 @@ describe("quota merge UI behavior", () => {
     merge.show();
     merge.sourceKey.value = "source_test_only_invalid";
     await merge.submit();
-    expect(notifications.error).toHaveBeenCalledWith("来源 Key 无效");
+    expect(notifications.error).toHaveBeenCalledWith("来源 Key 无效", {
+      duration: 15_000
+    });
     expect(merge.sourceKey.value).toBe("");
     expect(merge.open.value).toBe(true);
     expect(store.siteOfficialModelsSaving).toBe(false);
     expect(models.querySiteOfficialQuota).not.toHaveBeenCalled();
+  });
+
+  it("transfers multiple sources sequentially, keeps successes, and reports a failed middle line", async () => {
+    const { merge, models, notifications, store } = setup();
+    const waiting =
+      deferred<Awaited<ReturnType<typeof models.mergeSiteOfficialQuota>>>();
+    models.mergeSiteOfficialQuota.mockImplementationOnce(() => waiting.promise);
+    models.mergeSiteOfficialQuota.mockRejectedValueOnce({
+      code: "source_quota_empty",
+      message: "来源 Key 没有可转入的剩余额度。"
+    });
+    merge.show();
+    merge.sourceKey.value =
+      " first_test_only_invalid\n failed_test_only_invalid\n last_test_only_invalid ";
+    const pending = merge.submit();
+    await merge.submit();
+    expect(models.mergeSiteOfficialQuota).toHaveBeenCalledOnce();
+    expect(store.siteOfficialModelsSaving).toBe(true);
+    waiting.resolve({
+      transferred: "3",
+      sourceRevoked: true,
+      quota: { ...quota, remaining: 3, total: 13 }
+    });
+    await pending;
+    expect(models.mergeSiteOfficialQuota).toHaveBeenCalledTimes(3);
+    expect(models.mergeSiteOfficialQuota).toHaveBeenLastCalledWith({
+      sourceKey: "last_test_only_invalid",
+      targetRevision
+    });
+    expect(notifications.warning).toHaveBeenCalledWith(
+      expect.stringMatching(/成功 2 个.*第 2 行：来源 Key 没有/u),
+      { duration: 15_000 }
+    );
+    expect(merge.sourceKey.value).toBe("");
+    expect(merge.open.value).toBe(true);
+    expect(store.siteOfficialModelsSaving).toBe(false);
+  });
+
+  it("stops the remaining transfers when the target changes and reports their line numbers", async () => {
+    const { merge, models, notifications } = setup();
+    models.mergeSiteOfficialQuota.mockRejectedValueOnce({
+      code: "target_changed",
+      message: "当前密钥配置已变化，请刷新额度后重新确认。"
+    });
+    merge.show();
+    merge.sourceKey.value =
+      "first_test_only_invalid\nsecond_test_only_invalid\nthird_test_only_invalid";
+    await merge.submit();
+    expect(models.mergeSiteOfficialQuota).toHaveBeenCalledOnce();
+    expect(notifications.error).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /第 1 行：当前密钥配置已变化.*第 2 行：尚未转入.*第 3 行：尚未转入/u
+      ),
+      { duration: 15_000 }
+    );
+  });
+
+  it("does not overwrite a new model snapshot or transfer more keys after it changes during a batch", async () => {
+    const { merge, models, store, notifications } = setup();
+    const waiting =
+      deferred<Awaited<ReturnType<typeof models.mergeSiteOfficialQuota>>>();
+    models.mergeSiteOfficialQuota.mockImplementationOnce(() => waiting.promise);
+    merge.show();
+    merge.sourceKey.value = "first_test_only_invalid\nsecond_test_only_invalid";
+    const pending = merge.submit();
+    store.modelSettings = { ...settings };
+    waiting.resolve({
+      transferred: "3",
+      sourceRevoked: true,
+      quota: { ...quota, remaining: 3, total: 13 }
+    });
+    await pending;
+    expect(models.mergeSiteOfficialQuota).toHaveBeenCalledOnce();
+    expect(store.siteOfficialQuota).toEqual(quota);
+    expect(notifications.warning).toHaveBeenCalledWith(
+      expect.stringMatching(/第 2 行：尚未转入.*配置已变化/u),
+      { duration: 15_000 }
+    );
   });
 
   it("retains the authoritative merge quota if the follow-up refresh fails", async () => {
@@ -234,10 +456,10 @@ describe("quota merge UI behavior", () => {
     expect(store.siteOfficialQuota?.remaining).toBe(2.5);
   });
 
-  it("wires a password-only dialog with explicit revocation and a busy form", () => {
+  it("wires a multiline dialog with explicit revocation and a busy form", () => {
     expect(panel).toContain("addQuota");
     expect(panel).toContain('v-if="mergeOpen"');
-    expect(dialog).toContain('type="password"');
+    expect(dialog).toContain("<textarea");
     expect(dialog).toContain('autocomplete="new-password"');
     expect(dialog).toContain('aria-modal="true"');
     expect(dialog).toContain(':aria-busy="pending"');

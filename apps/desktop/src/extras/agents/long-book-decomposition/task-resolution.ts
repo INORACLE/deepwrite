@@ -7,7 +7,7 @@ import {
   type ExtrasAgentTask
 } from "@deepwrite/contracts";
 import type { ExtrasAgentCommandContext } from "../index";
-import { decompositionCore } from "./commands";
+import { decompositionCore } from "./core-bridge";
 
 export async function resolveDecompositionTask(
   context: ExtrasAgentCommandContext,

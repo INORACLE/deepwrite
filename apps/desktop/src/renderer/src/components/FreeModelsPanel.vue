@@ -7,6 +7,7 @@ import type {
   ModelSettings
 } from "@deepwrite/contracts";
 import AppIcon from "./AppIcon.vue";
+import ModelAnnouncementNotice from "./ModelAnnouncementNotice.vue";
 import { freeModelStatus, isFreeModelAvailable } from "./freeModelPresentation";
 import { toModelInput } from "./modelSettingsDraft";
 
@@ -17,12 +18,14 @@ const props = defineProps<{
   refreshing: boolean;
   saving: boolean;
   testingModelId: string | null;
+  modelAlertMessages: readonly string[];
 }>();
 
 const emit = defineEmits<{
   refresh: [];
   setModelEnabled: [payload: { modelId: string; enabled: boolean }];
   test: [model: ModelConfigInput];
+  openOfficialModels: [];
 }>();
 
 const currentModels = computed(() => props.settings?.deepwriteFreeModels ?? []);
@@ -61,9 +64,11 @@ function testModel(model: ModelConfig): void {
         <h2 id="free-models-title">
           {{ t("freeModels") }}
         </h2>
-        <p>
-          {{ t("chooseWhichFreeModelsAppearInModelSettingsAnd") }}
-        </p>
+        <ModelAnnouncementNotice
+          class="free-models-notice"
+          :messages="modelAlertMessages"
+          @open-official-models="emit('openOfficialModels')"
+        />
       </div>
       <button
         class="free-models-refresh"

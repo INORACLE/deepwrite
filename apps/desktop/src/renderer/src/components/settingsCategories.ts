@@ -101,13 +101,6 @@ export const settingsSections: SettingsSection[] = [
         icon: "model"
       },
       {
-        id: "official-models",
-        get label() {
-          return t("legacyOfficialModels");
-        },
-        icon: "model"
-      },
-      {
         id: "site-official-models",
         get label() {
           return t("officialSiteModels");

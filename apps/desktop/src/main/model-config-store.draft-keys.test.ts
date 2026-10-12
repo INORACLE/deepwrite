@@ -54,8 +54,7 @@ function createStore(root: string) {
     getCatalog: async () => catalog
   };
   return new ModelConfigStore(root, {
-    freeModelCatalog: reader,
-    officialModelCatalog: reader
+    freeModelCatalog: reader
   });
 }
 

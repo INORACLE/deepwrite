@@ -226,11 +226,10 @@ describe("SettingsPage", () => {
     expect(source).toContain("emit('resetLibraryAgent', $event)");
   });
 
-  it("orders usage, free, custom, old-site, and new-site model settings", () => {
+  it("offers usage, free, custom, and new official-site model settings", () => {
     const usageIndex = source.indexOf('id: "usage"');
     const freeModelsIndex = source.indexOf('id: "free-models"');
     const customModelsIndex = source.indexOf('id: "custom-models"');
-    const officialModelsIndex = source.indexOf('id: "official-models"');
     const siteOfficialModelsIndex = source.indexOf(
       'id: "site-official-models"'
     );
@@ -238,8 +237,9 @@ describe("SettingsPage", () => {
     expect(usageIndex).toBeGreaterThan(-1);
     expect(freeModelsIndex).toBeGreaterThan(usageIndex);
     expect(customModelsIndex).toBeGreaterThan(freeModelsIndex);
-    expect(officialModelsIndex).toBeGreaterThan(customModelsIndex);
-    expect(siteOfficialModelsIndex).toBeGreaterThan(officialModelsIndex);
+    expect(siteOfficialModelsIndex).toBeGreaterThan(customModelsIndex);
+    expect(source).not.toContain('id: "official-models"');
+    expect(source).not.toContain("<OfficialModelsPanel");
     expect(source).toContain('model-scope="custom"');
     expect(source).toContain('emit("loadModels")');
     expect(source).toContain("emit('saveModels', $event)");
@@ -249,10 +249,6 @@ describe("SettingsPage", () => {
     expect(source).toContain("emit('setFreeModelEnabled'");
     expect(source).toContain(':testing-model-id="testingModelId"');
     expect(source).toContain("@test=\"emit('testModel', $event)\"");
-    expect(source).toContain("<OfficialModelsPanel");
-    expect(source).toContain("emit('saveOfficialToken', $event)");
-    expect(source).toContain('if (id === "official-models")');
-    expect(source).toContain('emit("loadOfficialModels")');
     expect(source).toContain('if (id === "site-official-models")');
     expect(source).toContain("<SiteOfficialModelsPanel");
     expect(source).toContain("officialSiteModels");

@@ -123,8 +123,7 @@ export async function fixture() {
   };
   const createStore = () =>
     new ModelConfigStore(root, {
-      freeModelCatalog: reader,
-      officialModelCatalog: reader
+      freeModelCatalog: reader
     });
   const configDirectory = join(root, "config");
   await mkdir(configDirectory);

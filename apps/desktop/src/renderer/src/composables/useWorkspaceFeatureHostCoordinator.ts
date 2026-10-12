@@ -194,8 +194,8 @@ export function useWorkspaceFeatureHostCoordinator(
     options.view.settingsInitialCategory.value = initialCategory;
     options.view.current.value = "settings";
     if (!options.api()) return;
-    if (initialCategory === "official-models") {
-      issueBackground(options.loaders.loadOfficialModels);
+    if (initialCategory === "site-official-models") {
+      issueBackground(options.loaders.loadSiteOfficialModels);
     } else if (!settingsStore.modelSettings) {
       issueBackground(options.loaders.loadModelSettings);
     }
@@ -205,7 +205,7 @@ export function useWorkspaceFeatureHostCoordinator(
   }
 
   function openOfficialModelsSettings(): void {
-    issueBackground(() => openSettings("official-models"));
+    issueBackground(() => openSettings("site-official-models"));
   }
 
   async function openAgentTeams(): Promise<void> {

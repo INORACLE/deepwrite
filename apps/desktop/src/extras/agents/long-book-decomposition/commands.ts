@@ -1,16 +1,14 @@
 import { randomUUID } from "node:crypto";
 import {
-  CommandEnvelopeSchema,
-  createEnvelope,
   LongBookDecompositionJobSchema,
   LongBookAnalysisSourceSchema,
   DecompositionSourceConfirmationSchema,
+  DecompositionCommandRecoverySchema,
   splitDecompositionChunks,
   estimateDecomposition,
   decompositionInputBudget,
   type CommandEnvelope,
   type CommandResult,
-  type DecompositionControlInput,
   type LongBookDecompositionJob
 } from "@deepwrite/contracts";
 import {
@@ -20,52 +18,8 @@ import {
 import type { ExtrasAgentCommandContext } from "../index";
 import type { ExtrasAgentConfigStore } from "../config-store";
 import { decompositionModelCapacity } from "./model-capacity";
-import {
-  restoreDecompositionUsage,
-  takeDecompositionUsage
-} from "../../../main/decomposition-usage";
-
-export async function decompositionCore(
-  context: Pick<ExtrasAgentCommandContext, "core" | "getWorkspaceDirectory">,
-  command: CommandEnvelope,
-  payload: Record<string, unknown>,
-  type = "longBookDecomposition.coreAccess"
-): Promise<CommandResult> {
-  const workspaceDirectory = await context.getWorkspaceDirectory();
-  if (!workspaceDirectory) throw new Error("请先在设置中选择工作目录。");
-  const result = await context.core(
-    CommandEnvelopeSchema.parse(
-      createEnvelope(
-        type,
-        { workspaceDirectory, ...payload },
-        { id: `${command.id}-core`, context: command.context }
-      )
-    )
-  );
-  return { ...result, requestId: command.id };
-}
-/** Control calls carry the usage Main observed since the previous one. */
-export async function controlWithUsage(
-  context: Pick<ExtrasAgentCommandContext, "core" | "getWorkspaceDirectory">,
-  command: CommandEnvelope,
-  control: DecompositionControlInput
-): Promise<CommandResult> {
-  const usage = takeDecompositionUsage(control.jobId);
-  try {
-    const result = await decompositionCore(context, command, {
-      operation: "control",
-      jobId: control.jobId,
-      control,
-      ...(usage ? { usage } : {})
-    });
-    if (result.status !== "accepted" && usage)
-      restoreDecompositionUsage(control.jobId, usage);
-    return result;
-  } catch (error) {
-    if (usage) restoreDecompositionUsage(control.jobId, usage);
-    throw error;
-  }
-}
+import { UtilityCommandTimeoutError } from "../../../main/supervisor";
+import { decompositionCore, controlWithUsage } from "./core-bridge";
 export async function handleDecompositionCommands(
   context: ExtrasAgentCommandContext,
   config: ExtrasAgentConfigStore,
@@ -80,6 +34,7 @@ export async function handleDecompositionCommands(
     command.type === "longBookDecomposition.planTopic"
   )
     return undefined;
+  let createdJobId: string | undefined;
   try {
     if (command.type === "longBookDecomposition.createJob") {
       const {
@@ -197,7 +152,8 @@ export async function handleDecompositionCommands(
         });
       const workspace = await context.getWorkspaceDirectory();
       if (!workspace) throw new Error("工作目录不存在。");
-      return decompositionCore(
+      createdJobId = job.id;
+      const result = await decompositionCore(
         context,
         command,
         {
@@ -210,11 +166,23 @@ export async function handleDecompositionCommands(
         },
         "longBookDecomposition.coreCreate"
       );
+      return result.status === "rejected"
+        ? {
+            ...result,
+            error: {
+              ...result.error,
+              details: {
+                ...result.error.details,
+                ...DecompositionCommandRecoverySchema.parse({ jobId: job.id })
+              }
+            }
+          }
+        : result;
     }
     if (command.type === "longBookDecomposition.listJobs")
-      return decompositionCore(context, command, { operation: "list" });
+      return await decompositionCore(context, command, { operation: "list" });
     if (command.type === "longBookDecomposition.getJob")
-      return decompositionCore(context, command, {
+      return await decompositionCore(context, command, {
         operation: "get",
         jobId: command.payload.jobId,
         recover: ![...context.activeRuns.values()].some(
@@ -222,25 +190,25 @@ export async function handleDecompositionCommands(
         )
       });
     if (command.type === "longBookDecomposition.control")
-      return controlWithUsage(context, command, command.payload);
+      return await controlWithUsage(context, command, command.payload);
     if (command.type === "longBookDecomposition.getRegistry")
-      return decompositionCore(context, command, {
+      return await decompositionCore(context, command, {
         operation: "registry",
         jobId: command.payload.jobId
       });
     if (command.type === "longBookDecomposition.saveRegistry")
-      return decompositionCore(context, command, {
+      return await decompositionCore(context, command, {
         operation: "save-registry",
         jobId: command.payload.jobId,
         registry: command.payload
       });
     if (command.type === "longBookDecomposition.listResults")
-      return decompositionCore(context, command, {
+      return await decompositionCore(context, command, {
         operation: "results",
         jobId: command.payload.jobId
       });
     if (command.type === "longBookDecomposition.readUnit")
-      return decompositionCore(context, command, {
+      return await decompositionCore(context, command, {
         operation: "unit",
         jobId: command.payload.jobId,
         unitId: command.payload.unitId
@@ -251,8 +219,23 @@ export async function handleDecompositionCommands(
       status: "rejected",
       requestId: command.id,
       error: {
-        code: "decomposition.command_failed",
-        message: error instanceof Error ? error.message : "拆解操作失败。"
+        code:
+          error instanceof UtilityCommandTimeoutError
+            ? "decomposition.command_timeout"
+            : "decomposition.command_failed",
+        message:
+          error instanceof UtilityCommandTimeoutError
+            ? "本地拆解操作等待超时，后台操作可能仍在进行。请刷新任务或点击继续，接续已保存的进度。"
+            : error instanceof Error
+              ? error.message
+              : "拆解操作失败。",
+        ...(createdJobId
+          ? {
+              details: DecompositionCommandRecoverySchema.parse({
+                jobId: createdJobId
+              })
+            }
+          : {})
       }
     };
   }

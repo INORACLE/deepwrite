@@ -13,7 +13,6 @@ import type {
   ModelSettings,
   MoreFeaturesSettings,
   ModelUsageDashboard,
-  OfficialModelBalance,
   SiteOfficialQuota,
   SkillLibrary,
   TextViewMode,
@@ -55,6 +54,7 @@ export interface SettingsFeatureModule {
   modelUsageDashboard: ModelUsageDashboard | null;
   modelUsageLoading: boolean;
   modelSettings: ModelSettings | null;
+  modelAlertMessages: readonly string[];
   modelLoading: boolean;
   modelSaving: boolean;
   freeModelsRefreshing: boolean;
@@ -65,10 +65,6 @@ export interface SettingsFeatureModule {
   modelError: string | null;
   modelTestMessage: string | null;
   testingModelId: string | null;
-  officialModelUsageDashboard: ModelUsageDashboard | null;
-  officialModelBalance: OfficialModelBalance | null;
-  officialModelsLoading: boolean;
-  officialModelsSaving: boolean;
   runtimeAvailable: boolean;
 }
 

@@ -29,7 +29,7 @@ afterEach(async () => {
 });
 
 describe("DeepWrite site official model storage", () => {
-  it("registers the model only after a user key is encrypted and removes both together", async () => {
+  it("encrypts the user key and retains the disabled catalog after removing it", async () => {
     const root = await mkdtemp(join(tmpdir(), "deepwrite-site-model-store-"));
     temporaryRoots.push(root);
     const freeModelCatalog = {
@@ -45,20 +45,8 @@ describe("DeepWrite site official model storage", () => {
         apiKeys: {}
       })
     };
-    const officialModelCatalog = {
-      initialize: async () => undefined,
-      getCatalog: async () => ({
-        revision: "",
-        enabled: false,
-        message: "",
-        manifestAvailable: false,
-        defaultModelId: "",
-        models: []
-      })
-    };
     const store = new ModelConfigStore(root, {
-      freeModelCatalog,
-      officialModelCatalog
+      freeModelCatalog
     });
     const initial = await store.list();
     expect(initial.models).toEqual([]);
@@ -117,9 +105,17 @@ describe("DeepWrite site official model storage", () => {
     const cleared = await store.save(
       clearDeepWriteSiteOfficialModelInput(saved)
     );
-    expect(cleared.models).toEqual([]);
+    expect(cleared.models).toHaveLength(2);
+    expect(
+      cleared.models.every(
+        (model) => !model.hasApiKey && model.enabled === false
+      )
+    ).toBe(true);
+    expect(cleared.defaultModelId).toBe("");
+    const reopened = new ModelConfigStore(root, { freeModelCatalog });
+    expect((await reopened.list()).models).toEqual(cleared.models);
     await expect(
-      store.resolve(DEEPWRITE_SITE_OFFICIAL_MODEL_ID)
-    ).rejects.toThrow("所选模型不存在");
+      reopened.resolveDraftApiKey({ id: DEEPWRITE_SITE_OFFICIAL_MODEL_ID })
+    ).resolves.toBe("");
   });
 });

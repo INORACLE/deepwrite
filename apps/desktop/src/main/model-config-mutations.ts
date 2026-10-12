@@ -1,10 +1,6 @@
 import { safeStorage } from "electron";
 import type { ModelSettingsInput } from "@deepwrite/contracts";
 import {
-  DEEPWRITE_OFFICIAL_TOKEN_SECRET_ID,
-  isOfficialModelAvailable
-} from "./deepwrite-official-model-config";
-import {
   forgetEnabledFreeModel,
   rememberEnabledFreeModel,
   toDiskModel
@@ -24,10 +20,7 @@ export function editModelSettings(
   { settings, secrets, freeCatalog }: ModelConfigSnapshot
 ): ModelConfigState {
   const encryptedApiKeys: Record<string, string> = {};
-  const preservedIds = [
-    DEEPWRITE_OFFICIAL_TOKEN_SECRET_ID,
-    ...managedFreeSecretIds(settings, freeCatalog)
-  ];
+  const preservedIds = managedFreeSecretIds(settings, freeCatalog);
   for (const id of preservedIds) {
     const encrypted = secrets.encryptedApiKeys[id];
     if (encrypted) encryptedApiKeys[id] = encrypted;
@@ -73,45 +66,6 @@ export function editModelSettings(
   };
 }
 
-export function changeOfficialToken(
-  { settings, secrets }: ModelConfigSnapshot,
-  apiKey: string | null
-): ModelConfigState {
-  const encryptedApiKeys = { ...secrets.encryptedApiKeys };
-  if (apiKey === null) {
-    delete encryptedApiKeys[DEEPWRITE_OFFICIAL_TOKEN_SECRET_ID];
-  } else {
-    if (!safeStorage.isEncryptionAvailable()) {
-      throw new Error(
-        "当前系统安全存储不可用，DeepWrite 不会把官方令牌以明文写入磁盘。"
-      );
-    }
-    encryptedApiKeys[DEEPWRITE_OFFICIAL_TOKEN_SECRET_ID] = safeStorage
-      .encryptString(apiKey)
-      .toString("base64");
-  }
-  return { settings, secrets: { version: 1, encryptedApiKeys } };
-}
-
-export function setOfficialModelEnabled(
-  { settings, secrets, officialCatalog }: ModelConfigSnapshot,
-  modelId: string,
-  enabled: boolean
-): ModelConfigState {
-  const model = officialCatalog.models.find((entry) => entry.id === modelId);
-  if (!model) throw new Error("这个 DeepWrite 官方模型已不再受支持。");
-  if (enabled && !isOfficialModelAvailable(model)) {
-    throw new Error("这个 DeepWrite 官方模型当前不可用。");
-  }
-  const disabled = new Set(settings.disabledOfficialModelIds);
-  if (enabled) disabled.delete(modelId);
-  else disabled.add(modelId);
-  return {
-    settings: { ...settings, disabledOfficialModelIds: [...disabled] },
-    secrets
-  };
-}
-
 export function setFreeModelEnabled(
   state: ModelConfigSnapshot,
   modelId: string,
@@ -123,8 +77,7 @@ export function setFreeModelEnabled(
   const [settings, secrets] = synchronizeState(
     state.settings,
     state.secrets,
-    state.freeCatalog,
-    state.officialCatalog
+    state.freeCatalog
   );
   return {
     settings: enabled

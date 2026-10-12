@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { StringEnum, Type, type Context } from "@earendil-works/pi-ai";
+import {
+  StringEnum,
+  Type,
+  normalizeContext,
+  type Context
+} from "@earendil-works/pi-ai";
 import {
   assertProviderToolParameterSchema,
   enforceProviderToolSchemaCompatibility
@@ -102,5 +107,28 @@ describe("provider tool schema compatibility", () => {
         }
       })
     ).toThrow(/legacy_literal.*StringEnum/u);
+  });
+
+  it("validates tools added later in a normalized transcript", () => {
+    const context = normalizeContext({
+      systemPrompt: "test",
+      messages: [
+        {
+          role: "system",
+          content: "",
+          timestamp: 1,
+          toolsAdded: [
+            {
+              name: "invalid_tool",
+              description: "test",
+              parameters: Type.String()
+            }
+          ]
+        }
+      ]
+    });
+    expect(() => enforceProviderToolSchemaCompatibility(context)).toThrow(
+      /invalid_tool.*type: "object"/u
+    );
   });
 });

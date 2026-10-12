@@ -75,7 +75,7 @@ export interface WorkspaceFeatureHostCoordinatorOptions {
     loadSyncLongBooks?(): Promise<unknown>;
     refreshSyncLongBook?(id: string): Promise<unknown>;
     loadModelSettings(): Promise<unknown>;
-    loadOfficialModels(): Promise<unknown>;
+    loadSiteOfficialModels(): Promise<unknown>;
     loadShortAndScriptAgentSettings(): Promise<unknown>;
     ensureLongAgentSettingsLoaded(): Promise<unknown>;
     loadWorkspaceAgentSettings(): Promise<unknown>;

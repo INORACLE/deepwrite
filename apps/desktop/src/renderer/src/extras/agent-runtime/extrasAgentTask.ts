@@ -183,7 +183,7 @@ export function startExtrasAgentTask(
         callbacks.onOutput?.(event.payload.output);
         break;
       case "agent.error":
-        finish(new Error(event.payload.message));
+        finish(new Error(event.payload.message, { cause: event.payload }));
         break;
       case "agent.message_completed":
         finish(
