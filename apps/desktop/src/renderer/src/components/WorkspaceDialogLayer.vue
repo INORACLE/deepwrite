@@ -124,6 +124,7 @@ const emit = defineEmits<WorkspaceDialogLayerEmits>();
       :action="module.action"
       :domain="module.domain"
       :label="module.label"
+      :is-group="module.isGroup ?? false"
       :submitting="module.submitting"
       @close="emit('closeLibraryRemoval')"
       @confirm="emit('confirmLibraryRemoval')"

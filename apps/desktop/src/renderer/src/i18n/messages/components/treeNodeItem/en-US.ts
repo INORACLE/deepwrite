@@ -38,6 +38,7 @@ export default {
   paste: "Paste",
   editGroup: "Edit group",
   ungroup: "Ungroup",
+  deleteGroup: "Delete group",
   deleteEntryFile: "Delete entry file",
   deleteMessage: "Delete {arg0}"
 };

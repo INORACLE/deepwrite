@@ -3,6 +3,7 @@ import {
   type ManagedMaterialEntryInput
 } from "./folder-catalog-store/managed-entry";
 import { registerCatalogProject } from "./folder-catalog-store/project-registration";
+import { deleteRegisteredProject } from "./folder-catalog-store/project-deletion";
 import {
   CATALOG_PROJECT_DOMAINS,
   type FolderCatalogProjectDomain,
@@ -129,6 +130,8 @@ import {
   type CurrentBookProjectManifest,
   type DeleteDraftSectionInput,
   type DeleteDraftSectionResult,
+  type DeleteCatalogProjectInput,
+  type DeleteCatalogProjectResult,
   type MoveDraftSectionInput,
   type MoveDraftSectionResult,
   type DuplicateCatalogProjectInput,
@@ -352,16 +355,8 @@ export interface UnregisterFolderCatalogProjectResult {
   unregistered: boolean;
 }
 
-export interface DeleteFolderCatalogProjectInput {
-  projectId: string;
-  domain: "book" | FolderCatalogLibraryDomain;
-}
-
-export interface DeleteFolderCatalogProjectResult {
-  projectId: string;
-  domain: "book" | FolderCatalogLibraryDomain;
-  deleted: boolean;
-}
+export type DeleteFolderCatalogProjectInput = DeleteCatalogProjectInput;
+export type DeleteFolderCatalogProjectResult = DeleteCatalogProjectResult;
 
 interface DuplicateProjectWritePlan {
   domain: FolderCatalogProjectDomain;
@@ -3745,47 +3740,15 @@ export class FolderCatalogStore {
   async deleteProject(
     rawInput: DeleteFolderCatalogProjectInput
   ): Promise<DeleteFolderCatalogProjectResult> {
-    const projectId = parseId(rawInput.projectId);
-    const domain = parseDeletableProjectDomain(rawInput.domain);
-    const registryDomain = registryDomainForUnregister(domain);
     return await this.mutate(async () => {
       const registry = await this.ensureRegistry();
-      const registration = registry.projects.find(
-        (project) =>
-          project.id === projectId && project.domain === registryDomain
-      );
-      if (!registration) {
-        return { projectId, domain, deleted: false };
-      }
-
-      const projectDirectory = await secureProjectRoot(
-        registration.projectDirectory
-      );
-      await this.readProject(projectDirectory, registryDomain, projectId);
-
-      const stagedDeletion = join(
-        dirname(projectDirectory),
-        `.deepwrite-deleting-${randomHex8()}`
-      );
-      await rename(projectDirectory, stagedDeletion);
-      try {
-        const now = this.now();
-        await this.writeRegistry({
-          ...registry,
-          revision: registry.revision + 1,
-          updatedAt: now,
-          projects: registry.projects.filter(
-            (project) =>
-              !(project.id === projectId && project.domain === registryDomain)
-          )
-        });
-      } catch (error: unknown) {
-        await rename(stagedDeletion, projectDirectory);
-        throw error;
-      }
-
-      await removeEmptyOrPartialProject(stagedDeletion);
-      return { projectId, domain, deleted: true };
+      return await deleteRegisteredProject(registry, rawInput, {
+        now: this.now,
+        readProject: (directory, domain, id) =>
+          this.readProject(directory, domain, id),
+        assertBaseRevision,
+        writeRegistry: (next) => this.writeRegistry(next)
+      });
     });
   }
 
@@ -5461,17 +5424,6 @@ function parseUnregisterDomain(value: unknown): FolderCatalogUnregisterDomain {
     value !== "skill-group"
   ) {
     throw new Error("project domain is invalid.");
-  }
-  return value;
-}
-
-function parseDeletableProjectDomain(
-  value: unknown
-): "book" | FolderCatalogLibraryDomain {
-  if (value !== "book" && value !== "material" && value !== "skill") {
-    throw new Error(
-      "deletable project domain must be book, material, or skill."
-    );
   }
   return value;
 }

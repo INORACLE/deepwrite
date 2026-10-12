@@ -1,10 +1,11 @@
 import { nativeMessages, nativeText } from "./native-i18n";
 import { readFile, stat, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, extname, join } from "node:path";
 import type { BrowserWindow, Dialog } from "electron";
 import {
   AgentTeamPackageExportResultSchema,
   AgentTeamPackageInstallResultSchema,
+  AGENT_TEAM_PROFILE_NAME_MAX_LENGTH,
   AgentTeamProfileTargetInputSchema,
   type AgentTeamPackageExportResult,
   type AgentTeamPackageInstallResult,
@@ -16,6 +17,11 @@ import {
   createAgentTeamPackage,
   readAgentTeamPackage
 } from "./agent-team-package-archive";
+import {
+  AGENT_TEAM_CONFIG_MAX_BYTES,
+  createAgentTeamPackageJson,
+  readAgentTeamPackageJson
+} from "./agent-team-package-json";
 
 type PackageDialog = Pick<Dialog, "showOpenDialog" | "showSaveDialog">;
 
@@ -25,7 +31,7 @@ function safePackageFileName(name: string): string {
     .replaceAll(/[. ]+$/g, "")
     .trim()
     .slice(0, 80);
-  return `${sanitized || "智能体团队"}.deepwrite-team.zip`;
+  return `${sanitized || "智能体团队"}.deepwrite-team.json`;
 }
 
 export async function downloadAgentTeamPackage(
@@ -41,12 +47,19 @@ export async function downloadAgentTeamPackage(
     title: nativeMessages().downloadTeam(team.name),
     buttonLabel: nativeText("downloadTeam"),
     defaultPath: join(defaultDirectory, safePackageFileName(team.name)),
-    filters: [{ name: nativeText("agentTeamArchive"), extensions: ["zip"] }]
+    filters: [
+      { name: nativeText("agentTeamJson"), extensions: ["json"] },
+      { name: nativeText("agentTeamArchive"), extensions: ["zip"] }
+    ]
   });
   if (selection.canceled || !selection.filePath) {
     return AgentTeamPackageExportResultSchema.parse({ status: "canceled" });
   }
-  await writeFile(selection.filePath, createAgentTeamPackage(team), {
+  const data =
+    extname(selection.filePath).toLowerCase() === ".zip"
+      ? createAgentTeamPackage(team)
+      : createAgentTeamPackageJson(team);
+  await writeFile(selection.filePath, data, {
     flag: "w"
   });
   return AgentTeamPackageExportResultSchema.parse({
@@ -65,20 +78,48 @@ export async function installAgentTeamPackage(
     title: nativeText("installAgentTeam"),
     buttonLabel: nativeText("installTeam"),
     defaultPath: defaultDirectory,
-    filters: [{ name: nativeText("agentTeamArchive"), extensions: ["zip"] }],
+    filters: [
+      { name: nativeText("agentTeamFile"), extensions: ["json", "zip"] },
+      { name: nativeText("agentTeamJson"), extensions: ["json"] },
+      { name: nativeText("agentTeamArchive"), extensions: ["zip"] }
+    ],
     properties: ["openFile"]
   });
   const sourcePath = selection.filePaths[0];
   if (selection.canceled || !sourcePath) {
     return AgentTeamPackageInstallResultSchema.parse({ status: "canceled" });
   }
-  const metadata = await stat(sourcePath);
-  if (!metadata.isFile() || metadata.size > AGENT_TEAM_PACKAGE_MAX_BYTES) {
-    throw new Error("智能体团队压缩包无效或超过 5 MB 上限。");
+  const extension = extname(sourcePath).toLowerCase();
+  if (extension !== ".json" && extension !== ".zip") {
+    throw new Error(nativeText("agentTeamFileUnsupported"));
   }
-  const installed = await store.installProfile(
-    readAgentTeamPackage(await readFile(sourcePath))
-  );
+  const metadata = await stat(sourcePath);
+  if (!metadata.isFile()) {
+    throw new Error(nativeText("agentTeamFileInvalid"));
+  }
+  const maximumBytes =
+    extension === ".json"
+      ? AGENT_TEAM_CONFIG_MAX_BYTES
+      : AGENT_TEAM_PACKAGE_MAX_BYTES;
+  if (metadata.size === 0 || metadata.size > maximumBytes) {
+    throw new Error(
+      nativeText(
+        extension === ".json"
+          ? "agentTeamConfigTooLarge"
+          : "agentTeamArchiveTooLarge"
+      )
+    );
+  }
+  const data = await readFile(sourcePath);
+  const fileName = basename(sourcePath, extname(sourcePath))
+    .replace(/\.deepwrite-team$/i, "")
+    .trim()
+    .slice(0, AGENT_TEAM_PROFILE_NAME_MAX_LENGTH);
+  const profile =
+    extension === ".json"
+      ? readAgentTeamPackageJson(data, fileName || undefined)
+      : readAgentTeamPackage(data);
+  const installed = await store.installProfile(profile);
   return AgentTeamPackageInstallResultSchema.parse({
     status: "installed",
     teamId: installed.team.id,

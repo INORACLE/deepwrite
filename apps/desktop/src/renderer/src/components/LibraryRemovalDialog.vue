@@ -11,6 +11,7 @@ const props = withDefaults(
     action: "remove" | "delete";
     domain: "material" | "skill";
     label: string;
+    isGroup?: boolean;
     submitting?: boolean;
   }>(),
   {
@@ -23,7 +24,14 @@ const emit = defineEmits<{
   confirm: [];
 }>();
 
-const resourceName = computed(() =>
+const resourceName = computed(() => {
+  if (props.isGroup) {
+    return props.domain === "material" ? t("materialGroup") : t("skillGroup");
+  }
+  return props.domain === "material" ? t("materialLibrary") : t("skillLibrary");
+});
+
+const memberResourceName = computed(() =>
   props.domain === "material" ? t("materialLibrary") : t("skillLibrary")
 );
 
@@ -52,8 +60,12 @@ onBeforeUnmount(() => document.removeEventListener("keydown", handleKeydown));
           <div>
             <span class="dialog-eyebrow">{{ label }}</span>
             <h2 id="library-removal-dialog-title">
-              {{ action === "delete" ? t("delete") : t("remove")
-              }}{{ resourceName }}
+              {{
+                t("titleMessage", {
+                  action: action === "delete" ? t("delete") : t("remove"),
+                  resource: resourceName
+                })
+              }}
             </h2>
           </div>
           <button
@@ -77,7 +89,14 @@ onBeforeUnmount(() => document.removeEventListener("keydown", handleKeydown));
                   arg1: label ?? ""
                 })
               }}</strong>
-              <p v-if="action === 'delete'">
+              <p v-if="action === 'delete' && isGroup">
+                {{
+                  t("deleteGroupAndMembersWarning", {
+                    resource: memberResourceName
+                  })
+                }}
+              </p>
+              <p v-else-if="action === 'delete'">
                 {{
                   t("thisRemovesTheItemFromAndPermanentlyMessage", {
                     arg0: resourceName ?? ""

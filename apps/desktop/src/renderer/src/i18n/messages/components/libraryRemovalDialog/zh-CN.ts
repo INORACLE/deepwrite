@@ -1,6 +1,11 @@
 export default {
   materialLibrary: "素材库",
   skillLibrary: "技能库",
+  materialGroup: "素材分组",
+  skillGroup: "技能分组",
+  titleMessage: "{action}{resource}",
+  deleteGroupAndMembersWarning:
+    "会永久删除分组及组内全部{resource}的本地文件夹和所有文件。此操作无法撤销。",
   delete: "删除",
   remove: "移除",
   close: "关闭",

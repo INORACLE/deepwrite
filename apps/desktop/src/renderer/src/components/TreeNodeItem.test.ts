@@ -4,6 +4,7 @@ import { expectSourceToContain } from "../../../test-utils/sourceText";
 import styles from "virtual:deepwrite-renderer-styles";
 import source from "./TreeNodeItem.vue?raw";
 import longMenuSource from "./LongBookActionMenu.vue?raw";
+import groupMenuSource from "./LibraryGroupActionMenu.vue?raw";
 
 describe("TreeNodeItem actions", () => {
   it("uses the shared neutral badge style for every workspace type", () => {
@@ -229,7 +230,7 @@ describe("TreeNodeItem actions", () => {
     expect(source).toContain("openBookAction('duplicate')");
     expect(longMenuSource).toContain("activateLongBookAction('duplicate')");
     expect(source).toContain("activateResourceNodeAction('duplicate-library')");
-    expect(source).toContain("activateResourceNodeAction('duplicate-group')");
+    expect(groupMenuSource).toContain("$emit('action', 'duplicate-group')");
     expect(source).toContain('v-if="!node.unavailable"');
   });
 

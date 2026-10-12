@@ -61,10 +61,10 @@ export default {
     failedToUpdateTeamStatus: "Failed to update team status.",
     agentTeamSaved: "Agent team saved.",
     failedToSaveAgentTeamSettings: "Failed to save agent team settings.",
-    agentTeamArchiveDownloaded: "Agent team archive downloaded.",
+    agentTeamArchiveDownloaded: "Agent team file downloaded.",
     failedToDownloadAgentTeam: "Failed to download agent team.",
-    agentTeamInstalled: "Agent team “{teamName}” installed.",
-    failedToInstallAgentTeam: "Failed to install agent team.",
+    agentTeamInstalled: "Agent team “{teamName}” imported.",
+    failedToInstallAgentTeam: "Failed to import agent team.",
     failedToLoadLibraryAgentSettings: "Failed to load library agent settings.",
     libraryAgentSettingsSavedChangesApplyToTheNext:
       "Library agent settings saved. Changes apply to the next conversation turn.",

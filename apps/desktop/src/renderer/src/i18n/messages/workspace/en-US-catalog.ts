@@ -241,6 +241,11 @@ export default {
     dissolvedGroupItsLibrariesAreBackInTheirOriginal:
       "Dissolved group “{label}”. Its libraries are back in their original categories.",
     failedToDissolveGroup: "Failed to dissolve group.",
+    deletedGroupAndMemberLibraries:
+      "Deleted group “{label}” and the local folders of {length} member libraries",
+    failedToDeleteGroup: "Failed to delete group.",
+    groupChangedBeforeDeletion:
+      "The group was updated externally. The catalog has been refreshed; review its members before deleting again.",
     theLocalLibraryWasNotFound: "The local library was not found",
     builtInSkillLibrariesAreReadOnlyEntriesCannot2:
       "Built-in skill libraries are read-only. Entries cannot be edited.",

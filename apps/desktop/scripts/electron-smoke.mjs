@@ -16,6 +16,7 @@ const i18nOnly = process.argv.includes("--i18n-only");
 const conversationOnly = process.argv.includes("--conversation-only");
 const decompositionOnly = process.argv.includes("--decomposition-only");
 const bookIdentityOnly = process.argv.includes("--book-identity-only");
+const libraryGroupsOnly = process.argv.includes("--library-groups-only");
 const decompositionRealModel = process.argv.includes(
   "--decomposition-real-model"
 );
@@ -73,17 +74,19 @@ const child = spawn(command, args, {
   env: {
     ...process.env,
     DEEPWRITE_SMOKE: "1",
-    DEEPWRITE_SMOKE_SUITE: bookIdentityOnly
-      ? "book-identity"
-      : decompositionRealModel
-        ? "decomposition-real-model"
-        : decompositionOnly
-          ? "decomposition"
-          : conversationOnly
-            ? "conversation"
-            : i18nOnly
-              ? "i18n"
-              : "all",
+    DEEPWRITE_SMOKE_SUITE: libraryGroupsOnly
+      ? "library-groups"
+      : bookIdentityOnly
+        ? "book-identity"
+        : decompositionRealModel
+          ? "decomposition-real-model"
+          : decompositionOnly
+            ? "decomposition"
+            : conversationOnly
+              ? "conversation"
+              : i18nOnly
+                ? "i18n"
+                : "all",
     ELECTRON_DISABLE_SECURITY_WARNINGS: "true"
   },
   stdio: ["ignore", "pipe", "pipe"]
@@ -149,6 +152,24 @@ child.on("close", async (code) => {
     process.exit(1);
   }
 
+  if (libraryGroupsOnly) {
+    if (
+      summary.libraryGroups?.status !== "ok" ||
+      summary.libraryGroups.groups !== 2 ||
+      !summary.libraryGroups.menuOrder ||
+      !summary.libraryGroups.canceled ||
+      !summary.libraryGroups.membersDeleted
+    ) {
+      console.error(
+        "Electron library group deletion smoke returned an invalid summary."
+      );
+      process.exit(1);
+    }
+    console.log(
+      "Electron library group deletion smoke passed: both menus, cancellation, and group plus member deletion through Renderer, Preload, Main and Core."
+    );
+    return;
+  }
   if (decompositionOnly || decompositionRealModel) {
     if (
       summary.decomposition?.status !== "ok" ||

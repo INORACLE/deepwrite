@@ -540,11 +540,11 @@ describe("settings feature coordinator", () => {
 
     expect(download).toHaveBeenCalledWith({ teamId: "team_source" });
     expect(notifications.success).toHaveBeenCalledWith(
-      "智能体团队压缩包已下载。"
+      "智能体团队文件已下载。"
     );
     expect(settingsStore.agentTeamCatalog).toEqual(installedCatalog);
     expect(notifications.success).toHaveBeenCalledWith(
-      "智能体团队“安装的团队”已安装。"
+      "智能体团队“安装的团队”已导入。"
     );
   });
 });

@@ -172,17 +172,6 @@ export function parseUnregisterDomain(
   return value;
 }
 
-export function parseDeletableProjectDomain(
-  value: unknown
-): "book" | FolderCatalogLibraryDomain {
-  if (value !== "book" && value !== "material" && value !== "skill") {
-    throw new Error(
-      "deletable project domain must be book, material, or skill."
-    );
-  }
-  return value;
-}
-
 export function registryDomainForUnregister(
   domain: FolderCatalogUnregisterDomain
 ): FolderCatalogProjectDomain {

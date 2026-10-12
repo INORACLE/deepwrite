@@ -7,6 +7,10 @@ import { DEFAULT_AGENT_TEAM_SETTINGS } from "@deepwrite/contracts";
 import { AgentTeamConfigStore } from "./agent-team-config-store";
 import { createAgentTeamPackage } from "./agent-team-package-archive";
 import {
+  AGENT_TEAM_CONFIG_MAX_BYTES,
+  readAgentTeamPackageJson
+} from "./agent-team-package-json";
+import {
   downloadAgentTeamPackage,
   installAgentTeamPackage
 } from "./agent-team-package-service";
@@ -27,6 +31,138 @@ afterEach(async () => {
 });
 
 describe("agent team package service", () => {
+  it("downloads JSON by default and imports it as a separate disabled copy", async () => {
+    const root = await temporaryRoot();
+    const store = new AgentTeamConfigStore(root);
+    const source = (await store.list()).teams[0]!;
+    const before = await store.setEnabled({ teamId: source.id, enabled: true });
+    const jsonPath = join(root, "团队.deepwrite-team.json");
+    const showSaveDialog = vi
+      .fn()
+      .mockResolvedValue({ canceled: false, filePath: jsonPath });
+    const showOpenDialog = vi
+      .fn()
+      .mockResolvedValue({ canceled: false, filePaths: [jsonPath] });
+    const dialog = { showSaveDialog, showOpenDialog } as unknown as Pick<
+      Dialog,
+      "showOpenDialog" | "showSaveDialog"
+    >;
+    const window = {} as BrowserWindow;
+
+    await downloadAgentTeamPackage(
+      window,
+      dialog,
+      store,
+      { teamId: source.id },
+      root
+    );
+    expect(showSaveDialog).toHaveBeenCalledWith(
+      window,
+      expect.objectContaining({
+        defaultPath: join(root, `${source.name}.deepwrite-team.json`),
+        filters: expect.arrayContaining([
+          expect.objectContaining({ extensions: ["json"] }),
+          expect.objectContaining({ extensions: ["zip"] })
+        ])
+      })
+    );
+    expect(readAgentTeamPackageJson(await readFile(jsonPath))).toEqual(source);
+
+    const result = await installAgentTeamPackage(window, dialog, store, root);
+    expect(showOpenDialog).toHaveBeenCalledWith(
+      window,
+      expect.objectContaining({
+        filters: expect.arrayContaining([
+          expect.objectContaining({ extensions: ["json", "zip"] })
+        ]),
+        properties: ["openFile"]
+      })
+    );
+    expect(result.status).toBe("installed");
+    if (result.status !== "installed")
+      throw new Error("Expected an imported team");
+    expect(result.teamId).not.toBe(source.id);
+    expect(result.teamName).toBe(`${source.name} (2)`);
+    expect(result.catalog.enabledTeamIds).toEqual(before.enabledTeamIds);
+    expect(
+      result.catalog.teams.find(({ id }) => id === result.teamId)?.settings
+    ).toEqual(source.settings);
+    expect(await new AgentTeamConfigStore(root).list()).toEqual(result.catalog);
+  });
+
+  it.each(["profile", "settings"])(
+    "imports an uppercase JSON extension containing %s",
+    async (shape) => {
+      const root = await temporaryRoot();
+      const store = new AgentTeamConfigStore(root);
+      const path = join(root, "文件名团队.JSON");
+      const raw =
+        shape === "profile"
+          ? {
+              name: "手写团队",
+              workspaceType: "short",
+              settings: DEFAULT_AGENT_TEAM_SETTINGS
+            }
+          : DEFAULT_AGENT_TEAM_SETTINGS;
+      await writeFile(path, `\ufeff${JSON.stringify(raw)}`, "utf8");
+      const dialog = {
+        showOpenDialog: vi
+          .fn()
+          .mockResolvedValue({ canceled: false, filePaths: [path] })
+      } as unknown as Pick<Dialog, "showOpenDialog" | "showSaveDialog">;
+      expect(
+        await installAgentTeamPackage({} as BrowserWindow, dialog, store, root)
+      ).toMatchObject({
+        status: "installed",
+        teamName: shape === "profile" ? "手写团队" : "文件名团队"
+      });
+    }
+  );
+
+  it("keeps the catalog and file unchanged after rejection or cancellation", async () => {
+    const root = await temporaryRoot();
+    const store = new AgentTeamConfigStore(root);
+    const before = await store.list();
+    const storedPath = join(root, "config", "agent-team-profiles.json");
+    const stored = await readFile(storedPath, "utf8");
+    const path = join(root, "invalid.json");
+    const showOpenDialog = vi
+      .fn()
+      .mockResolvedValue({ canceled: false, filePaths: [path] });
+    const dialog = { showOpenDialog } as unknown as Pick<
+      Dialog,
+      "showOpenDialog" | "showSaveDialog"
+    >;
+    const window = {} as BrowserWindow;
+
+    for (const [contents, message] of [
+      ["{broken", "有效 JSON"],
+      [JSON.stringify({ workspaceType: "short", teams: [] }), "teams"]
+    ]) {
+      await writeFile(path, contents!, "utf8");
+      await expect(
+        installAgentTeamPackage(window, dialog, store, root)
+      ).rejects.toThrow(message);
+    }
+    await writeFile(path, Buffer.alloc(AGENT_TEAM_CONFIG_MAX_BYTES + 1));
+    await expect(
+      installAgentTeamPackage(window, dialog, store, root)
+    ).rejects.toThrow("4 MB");
+    showOpenDialog.mockResolvedValueOnce({
+      canceled: false,
+      filePaths: [root]
+    });
+    await expect(
+      installAgentTeamPackage(window, dialog, store, root)
+    ).rejects.toThrow("JSON");
+    showOpenDialog.mockResolvedValueOnce({ canceled: true, filePaths: [] });
+    await expect(
+      installAgentTeamPackage(window, dialog, store, root)
+    ).resolves.toEqual({ status: "canceled" });
+    expect(await store.list()).toEqual(before);
+    expect(await readFile(storedPath, "utf8")).toBe(stored);
+  });
+
   it("downloads a selected team and installs the uploaded archive", async () => {
     const root = await temporaryRoot();
     const store = new AgentTeamConfigStore(root);

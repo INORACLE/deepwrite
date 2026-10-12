@@ -1,6 +1,7 @@
 export default {
   agentTeams: "Agent teams",
-  installTeam: "Install team",
+  installTeam: "Import team",
+  importFileTypes: "Choose a JSON configuration or ZIP team package",
   newTeam: "New team",
   loadingAgentTeams: "Loading agent teams…",
   agentTeamsHaveNotLoaded: "Agent teams have not loaded",
@@ -16,7 +17,7 @@ export default {
   novel: "Novel",
   noTeamsYet: "No teams here yet",
   createATeamOrInstallADownloadedOne:
-    "Create a team, or install a downloaded team package.",
+    "Create a team, or import a JSON configuration or ZIP team package.",
   subagentsMessage: "{arg0} subagents",
   parallelOn: "Parallel on",
   parallelOff: "Parallel off",

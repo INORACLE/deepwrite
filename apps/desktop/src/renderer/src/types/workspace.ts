@@ -100,7 +100,8 @@ export type CatalogResourceNodeAction =
   | "edit-group-bindings"
   | "duplicate-group"
   | "export-group"
-  | "dissolve-group";
+  | "dissolve-group"
+  | "delete-group";
 
 export interface CatalogResourceNodeActionPayload {
   domain: "skill" | "material";

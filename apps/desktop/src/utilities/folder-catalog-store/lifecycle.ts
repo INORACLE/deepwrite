@@ -1,6 +1,5 @@
 import { dirname } from "node:path";
 import { join } from "node:path";
-import { rename } from "node:fs/promises";
 import {
   BookSchema,
   createCatalogDraftDirectory,
@@ -39,7 +38,7 @@ import {
 } from "@deepwrite/contracts";
 import { nextCopyTitle } from "../copy-title";
 import type { ImportedLegacyBook } from "../legacy-book-import";
-import { createCatalogId, randomHex8 } from "@deepwrite/shared";
+import { createCatalogId } from "@deepwrite/shared";
 import {
   assertBaseRevision,
   assertBookLibraryReferences,
@@ -49,12 +48,12 @@ import {
   isCreateAtDirectoryInput,
   isCreateScriptAtDirectoryInput,
   libraryProjectDomain,
-  parseDeletableProjectDomain,
   parseId,
   parseUnregisterDomain,
   registryDomainForUnregister
 } from "./assertions";
 import { applyGlobalPlotStagesToNewBook } from "./plot-stages";
+import { deleteRegisteredProject } from "./project-deletion";
 import {
   FolderCurrentBookProjectManifestSchema,
   FolderMaterialGroupProjectManifestSchema,
@@ -96,7 +95,6 @@ import {
 import {
   atomicWriteJson,
   cleanupNewProjectDirectories,
-  removeEmptyOrPartialProject,
   secureProjectRoot
 } from "./paths-io";
 import {
@@ -862,46 +860,15 @@ export async function deleteProject(
   store: FolderCatalogStoreContext,
   rawInput: DeleteFolderCatalogProjectInput
 ): Promise<DeleteFolderCatalogProjectResult> {
-  const projectId = parseId(rawInput.projectId);
-  const domain = parseDeletableProjectDomain(rawInput.domain);
-  const registryDomain = registryDomainForUnregister(domain);
   return await mutate(store, async () => {
     const registry = await ensureRegistry(store);
-    const registration = registry.projects.find(
-      (project) => project.id === projectId && project.domain === registryDomain
-    );
-    if (!registration) {
-      return { projectId, domain, deleted: false };
-    }
-
-    const projectDirectory = await secureProjectRoot(
-      registration.projectDirectory
-    );
-    await readProject(store, projectDirectory, registryDomain, projectId);
-
-    const stagedDeletion = join(
-      dirname(projectDirectory),
-      `.deepwrite-deleting-${randomHex8()}`
-    );
-    await rename(projectDirectory, stagedDeletion);
-    try {
-      const now = store.now();
-      await writeRegistry(store, {
-        ...registry,
-        revision: registry.revision + 1,
-        updatedAt: now,
-        projects: registry.projects.filter(
-          (project) =>
-            !(project.id === projectId && project.domain === registryDomain)
-        )
-      });
-    } catch (error: unknown) {
-      await rename(stagedDeletion, projectDirectory);
-      throw error;
-    }
-
-    await removeEmptyOrPartialProject(stagedDeletion);
-    return { projectId, domain, deleted: true };
+    return await deleteRegisteredProject(registry, rawInput, {
+      now: store.now,
+      readProject: (directory, domain, id) =>
+        readProject(store, directory, domain, id),
+      assertBaseRevision,
+      writeRegistry: (next) => writeRegistry(store, next)
+    });
   });
 }
 

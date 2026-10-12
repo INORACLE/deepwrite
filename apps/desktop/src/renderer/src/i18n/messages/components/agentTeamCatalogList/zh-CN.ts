@@ -1,6 +1,7 @@
 export default {
   agentTeams: "智能体团队",
-  installTeam: "安装团队",
+  installTeam: "导入团队",
+  importFileTypes: "选择 JSON 配置文件或 ZIP 团队包",
   newTeam: "新建团队",
   loadingAgentTeams: "正在加载智能体团队…",
   agentTeamsHaveNotLoaded: "智能体团队未加载",
@@ -15,7 +16,8 @@ export default {
   screenplay: "剧本",
   novel: "长篇",
   noTeamsYet: "这里还没有团队",
-  createATeamOrInstallADownloadedOne: "新建一个团队，或安装已下载的团队包。",
+  createATeamOrInstallADownloadedOne:
+    "新建一个团队，或导入 JSON 配置文件、ZIP 团队包。",
   subagentsMessage: "{arg0} 个子智能体",
   parallelOn: "并行已开启",
   parallelOff: "并行已关闭",

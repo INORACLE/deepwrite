@@ -1,6 +1,11 @@
 export default {
   materialLibrary: "Material library",
   skillLibrary: "Skill library",
+  materialGroup: "material group",
+  skillGroup: "skill group",
+  titleMessage: "{action} {resource}",
+  deleteGroupAndMembersWarning:
+    "This permanently deletes the group and every member {resource}, including their local folders and all files. This cannot be undone.",
   delete: "Delete",
   remove: "Remove",
   close: "Close",

@@ -2520,18 +2520,29 @@ export type UnregisterCatalogProjectResult = z.infer<
   typeof UnregisterCatalogProjectResultSchema
 >;
 
+export const DeleteCatalogProjectDomainSchema = z.enum([
+  ...CATALOG_PROJECT_DOMAINS,
+  "material-group",
+  "skill-group"
+]);
+export type DeleteCatalogProjectDomain = z.infer<
+  typeof DeleteCatalogProjectDomainSchema
+>;
+
 export const DeleteCatalogProjectInputSchema = z.object({
-  domain: CatalogProjectDomainSchema,
-  projectId: CatalogIdSchema
+  domain: DeleteCatalogProjectDomainSchema,
+  projectId: CatalogIdSchema,
+  baseProjectRevision: z.number().int().nonnegative().optional()
 });
 export type DeleteCatalogProjectInput = z.infer<
   typeof DeleteCatalogProjectInputSchema
 >;
 
 export const DeleteCatalogProjectResultSchema = z.object({
-  domain: CatalogProjectDomainSchema,
+  domain: DeleteCatalogProjectDomainSchema,
   projectId: CatalogIdSchema,
-  deleted: z.boolean()
+  deleted: z.boolean(),
+  deletedMemberLibraryIds: z.array(CatalogIdSchema).optional()
 });
 export type DeleteCatalogProjectResult = z.infer<
   typeof DeleteCatalogProjectResultSchema

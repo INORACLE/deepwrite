@@ -130,6 +130,7 @@ export interface LibraryRemovalDialogModule {
   action: "remove" | "delete";
   domain: LibraryDomain;
   label: string;
+  isGroup?: boolean;
   submitting: boolean;
 }
 

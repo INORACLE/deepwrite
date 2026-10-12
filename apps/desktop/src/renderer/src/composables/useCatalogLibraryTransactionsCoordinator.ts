@@ -26,6 +26,8 @@ import type {
 } from "../types/workspace";
 import { useExternalLibraryImportCoordinator } from "./useExternalLibraryImportCoordinator";
 import { useLibraryPackageCoordinator } from "./useLibraryPackageCoordinator";
+import { useLibraryRemovalCoordinator } from "./useLibraryRemovalCoordinator";
+export type { LibraryRemovalDialogState } from "./useLibraryRemovalCoordinator";
 
 const t = createScopedTranslator("workspace");
 
@@ -53,11 +55,6 @@ export type CreateLibraryEntryDraft =
 export interface LibraryGroupDialogState {
   domain: "material" | "skill";
   groupId?: string;
-}
-
-export interface LibraryRemovalDialogState {
-  action: "remove" | "delete";
-  payload: CatalogResourceNodeActionPayload;
 }
 
 export interface LibraryEntryClipboard {
@@ -163,7 +160,8 @@ export function useCatalogLibraryTransactionsCoordinator(
       context.prepareProjectsForDuplicate(libraryIds, "export")
   });
   const libraryGroupDialog = ref<LibraryGroupDialogState | null>(null);
-  const libraryRemovalDialog = ref<LibraryRemovalDialogState | null>(null);
+  const libraryRemoval = useLibraryRemovalCoordinator(context);
+  const { libraryRemovalDialog, confirmLibraryRemoval } = libraryRemoval;
   const libraryEntryClipboard = ref<LibraryEntryClipboard | null>(null);
   const pendingLibraryEntryMove = ref<PendingLibraryEntryMove | null>(null);
   const libraryEntryClipboardDomain = computed(
@@ -885,107 +883,6 @@ export function useCatalogLibraryTransactionsCoordinator(
     }
   }
 
-  async function unregisterCatalogLibrary(
-    payload: CatalogResourceNodeActionPayload
-  ): Promise<void> {
-    const api = context.api();
-    if (!api || catalogMutationPending.value || !payload.node.libraryId) return;
-    catalogMutationPending.value = true;
-    try {
-      const result = await api.unregisterProject({
-        domain: payload.domain,
-        projectId: payload.node.libraryId
-      });
-      if (!result.unregistered) {
-        throw new Error(
-          t(
-            "catalogLibraryTransactionsCoordinator.theLibraryIsNoLongerInTheCurrentDirectory"
-          )
-        );
-      }
-      context.disposeLibraryConversation(
-        payload.domain,
-        payload.node.libraryId
-      );
-      await context.refreshCatalog();
-      libraryRemovalDialog.value = null;
-      uiMessage.success(
-        t(
-          "catalogLibraryTransactionsCoordinator.removedFromTheListItsLocalFolderIsPreserved",
-          { label: payload.node.label }
-        )
-      );
-    } catch (error: unknown) {
-      uiMessage.error(
-        formatError(
-          error,
-          t("catalogLibraryTransactionsCoordinator.failedToRemoveLibrary")
-        )
-      );
-    } finally {
-      catalogMutationPending.value = false;
-    }
-  }
-
-  async function deleteCatalogLibrary(
-    payload: CatalogResourceNodeActionPayload
-  ): Promise<void> {
-    const api = context.api();
-    if (!api || catalogMutationPending.value || !payload.node.libraryId) return;
-    catalogMutationPending.value = true;
-    try {
-      const result = await api.deleteProject({
-        domain: payload.domain,
-        projectId: payload.node.libraryId
-      });
-      if (!result.deleted) {
-        throw new Error(
-          t(
-            "catalogLibraryTransactionsCoordinator.theLibraryIsNoLongerInTheCurrentDirectory"
-          )
-        );
-      }
-      const removedDocumentIds = new Set(
-        context.collectResourceNodeIds(payload.node)
-      );
-      editorDrafts.value = Object.fromEntries(
-        Object.entries(editorDrafts.value).filter(
-          ([documentId]) => !removedDocumentIds.has(documentId)
-        )
-      );
-      context.disposeLibraryConversation(
-        payload.domain,
-        payload.node.libraryId
-      );
-      await context.refreshCatalog();
-      libraryRemovalDialog.value = null;
-      uiMessage.success(
-        t("catalogLibraryTransactionsCoordinator.deletedAndItsLocalFolder", {
-          label: payload.node.label
-        })
-      );
-    } catch (error: unknown) {
-      uiMessage.error(
-        formatError(
-          error,
-          t("catalogLibraryTransactionsCoordinator.failedToDeleteLibrary")
-        )
-      );
-    } finally {
-      catalogMutationPending.value = false;
-    }
-  }
-
-  function confirmLibraryRemoval(): void {
-    const dialog = libraryRemovalDialog.value;
-    if (!dialog) return;
-    if (dialog.action === "delete") {
-      void deleteCatalogLibrary(dialog.payload);
-    } else {
-      void unregisterCatalogLibrary(dialog.payload);
-    }
-  }
-
   async function duplicateCatalogLibraryProject(
     payload: CatalogResourceNodeActionPayload
   ): Promise<void> {
@@ -1063,47 +960,10 @@ export function useCatalogLibraryTransactionsCoordinator(
     }
   }
 
-  async function dissolveCatalogLibraryGroup(
-    payload: CatalogResourceNodeActionPayload
-  ): Promise<void> {
-    const api = context.api();
-    if (!api || catalogMutationPending.value || !payload.node.groupId) return;
-    catalogMutationPending.value = true;
-    try {
-      const result = await api.unregisterProject({
-        domain:
-          payload.domain === "material" ? "material-group" : "skill-group",
-        projectId: payload.node.groupId
-      });
-      if (!result.unregistered) {
-        throw new Error(
-          t(
-            "catalogLibraryTransactionsCoordinator.theGroupIsNoLongerInTheCurrentDirectory"
-          )
-        );
-      }
-      await context.refreshCatalog();
-      uiMessage.success(
-        t(
-          "catalogLibraryTransactionsCoordinator.dissolvedGroupItsLibrariesAreBackInTheirOriginal",
-          { label: payload.node.label }
-        )
-      );
-    } catch (error: unknown) {
-      uiMessage.error(
-        formatError(
-          error,
-          t("catalogLibraryTransactionsCoordinator.failedToDissolveGroup")
-        )
-      );
-    } finally {
-      catalogMutationPending.value = false;
-    }
-  }
-
   function handleResourceNodeAction(
     payload: CatalogResourceNodeActionPayload
   ): void {
+    if (libraryRemoval.handleRemovalAction(payload)) return;
     if (
       payload.action === "export-library" ||
       payload.action === "export-group"
@@ -1129,10 +989,6 @@ export function useCatalogLibraryTransactionsCoordinator(
         domain: payload.domain,
         groupId: payload.node.groupId
       };
-      return;
-    }
-    if (payload.action === "dissolve-group") {
-      void dissolveCatalogLibraryGroup(payload);
       return;
     }
     const libraryId = payload.node.libraryId;
@@ -1176,14 +1032,6 @@ export function useCatalogLibraryTransactionsCoordinator(
     if (payload.action === "import-external-skills") {
       if (payload.domain !== "skill") return;
       externalLibraryImport.open("skill", libraryId);
-      return;
-    }
-    if (payload.action === "unregister-library") {
-      libraryRemovalDialog.value = { action: "remove", payload };
-      return;
-    }
-    if (payload.action === "delete-library") {
-      libraryRemovalDialog.value = { action: "delete", payload };
       return;
     }
     if (payload.action === "create-entry") {

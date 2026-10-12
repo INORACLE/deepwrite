@@ -430,6 +430,7 @@ export function useWorkspaceDialogModuleCoordinator(
         action: libraryRemoval.action,
         domain: libraryRemoval.payload.domain,
         label: libraryRemoval.payload.node.label,
+        isGroup: libraryRemoval.payload.action === "delete-group",
         submitting: options.catalog.mutationPending.value
       };
     }

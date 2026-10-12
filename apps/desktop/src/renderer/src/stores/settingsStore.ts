@@ -132,6 +132,7 @@ export const useSettingsStore = defineStore("settings", () => {
   const agentTeamCatalog = shallowRef<AgentTeamCatalogSnapshot | null>(null);
   const agentTeamLoading = ref(false);
   const agentTeamSaving = ref(false);
+  const agentTeamInstalling = ref(false);
   const agentTeamLoaded = ref(false);
   const agentTeamLoadError = ref<string | null>(null);
 
@@ -411,6 +412,7 @@ export const useSettingsStore = defineStore("settings", () => {
     agentTeamCatalog,
     agentTeamLoading,
     agentTeamSaving,
+    agentTeamInstalling,
     agentTeamLoaded,
     agentTeamLoadError,
     libraryAgentSettings,

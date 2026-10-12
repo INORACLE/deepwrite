@@ -230,6 +230,7 @@ const emit = defineEmits<{
       :preferred-model-id="module.preferredModelId"
       :loading="module.loading"
       :saving="module.saving"
+      :installing="Boolean(module.installing)"
       :load-error="module.loadError"
       :runtime-available="module.runtimeAvailable"
       :authoring-generating="module.authoring.isBusy.value"

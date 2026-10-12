@@ -9,6 +9,7 @@ export * from "./voice";
 export * from "./app-alert";
 export * from "./agent-team";
 export * from "./agent-team-catalog";
+export * from "./agent-team-import";
 export * from "./agent-team-marketplace";
 export * from "./catalog";
 export * from "./chat-assistant";

@@ -1,4 +1,4 @@
-import { formatError } from "../i18n/errors";
+import { formatError, getErrorDetail } from "../i18n/errors";
 import { createScopedTranslator } from "../i18n";
 import {
   withAgentTeamEnabled,
@@ -189,8 +189,13 @@ export function useAgentTeamCatalogCoordinator(
 
   async function installAgentTeam(): Promise<void> {
     const api = context.api();
-    if (!api || settingsStore.agentTeamSaving) return;
-    settingsStore.agentTeamSaving = true;
+    if (
+      !api ||
+      settingsStore.agentTeamSaving ||
+      settingsStore.agentTeamInstalling
+    )
+      return;
+    settingsStore.agentTeamInstalling = true;
     try {
       const result = await api.agentTeams.install();
       if (result.status === "installed") {
@@ -202,14 +207,11 @@ export function useAgentTeamCatalogCoordinator(
         );
       }
     } catch (error: unknown) {
-      uiMessage.error(
-        formatError(
-          error,
-          t("settingsFeatureCoordinator.failedToInstallAgentTeam")
-        )
-      );
+      const fallback = t("settingsFeatureCoordinator.failedToInstallAgentTeam");
+      const detail = getErrorDetail(error);
+      uiMessage.error(detail ? `${fallback} ${detail}` : fallback);
     } finally {
-      settingsStore.agentTeamSaving = false;
+      settingsStore.agentTeamInstalling = false;
     }
   }
 

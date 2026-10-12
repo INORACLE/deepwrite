@@ -228,6 +228,11 @@ export default {
     dissolvedGroupItsLibrariesAreBackInTheirOriginal:
       "已解散分组“{label}”，成员库已回到原分类",
     failedToDissolveGroup: "解散分组失败。",
+    deletedGroupAndMemberLibraries:
+      "已删除分组“{label}”及 {length} 个成员库的本地文件夹",
+    failedToDeleteGroup: "删除分组失败。",
+    groupChangedBeforeDeletion:
+      "分组已在外部更新，已刷新目录；请确认成员后再次删除",
     theLocalLibraryWasNotFound: "未找到对应的本地资料库",
     builtInSkillLibrariesAreReadOnlyEntriesCannot2:
       "内置技能库为只读内容，不能修改条目",

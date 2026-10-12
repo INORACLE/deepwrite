@@ -31,6 +31,7 @@ export function buildWorkspaceFeatureModule(
         preferredModelId: modelSelectionSettings?.defaultModelId ?? null,
         loading: settingsStore.agentTeamLoading,
         saving: settingsStore.agentTeamSaving,
+        installing: settingsStore.agentTeamInstalling,
         loadError: settingsStore.agentTeamLoadError,
         runtimeAvailable: Boolean(options.api()),
         authoring: options.features.subagentAuthoring.controller.value

@@ -70,6 +70,7 @@ export interface SettingsFeatureModule {
 
 export interface AgentTeamFeatureModule {
   kind: "agent-team";
+  installing?: boolean;
   navigationEpoch: number;
   catalog: AgentTeamCatalogSnapshot | null;
   models: readonly ModelConfig[];

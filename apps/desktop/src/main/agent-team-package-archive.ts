@@ -1,15 +1,13 @@
 import { deflateRawSync, inflateRawSync } from "node:zlib";
+import type { AgentTeamProfile } from "@deepwrite/contracts";
 import {
-  AGENT_TEAM_PACKAGE_FORMAT,
-  AGENT_TEAM_PACKAGE_VERSION,
-  AgentTeamPackageManifestSchema,
-  type AgentTeamPackageManifest,
-  type AgentTeamProfile
-} from "@deepwrite/contracts";
+  AGENT_TEAM_CONFIG_MAX_BYTES,
+  createAgentTeamPackageJson,
+  readAgentTeamPackageJson
+} from "./agent-team-package-json";
 
 const PACKAGE_ENTRY_NAME = "deepwrite-agent-team.json";
 export const AGENT_TEAM_PACKAGE_MAX_BYTES = 5 * 1024 * 1024;
-const AGENT_TEAM_MANIFEST_MAX_BYTES = 4 * 1024 * 1024;
 
 const LOCAL_FILE_SIGNATURE = 0x04034b50;
 const CENTRAL_DIRECTORY_SIGNATURE = 0x02014b50;
@@ -105,7 +103,7 @@ function readPackageEntry(archive: Buffer): Buffer {
   if (method !== 0 && method !== 8) {
     throw new Error("智能体团队压缩包使用了不支持的压缩格式。");
   }
-  if (uncompressedSize > AGENT_TEAM_MANIFEST_MAX_BYTES) {
+  if (uncompressedSize > AGENT_TEAM_CONFIG_MAX_BYTES) {
     throw new Error("智能体团队配置超过 4 MB 上限。");
   }
   const nameStart = 30;
@@ -127,7 +125,7 @@ function readPackageEntry(archive: Buffer): Buffer {
       method === 0
         ? Buffer.from(compressed)
         : inflateRawSync(compressed, {
-            maxOutputLength: AGENT_TEAM_MANIFEST_MAX_BYTES
+            maxOutputLength: AGENT_TEAM_CONFIG_MAX_BYTES
           });
   } catch {
     throw new Error("智能体团队压缩包中的配置无法解压。");
@@ -150,32 +148,13 @@ export function createAgentTeamPackage(
   team: AgentTeamProfile,
   now = new Date()
 ): Buffer {
-  const manifest = AgentTeamPackageManifestSchema.parse({
-    format: AGENT_TEAM_PACKAGE_FORMAT,
-    version: AGENT_TEAM_PACKAGE_VERSION,
-    exportedAt: now.toISOString(),
-    team
-  } satisfies AgentTeamPackageManifest);
   return createSingleFileZip(
     PACKAGE_ENTRY_NAME,
-    Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`, "utf8"),
+    createAgentTeamPackageJson(team, now),
     now
   );
 }
 
 export function readAgentTeamPackage(archive: Buffer): AgentTeamProfile {
-  let raw: unknown;
-  try {
-    raw = JSON.parse(readPackageEntry(archive).toString("utf8"));
-  } catch (error: unknown) {
-    if (error instanceof SyntaxError) {
-      throw new Error("智能体团队压缩包中的配置不是有效 JSON。");
-    }
-    throw error;
-  }
-  const parsed = AgentTeamPackageManifestSchema.safeParse(raw);
-  if (!parsed.success) {
-    throw new Error("智能体团队压缩包版本或配置内容无效。");
-  }
-  return parsed.data.team;
+  return readAgentTeamPackageJson(readPackageEntry(archive));
 }

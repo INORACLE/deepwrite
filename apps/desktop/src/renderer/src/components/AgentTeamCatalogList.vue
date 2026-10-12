@@ -16,6 +16,7 @@ const props = defineProps<{
   catalog: AgentTeamCatalogSnapshot | null;
   loading: boolean;
   saving: boolean;
+  installing?: boolean;
   loadError?: string | null | undefined;
   runtimeAvailable: boolean;
 }>();
@@ -88,7 +89,8 @@ function subagentCount(team: AgentTeamProfile): number {
         <button
           type="button"
           class="secondary-button"
-          :disabled="busy"
+          :disabled="busy || installing"
+          :title="t('importFileTypes')"
           @click="emit('install')"
         >
           <AppIcon name="archive" :size="16" />

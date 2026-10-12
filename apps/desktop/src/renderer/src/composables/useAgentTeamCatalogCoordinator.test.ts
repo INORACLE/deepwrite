@@ -37,6 +37,7 @@ function harness(initial = catalog("team_a")) {
   const settingsStore = useSettingsStore();
   settingsStore.markLoaded("agentTeams", initial);
   const agentTeams = {
+    install: vi.fn(),
     setEnabled: vi.fn(),
     list: vi.fn(async () => initial)
   };
@@ -128,5 +129,46 @@ describe("useAgentTeamCatalogCoordinator.setAgentTeamEnabled", () => {
     expect(settingsStore.agentTeamCatalog?.enabledTeamIds).toEqual({
       short: "team_a"
     });
+  });
+});
+
+describe("useAgentTeamCatalogCoordinator.installAgentTeam", () => {
+  it("prevents duplicate imports while leaving unrelated controls available", async () => {
+    const { agentTeams, coordinator, settingsStore, notifications } = harness();
+    const reply = deferred<{ status: "canceled" }>();
+    agentTeams.install.mockReturnValue(reply.promise);
+    const before = settingsStore.agentTeamCatalog;
+
+    const pending = coordinator.installAgentTeam();
+    expect(settingsStore.agentTeamInstalling).toBe(true);
+    expect(settingsStore.agentTeamSaving).toBe(false);
+    await coordinator.installAgentTeam();
+    expect(agentTeams.install).toHaveBeenCalledOnce();
+
+    reply.resolve({ status: "canceled" });
+    await pending;
+    expect(settingsStore.agentTeamInstalling).toBe(false);
+    expect(settingsStore.agentTeamCatalog).toBe(before);
+    expect(notifications.success).not.toHaveBeenCalled();
+    expect(notifications.error).not.toHaveBeenCalled();
+  });
+
+  it("shows validated Main error details without changing the catalog", async () => {
+    const { agentTeams, coordinator, settingsStore, notifications } = harness();
+    const before = settingsStore.agentTeamCatalog;
+    agentTeams.install.mockRejectedValue({
+      code: "agent_teams.install_failed",
+      message: "智能体团队 JSON 配置无效：name",
+      details: { kind: "Error" }
+    });
+
+    await coordinator.installAgentTeam();
+
+    expect(notifications.error).toHaveBeenCalledWith(
+      "导入智能体团队失败。 智能体团队 JSON 配置无效：name"
+    );
+    expect(notifications.success).not.toHaveBeenCalled();
+    expect(settingsStore.agentTeamInstalling).toBe(false);
+    expect(settingsStore.agentTeamCatalog).toBe(before);
   });
 });

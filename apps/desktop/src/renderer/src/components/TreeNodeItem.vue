@@ -21,6 +21,7 @@ import type {
 } from "../types/workspace";
 import AppIcon from "./AppIcon.vue";
 import LongBookActionMenu from "./LongBookActionMenu.vue";
+import LibraryGroupActionMenu from "./LibraryGroupActionMenu.vue";
 import { useTreeNodeDisclosure } from "../composables/useTreeNodeDisclosure";
 import { SIDEBAR_SELECTION_ACTIVE } from "../composables/sidebarSelectionContext";
 
@@ -975,46 +976,11 @@ onBeforeUnmount(() => {
             <span>{{ t("delete") }}</span>
           </button>
         </template>
-        <template v-else-if="node.catalogNodeType === 'group' && libraryDomain">
-          <button
-            class="tree-node-action-menu-item"
-            type="button"
-            role="menuitem"
-            @click.stop="activateResourceNodeAction('edit-group-bindings')"
-          >
-            <AppIcon name="edit" :size="16" />
-            <span>{{ t("editGroup") }}</span>
-          </button>
-          <button
-            v-if="!node.unavailable"
-            class="tree-node-action-menu-item"
-            type="button"
-            role="menuitem"
-            @click.stop="activateResourceNodeAction('duplicate-group')"
-          >
-            <AppIcon name="copy" :size="16" />
-            <span>{{ t("duplicate") }}</span>
-          </button>
-          <button
-            v-if="!node.unavailable"
-            class="tree-node-action-menu-item"
-            type="button"
-            role="menuitem"
-            @click.stop="activateResourceNodeAction('export-group')"
-          >
-            <AppIcon name="download" :size="16" />
-            <span>{{ t("export") }}</span>
-          </button>
-          <button
-            class="tree-node-action-menu-item is-danger"
-            type="button"
-            role="menuitem"
-            @click.stop="activateResourceNodeAction('dissolve-group')"
-          >
-            <AppIcon name="trash" :size="16" />
-            <span>{{ t("ungroup") }}</span>
-          </button>
-        </template>
+        <LibraryGroupActionMenu
+          v-else-if="node.catalogNodeType === 'group' && libraryDomain"
+          :unavailable="node.unavailable ?? false"
+          @action="activateResourceNodeAction"
+        />
         <template
           v-else-if="
             node.catalogNodeType === 'document' &&

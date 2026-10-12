@@ -16,6 +16,8 @@ import {
   type CreateLibraryInput,
   type CreateScriptBookInput,
   type CreateShortBookInput,
+  type DeleteCatalogProjectInput,
+  type DeleteCatalogProjectResult,
   type CreativePlotStage,
   type CurrentBookProjectManifest,
   type LegacyBookProjectManifest,
@@ -218,16 +220,8 @@ export interface UnregisterFolderCatalogProjectResult {
   unregistered: boolean;
 }
 
-export interface DeleteFolderCatalogProjectInput {
-  projectId: string;
-  domain: "book" | FolderCatalogLibraryDomain;
-}
-
-export interface DeleteFolderCatalogProjectResult {
-  projectId: string;
-  domain: "book" | FolderCatalogLibraryDomain;
-  deleted: boolean;
-}
+export type DeleteFolderCatalogProjectInput = DeleteCatalogProjectInput;
+export type DeleteFolderCatalogProjectResult = DeleteCatalogProjectResult;
 
 export interface DuplicateProjectWritePlan {
   domain: FolderCatalogProjectDomain;

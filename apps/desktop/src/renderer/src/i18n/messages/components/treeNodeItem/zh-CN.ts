@@ -37,6 +37,7 @@ export default {
   paste: "粘贴",
   editGroup: "编辑分组",
   ungroup: "解散分组",
+  deleteGroup: "删除分组",
   deleteEntryFile: "删除条目文件",
   deleteMessage: "删除{arg0}"
 };

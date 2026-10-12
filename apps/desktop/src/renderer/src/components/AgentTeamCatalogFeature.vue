@@ -31,6 +31,7 @@ const props = defineProps<{
   preferredModelId?: string | null;
   loading: boolean;
   saving: boolean;
+  installing?: boolean;
   loadError?: string | null;
   runtimeAvailable: boolean;
   authoringGenerating?: boolean;
@@ -239,6 +240,7 @@ function discardAndLeave(): void {
       :catalog="catalog"
       :loading="loading"
       :saving="saving"
+      :installing="Boolean(installing)"
       :load-error="loadError"
       :runtime-available="runtimeAvailable"
       @retry="emit('retry')"

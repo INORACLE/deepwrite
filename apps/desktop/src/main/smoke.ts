@@ -19,6 +19,7 @@ import { runI18nSmoke } from "./smoke-i18n";
 import { runLongBookDecompositionSmoke } from "./smoke-long-book-decomposition";
 import { runDecompositionUiSmoke } from "./smoke-decomposition-ui";
 import { runBookIdentitySmoke } from "./smoke-book-identity";
+import { runLibraryGroupDeletionSmoke } from "./smoke-library-group-deletion";
 
 export async function runApplicationSmoke(
   health: SystemHealthPayload,
@@ -26,6 +27,13 @@ export async function runApplicationSmoke(
   window: BrowserWindow,
   setEventTap: (tap: ((event: SystemEventEnvelope) => void) | undefined) => void
 ): Promise<void> {
+  if (process.env.DEEPWRITE_SMOKE_SUITE === "library-groups") {
+    const libraryGroups = await runLibraryGroupDeletionSmoke(window);
+    console.log(
+      `DEEPWRITE_SMOKE_OK ${JSON.stringify({ health, libraryGroups })}`
+    );
+    return;
+  }
   if (process.env.DEEPWRITE_SMOKE_SUITE === "book-identity") {
     const bookIdentity = await runBookIdentitySmoke(window, supervisor);
     console.log(

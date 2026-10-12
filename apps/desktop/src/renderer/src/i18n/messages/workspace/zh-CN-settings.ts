@@ -54,10 +54,10 @@ export default {
     failedToUpdateTeamStatus: "更新团队启用状态失败。",
     agentTeamSaved: "智能体团队已保存。",
     failedToSaveAgentTeamSettings: "保存智能体团队设置失败。",
-    agentTeamArchiveDownloaded: "智能体团队压缩包已下载。",
+    agentTeamArchiveDownloaded: "智能体团队文件已下载。",
     failedToDownloadAgentTeam: "下载智能体团队失败。",
-    agentTeamInstalled: "智能体团队“{teamName}”已安装。",
-    failedToInstallAgentTeam: "安装智能体团队失败。",
+    agentTeamInstalled: "智能体团队“{teamName}”已导入。",
+    failedToInstallAgentTeam: "导入智能体团队失败。",
     failedToLoadLibraryAgentSettings: "加载资料库智能体设置失败。",
     libraryAgentSettingsSavedChangesApplyToTheNext:
       "资料库智能体设置已保存，下一轮对话立即生效。",
