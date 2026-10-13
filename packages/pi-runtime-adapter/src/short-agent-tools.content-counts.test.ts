@@ -93,7 +93,7 @@ describe.each(["short", "script"] as const)(
         );
         expect(text).toContain("section_id=pending:section:");
         expect(text).toContain(
-          auto ? "以审批卡的落盘状态为准" : "等待用户审阅"
+          auto ? "已提交自动保存，这一步已完成" : "等待用户审阅"
         );
         expect(details(result)).toMatchObject({
           kind: "workspace-expert-draft-section-creation",

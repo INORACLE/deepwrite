@@ -148,6 +148,7 @@ export type SyncKind = z.infer<typeof syncKindSchema>;
 export type SyncItem = z.infer<typeof syncItemSchema>;
 export type SyncClock = z.infer<typeof syncClockSchema>;
 export type SyncRevision = z.infer<typeof syncRevisionSchema>;
+export type SyncFileRef = z.infer<typeof syncFileRefSchema>;
 export type SyncCommit = z.infer<typeof syncCommitSchema>;
 export type SyncSpace = z.infer<typeof syncSpaceSchema>;
 export type SyncMetadata = z.infer<typeof syncMetadataSchema>;

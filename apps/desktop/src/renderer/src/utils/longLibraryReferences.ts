@@ -71,28 +71,31 @@ export function longMaterialReferences(
   const libraries = new Map(
     snapshot.materials.map((library) => [library.id, library])
   );
-  const seenLibraries = new Set<string>();
+  const seenEntries = new Set<string>();
   const references: ComposerReferenceOption[] = [];
   for (const selectedKind of MATERIAL_KINDS) {
     if (!readableKinds.has(selectedKind)) continue;
     for (const libraryId of summary.linkedMaterialIdsByKind[selectedKind]) {
-      if (seenLibraries.has(libraryId)) continue;
-      seenLibraries.add(libraryId);
       const library = libraries.get(libraryId);
       if (!library) continue;
       for (const entry of library.entries) {
         const entryKind = MATERIAL_STAGE_KINDS[entry.stageId];
-        if (entryKind !== selectedKind || entry.contentBytes <= 0) continue;
+        const entryId = catalogAttachmentId("material", library.id, entry.id);
+        if (
+          entryKind !== selectedKind ||
+          entry.contentBytes <= 0 ||
+          seenEntries.has(entryId)
+        ) {
+          continue;
+        }
+        seenEntries.add(entryId);
         references.push({
-          id: catalogAttachmentId("material", library.id, entry.id),
+          id: entryId,
           label: `${library.title} · ${entry.title}`,
           detail: t("linkedToThisNovel", {
             value: MATERIAL_KIND_LABELS[entryKind]
           })
         });
-        if (references.length >= ATTACHED_CONTEXT_MAX_ITEMS) {
-          return references;
-        }
       }
     }
   }

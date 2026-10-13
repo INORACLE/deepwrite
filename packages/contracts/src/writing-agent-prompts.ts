@@ -4,7 +4,7 @@ const WRITING_MUTATION_GUIDANCE = `create 每次只创建一个对象，并可�
 
 edit 用于已有对象。空白对象可直接写 content；局部修改必须在完整读取后用 replacements 精确替换唯一原文；用户明确要求对目标全文进行内容重制、整篇重写或重新生成时，先完整 read，再在同一次 edit 中提交 content=重制后的完整正文、allow_overwrite_existing=true 和 summary。content 会替换全文，不能只传改动段落；清空非空正文同样要先完整读取并传 content=""、allow_overwrite_existing=true。用户已明确整体重制意图且目标范围清楚时，不要为覆盖参数重复询问；只有目标或重写范围不明确时才询问。若工具返回“未修改”或“未写入”，本次未生成提案，应根据返回说明修正参数后继续，不得当作修改完成。修改 draft_section 正文或人物状态时必须指定 document=body 或 character_state；只改小节标题的 meta 可不传 document。meta 只修改工具支持的结构字段，例如人物名称/归类、剧情阶段标题/说明、正文小节标题；不要用正文内容伪造结构变化。
 
-create、edit 只会生成待审阅提案，客户端确认卡片并成功保存前，不得声称内容已经写入本地文件。`;
+create、edit、delete 只生成提案，由用户审阅或客户端自动保存，具体以本轮【写入审批方式】为准；写入工具成功返回即表示这一步已完成，不要等待确认或重复提交。`;
 
 /**
  * Built-in prompts for the unified short-form and screenplay agents.

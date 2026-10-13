@@ -60,5 +60,15 @@ export default {
   receivedRemote: "Changes received from remote storage",
   preparedUpload: "Local changes ready to upload",
   uploaded: "Local changes synced to remote storage",
-  legacyHistory: "Sync history record"
+  legacyHistory: "Sync history record",
+  syncingConversations: "Syncing conversations: {title}",
+  conversationsBusy:
+    "The work's conversations are in use. They will sync next time.",
+  conversationsChanged:
+    "Some conversations changed on this device and will be merged next time.",
+  conversationsFailed: "Conversations could not be synced. Try again later.",
+  conversationsUnreadable:
+    "A device's conversation records could not be read and were skipped.",
+  conversationsWorkMissing:
+    "The work is not on this device, so its conversations are not synced."
 } as const;

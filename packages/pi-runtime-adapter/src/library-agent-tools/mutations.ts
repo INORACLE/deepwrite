@@ -14,7 +14,9 @@ import {
   libraryTitle
 } from "./workspace";
 import { textResult } from "./shared";
+import { AUTO_APPROVE_PROPOSAL_SUBMITTED } from "../write-approval";
 
+/** Agent-facing tool result for a submitted library proposal. */
 export function approvalSummary(
   summary: string,
   approvalMode: AgentWriteApprovalMode | undefined
@@ -22,8 +24,18 @@ export function approvalSummary(
   return approvalMode === "auto-approve"
     ? summary.replace(
         "，等待用户审阅。",
-        "，已提交实时自动保存队列；以审批卡的落盘状态为准。"
+        `，${AUTO_APPROVE_PROPOSAL_SUBMITTED}`
       )
+    : summary;
+}
+
+/** Card-facing summary: auto-approved cards carry no review wording. */
+function cardSummary(
+  summary: string,
+  approvalMode: AgentWriteApprovalMode | undefined
+): string {
+  return approvalMode === "auto-approve"
+    ? summary.replace("，等待用户审阅。", "。")
     : summary;
 }
 
@@ -47,7 +59,7 @@ export function mutationResult(
     ...(projectRevision === undefined
       ? {}
       : { baseProjectRevision: projectRevision }),
-    summary: finalizedSummary
+    summary: cardSummary(summary, input.writeApprovalMode)
   } as const;
   return operation === "create"
     ? textResult(finalizedSummary, {
@@ -84,6 +96,6 @@ export function overviewMutationResult(
     ...(projectRevision === undefined
       ? {}
       : { baseProjectRevision: projectRevision }),
-    summary: finalizedSummary
+    summary: cardSummary(summary, input.writeApprovalMode)
   });
 }

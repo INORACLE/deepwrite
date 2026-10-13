@@ -11,6 +11,7 @@ import { libraryManagementParentPrompt } from "./library-management-runtime";
 import { resolvePortableToolSchemaProfile } from "./portable-tool-schema";
 import {
   buildEffectiveSystemPrompt,
+  buildFollowUpRawUserMessageContent,
   buildLongFollowUpTurnUserMessageContent,
   buildRawUserMessage,
   buildRuntimeUserMessageContent,
@@ -95,6 +96,6 @@ export function planWorkspaceRun(
                 input.longAgentProfile?.id
               ) && input.workspaceContext?.longWorkspace
             ? buildLongFollowUpTurnUserMessageContent(input)
-            : buildRawUserMessage(input).content
+            : buildFollowUpRawUserMessageContent(input)
   };
 }

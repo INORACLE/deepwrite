@@ -14,6 +14,14 @@ import {
   normalChatContext,
   screenplayWorkspace
 } from "./index.test-support";
+import { writeApprovalBoundary } from "./write-approval";
+
+function withWriteApprovalBoundary(
+  prompt: string,
+  mode?: "auto-approve" | "request-approval"
+): string {
+  return [prompt.trim(), "", writeApprovalBoundary(mode)].join("\n");
+}
 
 describe("DeepWrite Pi runtime adapter: workspace-prompts", () => {
   it("isolates extras chat prompts, tools and cached history from workspace agents", async () => {
@@ -190,7 +198,9 @@ describe("DeepWrite Pi runtime adapter: workspace-prompts", () => {
       workspaceContext: { longWorkspace }
     });
 
-    expect(prompt).toBe(profile.systemPrompt.trim());
+    expect(prompt).toBe(
+      withWriteApprovalBoundary(profile.systemPrompt, "auto-approve")
+    );
     expect(prompt).not.toContain("DeepWrite base");
     expect(prompt).not.toContain("【当前长篇智能体");
     expect(prompt).not.toContain("【DeepWrite 长篇工具边界】");
@@ -255,7 +265,7 @@ describe("DeepWrite Pi runtime adapter: workspace-prompts", () => {
       workspaceContext: { longWorkspace }
     });
 
-    expect(prompt).toBe(profile.systemPrompt.trim());
+    expect(prompt).toBe(withWriteApprovalBoundary(profile.systemPrompt));
     expect(prompt).toContain("All five stages share the same tools");
     expect(prompt).toContain(
       "The fixed context already contains the worldbuilding directory, character directory, and long-form structure navigation."
@@ -404,7 +414,7 @@ describe("DeepWrite Pi runtime adapter: workspace-prompts", () => {
     };
 
     const systemPrompt = buildEffectiveSystemPrompt("DeepWrite base", input);
-    expect(systemPrompt).toBe(profile.systemPrompt.trim());
+    expect(systemPrompt).toBe(withWriteApprovalBoundary(profile.systemPrompt));
     expect(systemPrompt).toContain("All five stages share the same tools");
     expect(systemPrompt).toContain("list");
     expect(systemPrompt).toContain(
@@ -583,7 +593,7 @@ describe("DeepWrite Pi runtime adapter: workspace-prompts", () => {
     expect(systemPrompt).toContain(
       "Do not request, infer, or repeat implementation details"
     );
-    expect(systemPrompt).toBe(profile.systemPrompt.trim());
+    expect(systemPrompt).toBe(withWriteApprovalBoundary(profile.systemPrompt));
     expect(systemPrompt).not.toContain("bookId");
 
     const userPrompt = buildRuntimeUserPrompt(input);
@@ -936,7 +946,7 @@ describe("DeepWrite Pi runtime adapter: workspace-prompts", () => {
     const systemPrompt = buildEffectiveSystemPrompt("DeepWrite base", input);
     expect(systemPrompt).toContain("propose_continuity_commit");
     expect(systemPrompt).toContain("book_line");
-    expect(systemPrompt).toBe(profile.systemPrompt.trim());
+    expect(systemPrompt).toBe(withWriteApprovalBoundary(profile.systemPrompt));
     expect(systemPrompt).toContain(
       "The fixed context already contains the worldbuilding directory, character directory, and long-form structure navigation."
     );

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useConversationSyncLease } from "./extras/device-sync/useConversationSyncLease";
 import { createDecompositionWorkspaceBridge } from "./composables/decompositionWorkspaceBridge";
 import { formatError } from "./i18n/errors";
 import { createScopedTranslator } from "./i18n";
@@ -1440,6 +1441,11 @@ const {
 });
 
 conversationForKey("general");
+useConversationSyncLease({
+  api: () => window.deepwrite?.deviceSync,
+  store: conversationStore,
+  registry: conversationRuntimeRegistry
+});
 
 const chatAssistant = useChatAssistant({
   ensureModelSettingsLoaded: loadModelSettings,

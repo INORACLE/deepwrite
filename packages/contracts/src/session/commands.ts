@@ -22,6 +22,7 @@ import {
   resolveShortWorkspaceAgentIdForStage
 } from "../workspace";
 import { UserPromptAttachmentsSchema } from "./attachments";
+import { ProposalSettlementsSchema } from "./proposal-settlements";
 import {
   ContextCompactionRequestSchema,
   ContextCompactionRunSettingsSchema,
@@ -93,6 +94,8 @@ export const SessionPromptCommandPayloadSchema = z
     thinkingLevel: ThinkingLevelSchema.optional(),
     temperature: TemperatureSchema.optional(),
     writeApprovalMode: AgentWriteApprovalModeSchema.optional(),
+    /** Outcomes of earlier write proposals, reported once with the next turn. */
+    proposalSettlements: ProposalSettlementsSchema.optional(),
     agentTeamMode: AgentTeamRunModeSchema.optional(),
     autoApproveCrossStageOperations: z.boolean().optional(),
     webSearchEnabled: z.boolean().optional(),

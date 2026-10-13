@@ -81,8 +81,8 @@ function deleteCharacterItemProposal(
   state.characterItemOrder = state.characterItemOrder.filter(
     (itemId) => itemId !== item.id
   );
-  const summary = shortProposalSummary(input, rawSummary);
-  return textResult(summary, {
+  const summary = rawSummary.trim();
+  return textResult(shortProposalSummary(input, summary), {
     kind: "workspace-character-structure-mutation",
     workspaceId: input.workspace.id,
     stageId: "character_design",
@@ -120,8 +120,8 @@ function deleteDraftSectionProposal(
   state.expertSectionOrder = state.expertSectionOrder.filter(
     (candidate) => candidate !== section.id
   );
-  const summary = shortProposalSummary(input, rawSummary);
-  return textResult(summary, {
+  const summary = rawSummary.trim();
+  return textResult(shortProposalSummary(input, summary), {
     kind: "workspace-expert-draft-section-deletion",
     workspaceId: input.workspace.id,
     stageId: "draft",

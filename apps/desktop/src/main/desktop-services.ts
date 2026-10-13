@@ -9,6 +9,7 @@ import {
 import { createId } from "@deepwrite/shared";
 import { createCloudBackupFeature } from "../extras/cloud-backup/create-service";
 import { createDesktopDeviceSync } from "../extras/device-sync";
+import type { ConversationSyncLease } from "../extras/device-sync/conversations/lease";
 import { AgentTeamConfigStore } from "./agent-team-config-store";
 import { AppAlertStore } from "./app-alert-store";
 import { AppearanceService } from "./appearance-service";
@@ -38,6 +39,8 @@ interface DesktopServiceOptions {
   appVersion: string;
   command: (command: CommandEnvelope) => Promise<CommandResult>;
   busy: () => boolean;
+  /** Lets device sync hold the conversations the window has open while it writes them. */
+  conversationLease: ConversationSyncLease;
   installUpdate: () => void;
 }
 
@@ -119,7 +122,8 @@ export function createDesktopServices(options: DesktopServiceOptions) {
       workspaceDirectory,
       command,
       busy: options.busy,
-      models: modelConfigStore
+      models: modelConfigStore,
+      conversationLease: options.conversationLease
     }),
     marketplaceClient,
     agentTeamMarketplaceClient: new AgentTeamMarketplaceClient(

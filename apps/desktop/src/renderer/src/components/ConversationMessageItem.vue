@@ -20,6 +20,7 @@ import {
 import AgentEditProposalCard from "./AgentEditProposalCard.vue";
 import AppIcon from "./AppIcon.vue";
 import ConversationProcessingTimeline from "./ConversationProcessingTimeline.vue";
+import ConversationRemoteDetails from "./ConversationRemoteDetails.vue";
 import ConversationUserMessageEditor from "./ConversationUserMessageEditor.vue";
 import LongProposalReview from "./LongProposalReview.vue";
 import StreamedContent from "./StreamedContent.vue";
@@ -230,6 +231,10 @@ onBeforeUnmount(() => {
             />
           </template>
         </section>
+        <ConversationRemoteDetails
+          v-if="message.remote"
+          :remote="message.remote"
+        />
       </div>
 
       <div
@@ -281,6 +286,9 @@ onBeforeUnmount(() => {
             :class="{ 'is-collapsed': approvalCardsCollapsed }"
           />
         </button>
+        <span v-if="message.remote">{{
+          t("fromDevice", { device: message.remote.device })
+        }}</span>
         <span v-if="message.role === 'assistant'">{{
           formatTime(message.createdAt)
         }}</span>

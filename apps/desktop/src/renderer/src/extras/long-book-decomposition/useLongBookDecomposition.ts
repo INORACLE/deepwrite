@@ -12,13 +12,13 @@ import {
   type CreateDecompositionJobInput,
   type LongBookSummary,
   type LongBookDecompositionJob,
-  type DecompositionRegistry,
   type DecompositionRegistryData,
   type SystemEventEnvelope
 } from "@deepwrite/contracts/renderer";
 import { createLongAnalysisSources } from "../long-book-analysis/long-analysis-sources";
 import { createDecompositionEngine } from "./engine";
 import { createDecompositionCreationRecovery } from "./creation-recovery";
+import { createDecompositionRegistryBinding } from "./registry-binding";
 import { getErrorPayload } from "../../i18n/errors";
 
 export function useLongBookDecomposition(options: {
@@ -53,7 +53,10 @@ export function useLongBookDecomposition(options: {
     isDisposed: () => disposed
   });
   const books = shallowRef<LongBookSummary[]>([]);
-  const registry = shallowRef<DecompositionRegistry | null>(null);
+  const registryBinding = createDecompositionRegistryBinding({
+    api,
+    job: engine.job
+  });
   const readingModelId = ref("");
   const integrationModelId = ref("");
   const readingThinkingLevel = ref<ThinkingLevel>("off");
@@ -109,8 +112,7 @@ export function useLongBookDecomposition(options: {
     if (!engine.job.value) return;
     await engine.refresh();
     const job = engine.job.value;
-    if (job.units["registry:merge"]?.status === "done")
-      registry.value = await api().longBookDecomposition.getRegistry(job.id);
+    if (job) await registryBinding.sync(job);
     jobs.value = await api().longBookDecomposition.listJobs();
   }
   async function selectJob(id: string) {
@@ -196,7 +198,7 @@ export function useLongBookDecomposition(options: {
     selectedProfile,
     jobs,
     books,
-    registry,
+    registry: registryBinding.registry,
     loading,
     readingModelId,
     integrationModelId,
@@ -229,10 +231,11 @@ export function useLongBookDecomposition(options: {
       return api().longBookDecomposition.readUnit(job.id, unitId);
     },
     async saveRegistry(next: DecompositionRegistryData, confirmed: boolean) {
-      if (!engine.job.value || !registry.value) return;
+      const base = registryBinding.registry.value;
+      if (!engine.job.value || !base) return;
       engine.job.value = await api().longBookDecomposition.saveRegistry({
         jobId: engine.job.value.id,
-        baseRevision: registry.value.version,
+        baseRevision: base.version,
         registry: JSON.parse(JSON.stringify(next)) as DecompositionRegistryData,
         confirm: confirmed
       });
@@ -280,6 +283,7 @@ export function useLongBookDecomposition(options: {
     dispose() {
       disposed = true;
       stopCapacityWatch();
+      registryBinding.dispose();
       engine.dispose();
     }
   };

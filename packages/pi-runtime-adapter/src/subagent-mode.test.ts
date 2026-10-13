@@ -137,7 +137,7 @@ describe("subagent agent modes in a short workspace", () => {
       expect.arrayContaining(["read", "create", "edit", "delete"])
     );
     expect(JSON.stringify(context.messages)).toContain(MATERIAL_TITLE);
-    expect(context.systemPrompt).toContain("文本变更提案");
+    expect(context.systemPrompt).toContain("【写入审批方式：用户审批】");
   });
 
   it("gives pure-read only reading tools and read-only rules", async () => {

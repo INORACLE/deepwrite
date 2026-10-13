@@ -1,4 +1,7 @@
-import { AgentEvaluationSnapshotSchema } from "@deepwrite/contracts/renderer";
+import {
+  AgentEvaluationSnapshotSchema,
+  conversationSyncRemoteSchema
+} from "@deepwrite/contracts/renderer";
 import type {
   AgentEditProposal,
   AgentSubagentDraw,
@@ -84,6 +87,9 @@ export function parseStoredMessage(value: unknown): ChatMessage | undefined {
     }
   }
   if (value.activityOnly === true) message.activityOnly = true;
+  // Received from another device: re-published unchanged, never edited here.
+  const remote = conversationSyncRemoteSchema.safeParse(value.remote);
+  if (remote.success) message.remote = remote.data;
   const contextCompactions = parseStoredContextCompactions(
     value.contextCompactions
   );

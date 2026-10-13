@@ -220,9 +220,11 @@ export default {
     useSkill: "调用技能",
     referenceSkill: "引用技能",
     referenceMaterial: "引用素材",
+    assignTeamMember: "指派团队成员",
     searchSkillsByName: "输入名称搜索技能",
     searchSkillEntriesByName: "输入名称搜索技能条目",
     searchMaterialEntriesByName: "输入名称搜索素材条目",
+    searchTeamMembersByName: "输入名称搜索团队成员，任务会交给该成员",
     sendingIsUnavailableInTheBrowserPreviewStartThe:
       "浏览器预览不可发送，请启动桌面客户端",
     describeALibraryTaskTypeToLoadAMethod:
@@ -231,6 +233,8 @@ export default {
       "描述资料库任务，输入 / 加载方法技能，输入 {'@'} 引用当前库或同分组其它库的素材……",
     writeAnythingTypeToUseSkillsOrToReference:
       "随心输入，输入 / 调用技能，输入 {'@'} 引用素材……",
+    writeAnythingTypeToUseSkillsOrToReferenceOrTeam:
+      "随心输入，输入 / 调用技能，输入 {'@'} 引用素材，输入 # 指派团队成员……",
     eachMessageCanIncludeUpToAttachmentsOrManuscript:
       "每条消息最多携带 {PROMPT_ATTACHMENT_MAX_ITEMS} 项附件或正文引用。",
     textAttachmentsAndManuscriptReferencesCanContainUpTo:

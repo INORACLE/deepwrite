@@ -96,7 +96,6 @@ export function creationMaterialReferences(
             value: MATERIAL_KIND_LABELS[entryKind]
           })
         });
-        if (references.length >= ATTACHED_CONTEXT_MAX_ITEMS) return references;
       }
     }
   }

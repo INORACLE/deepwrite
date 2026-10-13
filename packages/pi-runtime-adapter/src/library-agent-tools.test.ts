@@ -364,7 +364,10 @@ describe("library agent tools", () => {
     });
     expect(details).not.toHaveProperty("entryId");
     expect(details).not.toHaveProperty("documentId");
-    expect(resultText(created)).toContain("已提交实时自动保存队列");
+    expect(resultText(created)).toContain("已提交自动保存，这一步已完成");
+    expect(details).toMatchObject({
+      summary: "已生成创建技能条目「去 AI 味检查」的变更。"
+    });
     expect(resultText(read)).toContain("逐句检查抽象总结和重复句式。");
     expect(isLibraryAgentToolDetails(created.details)).toBe(true);
   });

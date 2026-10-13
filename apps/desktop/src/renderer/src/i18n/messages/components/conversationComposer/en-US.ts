@@ -3,6 +3,7 @@ export default {
   noMatchingContent: "No matching content",
   thisAgentHasNoAvailableSkills: "This agent has no available skills",
   thisAgentHasNoAvailableMaterials: "This agent has no available materials",
+  thisTeamHasNoEnabledMembers: "This team has no enabled members",
   select: "Select",
   insert: "Insert",
   referencedManuscriptSelections: "Referenced manuscript selections",

@@ -74,7 +74,7 @@ function characterMetaProposal(
   }
   const item = state.characterItems.get(target.itemId!);
   if (!item) throw new Error(`不存在人物条目 ${target.id}。`);
-  const summary = shortProposalSummary(input, rawSummary);
+  const summary = rawSummary.trim();
   if (meta.title !== undefined) {
     const title = meta.title.trim();
     if (!title) throw new Error("人物标题不能为空。");
@@ -89,7 +89,7 @@ function characterMetaProposal(
     }
     const previousTitle = item.title;
     state.characterItems.set(item.id, { ...item, title });
-    return textResult(summary, {
+    return textResult(shortProposalSummary(input, summary), {
       kind: "workspace-character-structure-mutation",
       workspaceId: input.workspace.id,
       stageId: "character_design",
@@ -108,7 +108,7 @@ function characterMetaProposal(
     state.characterItemOrder[destination]!,
     state.characterItemOrder[index]!
   ];
-  return textResult(summary, {
+  return textResult(shortProposalSummary(input, summary), {
     kind: "workspace-character-structure-mutation",
     workspaceId: input.workspace.id,
     stageId: "character_design",
@@ -154,8 +154,8 @@ function plotStageMetaProposal(
     throw new Error("已存在同名剧情结构。");
   }
   state.plotStages.set(stage.id, { ...stage, title, description });
-  const summary = shortProposalSummary(input, rawSummary);
-  return textResult(summary, {
+  const summary = rawSummary.trim();
+  return textResult(shortProposalSummary(input, summary), {
     kind: "workspace-plot-structure-mutation",
     workspaceId: input.workspace.id,
     stageId: target.stageId,
@@ -208,8 +208,8 @@ function draftMetaProposal(
     body: { ...section.body, title },
     characterState: { ...section.characterState, title: `${title} · 人物状态` }
   });
-  const summary = shortProposalSummary(input, rawSummary);
-  return textResult(summary, {
+  const summary = rawSummary.trim();
+  return textResult(shortProposalSummary(input, summary), {
     kind: "workspace-expert-draft-section-rename",
     workspaceId: input.workspace.id,
     stageId: "draft",

@@ -7,6 +7,7 @@ export default {
   chapterCards: "章卡列表",
   chapterCard: "章卡",
   moreActionsForValue: "{arg0}更多操作",
+  change: "修改",
   moveUp: "上移",
   moveDown: "下移",
   delete: "删除"

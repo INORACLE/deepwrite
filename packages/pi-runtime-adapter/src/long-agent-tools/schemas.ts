@@ -201,12 +201,18 @@ export const createMetaParameter = strictObject({
   planned_scope: Type.Optional(Type.String({ maxLength: 4_000 }))
 });
 
-/** Character type changes use a dedicated move operation; other relocation stays in the UI. */
+/** Metadata relocations are translated into the corresponding move operations. */
 export const editMetaParameter = strictObject(
   {
     title: Type.Optional(titleParameter),
     name: Type.Optional(titleParameter),
     type_id: Type.Optional(characterTypeIdParameter),
+    primary_arc_id: Type.Optional(
+      Type.Union([stableIdParameter("arc"), Type.Null()], {
+        description:
+          "仅章卡：切换到同一分卷内的主剧情点，传 null 解除关联；保持章卡顺序。"
+      })
+    ),
     aliases: Type.Optional(
       Type.Array(Type.String({ minLength: 1, maxLength: 120 }), {
         maxItems: 64,

@@ -263,6 +263,7 @@ describe("blocking subagent runtime", () => {
     expect(tool?.executionMode).toBe("sequential");
     expect(tool?.description).toContain("continuity_checker");
     expect(tool?.description).not.toContain("disabled_writer");
+    expect(tool?.description).toContain("#成员名");
   });
 
   it("lets child tools inherit cross-stage auto approval", async () => {

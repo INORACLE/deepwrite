@@ -30,6 +30,7 @@ import {
 } from "./message-identity";
 import { id, rememberBounded } from "./shared";
 import { cloneChatTask, submitConversationTurn } from "./send-transport";
+import { collectProposalSettlements } from "./proposal-settlements";
 
 const t = createScopedTranslator("workspace.sendMessage");
 
@@ -124,15 +125,17 @@ export async function sendMessage(
         (message) => message.id === ctx.unconfirmedUserMessageId
       )
     : -1;
+  const priorMessages = preparedRewrite
+    ? ctx.messages.value.slice(0, preparedRewrite.targetIndex)
+    : persistenceRetryIndex >= 0
+      ? ctx.messages.value.slice(0, persistenceRetryIndex)
+      : ctx.messages.value;
+  const proposalSettlements = chatTask
+    ? undefined
+    : collectProposalSettlements(priorMessages);
   let conversationRestore: ReturnType<typeof buildConversationRestore>;
   try {
-    conversationRestore = buildConversationRestore(
-      preparedRewrite
-        ? ctx.messages.value.slice(0, preparedRewrite.targetIndex)
-        : persistenceRetryIndex >= 0
-          ? ctx.messages.value.slice(0, persistenceRetryIndex)
-          : ctx.messages.value
-    );
+    conversationRestore = buildConversationRestore(priorMessages);
   } catch (error) {
     ctx.conversationError.value = formatError(
       error,
@@ -266,6 +269,7 @@ export async function sendMessage(
         : {
             workspace: {
               writeApprovalMode: ctx.approvalModeByAttempt.get(attemptId),
+              ...(proposalSettlements ? { proposalSettlements } : {}),
               ...(contextSnapshot?.shortWorkspace ||
               contextSnapshot?.scriptWorkspace ||
               contextSnapshot?.longWorkspace

@@ -47,6 +47,7 @@ import conversationContextCompactionNotice from "./conversationContextCompaction
 import conversationHistoryDeleteDialog from "./conversationHistoryDeleteDialog/en-US";
 import conversationHistoryMenu from "./conversationHistoryMenu/en-US";
 import conversationMessageItem from "./conversationMessageItem/en-US";
+import conversationRemoteDetails from "./conversationRemoteDetails/en-US";
 import conversationModelConfigSelect from "./conversationModelConfigSelect/en-US";
 import conversationProcessingItem from "./conversationProcessingItem/en-US";
 import conversationProcessingTimeline from "./conversationProcessingTimeline/en-US";
@@ -95,6 +96,7 @@ import longBookBindingsDialog from "./longBookBindingsDialog/en-US";
 import longBookRemovalDialog from "./longBookRemovalDialog/en-US";
 import longBookRenameDialog from "./longBookRenameDialog/en-US";
 import longCharacterNavigation from "./longCharacterNavigation/en-US";
+import longChapterPlotBinding from "./longChapterPlotBinding/en-US";
 import longContinuationImportDialog from "./longContinuationImportDialog/en-US";
 import longContinuityLedgerNavigation from "./longContinuityLedgerNavigation/en-US";
 import longContinuityProjectionPanel from "./longContinuityProjectionPanel/en-US";
@@ -234,6 +236,7 @@ export default {
   conversationHistoryDeleteDialog,
   conversationHistoryMenu,
   conversationMessageItem,
+  conversationRemoteDetails,
   conversationModelConfigSelect,
   conversationProcessingItem,
   conversationProcessingTimeline,
@@ -282,6 +285,7 @@ export default {
   longBookRemovalDialog,
   longBookRenameDialog,
   longCharacterNavigation,
+  longChapterPlotBinding,
   longContinuationImportDialog,
   longContinuityLedgerNavigation,
   longContinuityProjectionPanel,

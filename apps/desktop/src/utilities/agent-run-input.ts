@@ -87,6 +87,9 @@ export function createAgentRunInput(
     ...(payload.writeApprovalMode
       ? { writeApprovalMode: payload.writeApprovalMode }
       : {}),
+    ...(payload.proposalSettlements
+      ? { proposalSettlements: payload.proposalSettlements }
+      : {}),
     ...(payload.autoApproveCrossStageOperations !== undefined
       ? {
           autoApproveCrossStageOperations:

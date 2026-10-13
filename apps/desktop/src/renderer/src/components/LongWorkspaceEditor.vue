@@ -42,6 +42,7 @@ import { useBodyTextFormatting } from "../composables/useBodyTextFormatting";
 import { longBodyTextKind } from "../utils/bodyTextTarget";
 import EditorSearchHighlight from "./EditorSearchHighlight.vue";
 import LongCharacterNavigation from "./LongCharacterNavigation.vue";
+import LongChapterPlotBinding from "./LongChapterPlotBinding.vue";
 import LongContinuityLedgerNavigation from "./LongContinuityLedgerNavigation.vue";
 import LongEditorFooterMeta from "./LongEditorFooterMeta.vue";
 import LongEditorDeleteDialogs from "./LongEditorDeleteDialogs.vue";
@@ -370,6 +371,19 @@ const currentChapterCard = computed(
       ({ id }) => id === props.selection?.chapterCardId
     ) ?? null
 );
+const showChapterPlotBinding = computed(
+  () =>
+    Boolean(currentChapterCard.value && props.workspaceIndex) &&
+    (currentIsChapterCardWorkspace.value || props.selection?.root === "draft")
+);
+const chapterPlotBinding = ref<InstanceType<
+  typeof LongChapterPlotBinding
+> | null>(null);
+
+function editChapterPlotBinding(chapterCardId: LongChapterCardId): void {
+  chapterPlotBinding.value?.edit(chapterCardId);
+}
+
 const currentNavigationDeleteTarget =
   computed<LongNavigationDeleteTarget | null>(() => {
     const index = props.workspaceIndex;
@@ -1501,6 +1515,7 @@ onBeforeUnmount(() => {
   <section
     class="long-workspace-editor"
     :class="{
+      'has-chapter-binding': showChapterPlotBinding,
       'has-navigation-tabs':
         currentUsesTopCharacterTabs ||
         currentUsesTopPlotTabs ||
@@ -1890,6 +1905,19 @@ onBeforeUnmount(() => {
           @toggle-right="emit('toggleRight')"
         />
       </div>
+
+      <LongChapterPlotBinding
+        v-if="showChapterPlotBinding && workspaceIndex && currentChapterCard"
+        :key="`${bookId}:${currentChapterCard.id}`"
+        ref="chapterPlotBinding"
+        :book-id="bookId"
+        :chapter-card-id="currentChapterCard.id"
+        :snapshot="workspaceIndex"
+        :locked="locked"
+        :show-trigger="!currentUsesRightChapterCardList"
+        @preview-mutation="forwardPreviewMutation"
+        @mutation="forwardForeshadowingMutation"
+      />
 
       <div
         ref="longEditorDocumentElement"
@@ -2575,6 +2603,7 @@ onBeforeUnmount(() => {
           :committed="currentChapterCardCommitted"
           @select-chapter="emit('selectChapterCard', $event)"
           @create-chapter="emit('createChapterCard')"
+          @edit-chapter="editChapterPlotBinding"
           @delete-chapter="openChapterCardDelete"
           @reorder-chapter="reorderChapterCard"
         />
@@ -2682,6 +2711,18 @@ onBeforeUnmount(() => {
 .long-workspace-editor.has-navigation-tabs {
   grid-template-rows:
     minmax(42px, auto) minmax(40px, auto)
+    minmax(0, 1fr) minmax(36px, auto);
+}
+
+.long-workspace-editor.has-chapter-binding {
+  grid-template-rows:
+    minmax(40px, auto) auto
+    minmax(0, 1fr) minmax(36px, auto);
+}
+
+.long-workspace-editor.has-navigation-tabs.has-chapter-binding {
+  grid-template-rows:
+    minmax(42px, auto) minmax(40px, auto) auto
     minmax(0, 1fr) minmax(36px, auto);
 }
 

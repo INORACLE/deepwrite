@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { createScopedTranslator } from "../i18n";
-import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import type {
   AgentTeamRunMode,
   LibraryAgentDomain,
@@ -18,6 +18,8 @@ import type {
   EditorTextReference
 } from "../types/conversation";
 import type { IconName } from "../types/workspace";
+import type { ComposerReferenceTrigger } from "../utils/composerReferences";
+import { agentTeamMemberReferences } from "../utils/agentTeamMemberReferences";
 import { PROMPT_ATTACHMENT_ACCEPT } from "../utils/promptAttachments";
 import {
   useConversationAttachments,
@@ -107,6 +109,22 @@ const emit = defineEmits<{
   selectAgentTeamMode: [mode: AgentTeamRunMode];
 }>();
 
+// `#` lists the bound team's members, and only while team mode is on.
+const teamMemberOptions = computed(() =>
+  props.agentTeamMode === "team" && props.agentWorkspaceType && props.agentId
+    ? agentTeamMemberReferences(
+        settingsStore.agentTeamCatalog,
+        props.agentWorkspaceType,
+        props.agentId
+      )
+    : null
+);
+const REFERENCE_TRIGGER_ICONS: Record<ComposerReferenceTrigger, IconName> = {
+  "/": "sparkles",
+  "@": "archive",
+  "#": "brain"
+};
+
 const closeReferenceMenuHolder = { run() {} };
 const {
   attachmentInput,
@@ -149,6 +167,7 @@ const {
   libraryDomain: () => props.libraryDomain,
   availableSkills: () => props.availableSkills,
   availableMaterials: () => props.availableMaterials,
+  availableTeamMembers: () => teamMemberOptions.value,
   editorReferences: () => props.editorReferences,
   textAttachmentMaxCharacters: () =>
     settingsStore.generalSettings.textAttachmentMaxCharacters,
@@ -281,7 +300,7 @@ defineExpose({ focusInput });
           >
             <span class="composer-reference-icon">
               <AppIcon
-                :name="activeReference.trigger === '/' ? 'sparkles' : 'archive'"
+                :name="REFERENCE_TRIGGER_ICONS[activeReference.trigger]"
                 :size="17"
               />
             </span>
@@ -300,7 +319,9 @@ defineExpose({ focusInput });
               ? t("noMatchingContent")
               : activeReference.trigger === "/"
                 ? t("thisAgentHasNoAvailableSkills")
-                : t("thisAgentHasNoAvailableMaterials")
+                : activeReference.trigger === "#"
+                  ? t("thisTeamHasNoEnabledMembers")
+                  : t("thisAgentHasNoAvailableMaterials")
           }}
         </div>
         <div class="composer-reference-footer">

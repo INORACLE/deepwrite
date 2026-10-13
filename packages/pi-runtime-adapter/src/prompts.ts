@@ -15,6 +15,7 @@ import {
   rawUserMessageContent
 } from "./prompts-user-message";
 import type { AgentRunInput } from "./runtime-types";
+import { renderProposalSettlements } from "./write-approval";
 
 export {
   scriptRuntimeFormatRequirements,
@@ -187,6 +188,8 @@ export function buildRuntimeUserPrompt(input: AgentRunInput): string {
     materialContext,
     ...materialCatalogNotes(input),
     "",
+    renderProposalSettlements(input.proposalSettlements),
+    "",
     "【用户消息与上传附件】",
     buildRawUserText(input)
   ];
@@ -210,6 +213,8 @@ function buildLongFollowUpTurnUserPrompt(input: AgentRunInput): string {
     buildWorkspaceMaterialContext(input),
     ...materialCatalogNotes(input),
     "",
+    renderProposalSettlements(input.proposalSettlements),
+    "",
     "【用户消息与上传附件】",
     buildRawUserText(input)
   ]
@@ -230,6 +235,25 @@ export function buildLongFollowUpTurnUserMessageContent(
   input: AgentRunInput
 ): UserMessage["content"] {
   const text = buildLongFollowUpTurnUserPrompt(input);
+  const images = imageContentBlocks(input);
+  return images.length ? [{ type: "text", text }, ...images] : text;
+}
+
+/**
+ * A later turn without a refreshed snapshot. Proposal outcomes still precede
+ * the raw message so the agent learns what its earlier writes became.
+ */
+export function buildFollowUpRawUserMessageContent(
+  input: AgentRunInput
+): UserMessage["content"] {
+  const settlements = renderProposalSettlements(input.proposalSettlements);
+  if (!settlements) return rawUserMessageContent(input);
+  const text = [
+    settlements,
+    "",
+    "【用户消息与上传附件】",
+    buildRawUserText(input)
+  ].join("\n");
   const images = imageContentBlocks(input);
   return images.length ? [{ type: "text", text }, ...images] : text;
 }

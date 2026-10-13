@@ -47,7 +47,13 @@ export const syncDisplayTextSchema = z
       "receivedRemote",
       "preparedUpload",
       "uploaded",
-      "legacyHistory"
+      "legacyHistory",
+      "syncingConversations",
+      "conversationsBusy",
+      "conversationsChanged",
+      "conversationsFailed",
+      "conversationsUnreadable",
+      "conversationsWorkMissing"
     ]),
     params: z.record(z.string(), z.union([z.string(), z.number()])).optional()
   })

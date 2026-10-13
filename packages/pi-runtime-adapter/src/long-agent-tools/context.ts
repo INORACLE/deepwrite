@@ -18,6 +18,7 @@ import {
   throwIfAborted
 } from "./shared";
 import { createProposalOverlay } from "./proposal-overlay";
+import { AUTO_APPROVE_PROPOSAL_SUBMITTED } from "../write-approval";
 import type {
   BuildLongWorkspaceToolsInput,
   LongAgentToolDetails,
@@ -35,10 +36,12 @@ export function longProposalResultSummary(
   pendingSummary: string
 ): string {
   return input.writeApprovalMode === "auto-approve"
-    ? pendingSummary.replace(
-        /等待客户端审阅。$/,
-        "已提交实时自动保存队列；以审批卡的落盘状态为准。"
-      )
+    ? pendingSummary
+        .replace(/等待客户端审阅。$/u, AUTO_APPROVE_PROPOSAL_SUBMITTED)
+        .replace(
+          /等待客户端确认关联影响。$/u,
+          `${AUTO_APPROVE_PROPOSAL_SUBMITTED}若存在关联影响，客户端会转给用户确认。`
+        )
     : pendingSummary;
 }
 

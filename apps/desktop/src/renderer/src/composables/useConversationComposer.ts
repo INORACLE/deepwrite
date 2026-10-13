@@ -11,9 +11,11 @@ import type {
 } from "../types/conversation";
 import { uiMessage } from "../ui-feedback";
 import {
+  DEFAULT_COMPOSER_REFERENCE_TRIGGERS,
   findComposerReferenceMatch,
   insertComposerReference,
-  type ComposerReferenceMatch
+  type ComposerReferenceMatch,
+  type ComposerReferenceTrigger
 } from "../utils/composerReferences";
 import { createEditorReferenceAttachment } from "../utils/editorTextReferences";
 
@@ -27,6 +29,8 @@ export function useConversationComposer(options: {
   libraryDomain: () => LibraryAgentDomain | undefined;
   availableSkills: () => readonly ComposerReferenceOption[];
   availableMaterials: () => readonly ComposerReferenceOption[];
+  /** Enabled team members for `#`; `null` while team mode is off. */
+  availableTeamMembers: () => readonly ComposerReferenceOption[] | null;
   editorReferences: () => readonly EditorTextReference[];
   textAttachmentMaxCharacters: () => number;
   textAttachmentsTotalMaxCharacters: () => number;
@@ -49,13 +53,23 @@ export function useConversationComposer(options: {
             options.editorReferences().length > 0)))
   );
 
-  const referenceOptions = computed(() =>
-    activeReference.value?.trigger === "/"
-      ? options.availableSkills()
-      : activeReference.value?.trigger === "@"
-        ? options.availableMaterials()
-        : []
+  const referenceTriggers = computed<readonly ComposerReferenceTrigger[]>(() =>
+    options.availableTeamMembers()
+      ? [...DEFAULT_COMPOSER_REFERENCE_TRIGGERS, "#"]
+      : DEFAULT_COMPOSER_REFERENCE_TRIGGERS
   );
+  const referenceOptions = computed(() => {
+    switch (activeReference.value?.trigger) {
+      case "/":
+        return options.availableSkills();
+      case "@":
+        return options.availableMaterials();
+      case "#":
+        return options.availableTeamMembers() ?? [];
+      default:
+        return [];
+    }
+  });
   const filteredReferenceOptions = computed(() => {
     const query =
       activeReference.value?.query.trim().toLocaleLowerCase("zh-CN") ?? "";
@@ -66,22 +80,23 @@ export function useConversationComposer(options: {
             .includes(query)
         )
       : referenceOptions.value;
-    return matches.slice(0, 12);
+    return matches;
   });
-  const referenceMenuTitle = computed(() =>
-    activeReference.value?.trigger === "/"
-      ? t("useSkill")
-      : options.libraryDomain() === "skill"
-        ? t("referenceSkill")
-        : t("referenceMaterial")
-  );
-  const referenceMenuHint = computed(() =>
-    activeReference.value?.trigger === "/"
-      ? t("searchSkillsByName")
-      : options.libraryDomain() === "skill"
-        ? t("searchSkillEntriesByName")
-        : t("searchMaterialEntriesByName")
-  );
+  const referenceMenuTitle = computed(() => {
+    if (activeReference.value?.trigger === "/") return t("useSkill");
+    if (activeReference.value?.trigger === "#") return t("assignTeamMember");
+    return options.libraryDomain() === "skill"
+      ? t("referenceSkill")
+      : t("referenceMaterial");
+  });
+  const referenceMenuHint = computed(() => {
+    if (activeReference.value?.trigger === "/") return t("searchSkillsByName");
+    if (activeReference.value?.trigger === "#")
+      return t("searchTeamMembersByName");
+    return options.libraryDomain() === "skill"
+      ? t("searchSkillEntriesByName")
+      : t("searchMaterialEntriesByName");
+  });
   const composerPlaceholder = computed(() => {
     if (!options.runtimeAvailable())
       return t("sendingIsUnavailableInTheBrowserPreviewStartThe");
@@ -91,7 +106,9 @@ export function useConversationComposer(options: {
     if (options.libraryDomain() === "material") {
       return t("describeALibraryTaskTypeToLoadAMethod2");
     }
-    return t("writeAnythingTypeToUseSkillsOrToReference");
+    return options.availableTeamMembers()
+      ? t("writeAnythingTypeToUseSkillsOrToReferenceOrTeam")
+      : t("writeAnythingTypeToUseSkillsOrToReference");
   });
 
   watch(
@@ -103,6 +120,15 @@ export function useConversationComposer(options: {
     (ids) => {
       if (!ids) return;
       void nextTick(() => composerInput.value?.focus());
+    }
+  );
+
+  watch(
+    () => options.availableTeamMembers() === null,
+    (teamModeOff) => {
+      if (teamModeOff && activeReference.value?.trigger === "#") {
+        closeReferenceMenu();
+      }
     }
   );
 
@@ -120,7 +146,8 @@ export function useConversationComposer(options: {
   function updateActiveReference(input: HTMLTextAreaElement): void {
     const next = findComposerReferenceMatch(
       input.value,
-      input.selectionStart ?? input.value.length
+      input.selectionStart ?? input.value.length,
+      referenceTriggers.value
     );
     const changedTrigger =
       next?.start !== activeReference.value?.start ||

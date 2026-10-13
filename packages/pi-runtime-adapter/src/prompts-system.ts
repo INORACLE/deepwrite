@@ -6,6 +6,7 @@ import {
 import { buildWritingSystemPrompt } from "./prompts-writing";
 import type { AgentRunInput } from "./runtime-types";
 import { renderSubagentAuthoringSystemPrompt } from "./subagent-authoring-tools";
+import { writeApprovalBoundary } from "./write-approval";
 
 export function buildDeepWriteSystemPrompt(): string {
   return [
@@ -50,10 +51,7 @@ function buildWorkspaceAgentSystemPrompt(
   const libraryProfile = input.libraryAgentProfile;
   const libraryWorkspace = input.workspaceContext?.libraryWorkspace;
   if (libraryProfile && libraryWorkspace) {
-    const writeBoundary =
-      input.writeApprovalMode === "auto-approve"
-        ? "写入工具只提交资料库条目或库介绍变更；提案生成后客户端会立即加入后台串行队列、自动批准并尝试保存。智能体可以继续当前回复，但在审批卡确认成功前不得声称已经保存成功。"
-        : "写入工具提交待用户审阅的资料库条目或库介绍变更；用户接受后客户端才会保存到本地文件，当前回复不得提前声称已经保存。";
+    const writeBoundary = `写入工具只提交资料库条目或库介绍变更。\n${writeApprovalBoundary(input.writeApprovalMode)}`;
     return [
       basePrompt,
       "",
@@ -76,7 +74,11 @@ function buildWorkspaceAgentSystemPrompt(
   const longWorkspace = input.workspaceContext?.longWorkspace;
   const longProfile = input.longAgentProfile;
   if (longProfile && longWorkspace) {
-    return longProfile.systemPrompt.trim();
+    return [
+      longProfile.systemPrompt.trim(),
+      "",
+      writeApprovalBoundary(input.writeApprovalMode)
+    ].join("\n");
   }
   return buildWritingSystemPrompt(basePrompt, input);
 }

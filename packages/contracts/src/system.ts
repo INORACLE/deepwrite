@@ -22,6 +22,12 @@ import { StorageSettingsCommandSchemas } from "./storage-settings";
 import { ConversationExportCommandEnvelopeSchemas } from "./conversation-export";
 import { SiteOfficialModelCommandSchemas } from "./site-official-models";
 import { DeviceSyncWorkspaceCommandEnvelopeSchema } from "./device-sync-commands";
+import {
+  DeviceSyncConversationCommandEnvelopeSchema,
+  DeviceSyncConversationLeaseEventEnvelopeSchema,
+  DeviceSyncConversationLeaseResultCommandEnvelopeSchema,
+  DeviceSyncConversationsChangedEventEnvelopeSchema
+} from "./device-sync-conversation-commands";
 import { AgentTeamsSaveBuiltinsCommandEnvelopeSchema } from "./builtin-subagents";
 import { CatalogQueryLibraryManagementCommandEnvelopeSchema } from "./library-management";
 import { z } from "zod";
@@ -248,6 +254,8 @@ export const CommandEnvelopeSchema = z.discriminatedUnion("type", [
   ...ImageModelCommandSchemas,
   ...BookTemplateCommandSchemas,
   DeviceSyncWorkspaceCommandEnvelopeSchema,
+  DeviceSyncConversationCommandEnvelopeSchema,
+  DeviceSyncConversationLeaseResultCommandEnvelopeSchema,
   CatalogQueryMaterialsCommandEnvelopeSchema,
   SystemHealthCommandEnvelopeSchema,
   ...RendererStateCommandEnvelopeSchemas,
@@ -395,6 +403,8 @@ export const SystemEventEnvelopeSchema = z.discriminatedUnion("type", [
   BookIdentityUpdatedEventEnvelopeSchema,
   LongMaterialProgressEventEnvelopeSchema,
   RendererStateFlushRequestedEventEnvelopeSchema,
+  DeviceSyncConversationLeaseEventEnvelopeSchema,
+  DeviceSyncConversationsChangedEventEnvelopeSchema,
   SystemReadyEventEnvelopeSchema,
   SystemWorkerRestartingEventEnvelopeSchema,
   SystemWorkerRestartedEventEnvelopeSchema,
@@ -449,6 +459,8 @@ export type SystemEventEnvelope =
   | DecompositionTargetUpdatedEvent
   | ExtrasAgentOutputUpdatedEventEnvelope
   | z.infer<typeof RendererStateFlushRequestedEventEnvelopeSchema>
+  | z.infer<typeof DeviceSyncConversationLeaseEventEnvelopeSchema>
+  | z.infer<typeof DeviceSyncConversationsChangedEventEnvelopeSchema>
   | SystemReadyEventEnvelope
   | SystemWorkerRestartingEventEnvelope
   | SystemWorkerRestartedEventEnvelope

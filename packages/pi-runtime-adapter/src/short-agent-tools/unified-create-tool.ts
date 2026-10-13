@@ -82,10 +82,11 @@ function characterCreation(
     provisional: true
   });
   state.characterItemOrder.push(itemId);
-  const summary = shortProposalSummary(input, rawSummary);
-  const message = appendWritingContentCounts(`${summary}\nitem_id=${itemId}`, [
-    { title, id: itemId, content }
-  ]);
+  const summary = rawSummary.trim();
+  const message = appendWritingContentCounts(
+    `${shortProposalSummary(input, summary)}\nitem_id=${itemId}`,
+    [{ title, id: itemId, content }]
+  );
   return textResult(message, {
     kind: "workspace-character-structure-mutation",
     workspaceId: input.workspace.id,
@@ -142,9 +143,9 @@ function plotStageCreation(
     stageId,
     createShortWorkspaceContentRevision(content)
   );
-  const summary = shortProposalSummary(input, rawSummary);
+  const summary = rawSummary.trim();
   const message = appendWritingContentCounts(
-    `${summary}\nstage_id=${stageId}`,
+    `${shortProposalSummary(input, summary)}\nstage_id=${stageId}`,
     [{ title, id: stageId, content }]
   );
   return textResult(message, {
@@ -235,9 +236,9 @@ function draftSectionCreation(
   );
   state.expertSectionOrder.splice(insertAt, 0, sectionId);
   state.pendingExpertSectionTitles.add(title);
-  const summary = shortProposalSummary(input, rawSummary);
+  const summary = rawSummary.trim();
   const message = appendWritingContentCounts(
-    `${summary}\nsection_id=${sectionId}`,
+    `${shortProposalSummary(input, summary)}\nsection_id=${sectionId}`,
     [
       {
         title: `${title} · 正文`,

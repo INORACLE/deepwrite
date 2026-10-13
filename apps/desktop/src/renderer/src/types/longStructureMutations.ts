@@ -5,6 +5,7 @@ const t = createScopedTranslator("workspace.selection");
 import {
   LongWorkspaceOperationBatchSchema,
   createEmptyLongMarkdownFileReference,
+  createLongChapterPrimaryArcOperation,
   longChapterBodyFileId,
   longChapterCardFileId,
   longChapterCharacterStateFileId,
@@ -1269,12 +1270,14 @@ export function createLongStructureMutationBuilder(
             } as OperationOf<"chapter.update">)
           : undefined,
         moved
-          ? {
-              type: "chapter.move",
-              id,
-              toVolumeId: targetVolumeId,
-              toPrimaryArcId: targetArcId
-            }
+          ? targetVolumeId === current.volumeId
+            ? createLongChapterPrimaryArcOperation(snapshot, id, targetArcId)
+            : {
+                type: "chapter.move",
+                id,
+                toVolumeId: targetVolumeId,
+                toPrimaryArcId: targetArcId
+              }
           : undefined
       ]);
     },

@@ -23,6 +23,7 @@ import { buildSubagentAuthoringTools } from "./subagent-authoring-tools";
 import { buildSubagentMaterialContext } from "./prompts-material";
 import { buildSpawnSubagentTool } from "./subagent-runtime";
 import { workspaceContextPolicy } from "./workspace-context-policy";
+import { writeApprovalBoundary } from "./write-approval";
 import { buildProviderRuntime, toPiThinkingLevel } from "./provider-runtime";
 import {
   scriptReadOnlyRuntimeSystemRequirements,
@@ -230,10 +231,10 @@ export function buildRunTools(
             }
           : longWorkspace
             ? {
-                systemPromptRequirements:
-                  input.writeApprovalMode === "auto-approve"
-                    ? "这是长篇主智能体委派的单层子任务。只能使用继承的长篇查询/提案工具和当前 bookId；提案会进入实时自动保存队列，在客户端确认成功前不能宣称已落盘或已提交连续性账本。"
-                    : "这是长篇主智能体委派的单层子任务。只能使用继承的长篇查询/提案工具和当前 bookId；任何写入仍须形成可审阅提案，不能宣称已落盘或已提交连续性账本。",
+                systemPromptRequirements: [
+                  "这是长篇主智能体委派的单层子任务。只能使用继承的长篇查询/提案工具和当前 bookId。交回结果时列出已提交的修改。",
+                  writeApprovalBoundary(input.writeApprovalMode)
+                ].join("\n"),
                 pureReadSystemPromptRequirements:
                   "这是长篇主智能体委派的单层只读子任务。只能使用 read、list 读取当前 bookId 的作品，以及 query_linked_material_entries 读取素材；没有任何写入工具，不能修改作品，也不得声称已修改或已提交连续性账本。"
               }

@@ -12,5 +12,6 @@ export default {
   editAndResend: "Edit and resend",
   copied: "Copied",
   copyReply: "Copy reply",
-  copyMessage: "Copy message"
+  copyMessage: "Copy message",
+  fromDevice: "From {device}"
 };

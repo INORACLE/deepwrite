@@ -12,5 +12,6 @@ export default {
   editAndResend: "修改并重新发送",
   copied: "已复制",
   copyReply: "复制回复",
-  copyMessage: "复制消息"
+  copyMessage: "复制消息",
+  fromDevice: "来自{device}"
 };

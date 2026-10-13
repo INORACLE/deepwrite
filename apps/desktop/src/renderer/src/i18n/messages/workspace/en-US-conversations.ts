@@ -236,9 +236,12 @@ export default {
     useSkill: "Use skill",
     referenceSkill: "Reference skill",
     referenceMaterial: "Reference material",
+    assignTeamMember: "Assign team member",
     searchSkillsByName: "Search skills by name",
     searchSkillEntriesByName: "Search skill entries by name",
     searchMaterialEntriesByName: "Search material entries by name",
+    searchTeamMembersByName:
+      "Search team members by name. The task goes to that member",
     sendingIsUnavailableInTheBrowserPreviewStartThe:
       "Sending is unavailable in the browser preview. Start the desktop app.",
     describeALibraryTaskTypeToLoadAMethod:
@@ -247,6 +250,8 @@ export default {
       "Describe a library task. Type / to load a method skill or {'@'} to reference materials in this library or its group…",
     writeAnythingTypeToUseSkillsOrToReference:
       "Write anything. Type / to use skills or {'@'} to reference materials…",
+    writeAnythingTypeToUseSkillsOrToReferenceOrTeam:
+      "Write anything. Type / to use skills, {'@'} to reference materials, or # to assign a team member…",
     eachMessageCanIncludeUpToAttachmentsOrManuscript:
       "Each message can include up to {PROMPT_ATTACHMENT_MAX_ITEMS} attachments or manuscript references.",
     textAttachmentsAndManuscriptReferencesCanContainUpTo:

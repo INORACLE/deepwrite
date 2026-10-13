@@ -281,7 +281,8 @@ describe("unified short workspace delete tool", () => {
     expect(details(automatic)).toMatchObject({
       kind: "workspace-editor-mutation",
       text: "",
-      summary: expect.stringContaining("自动保存队列")
+      summary: expect.not.stringContaining("自动保存")
     });
+    expect(resultText(automatic)).toContain("已提交自动保存，这一步已完成");
   });
 });

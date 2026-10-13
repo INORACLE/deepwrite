@@ -1,7 +1,8 @@
 import { createScopedTranslator } from "../i18n";
 import type {
   AgentTeamCatalogSnapshot,
-  AgentTeamWorkspaceType
+  AgentTeamWorkspaceType,
+  ShortAgentSubagentDefinition
 } from "@deepwrite/contracts";
 
 const t = createScopedTranslator("workspace.agentTeamModeAvailability");
@@ -20,41 +21,28 @@ export interface AgentTeamModeAvailability {
   description: string;
 }
 
-function enabledMemberCount(
+/**
+ * Members the main agent can delegate to: the enabled subagents of the
+ * enabled team for this writing type and parent agent.
+ */
+export function enabledTeamMembers(
   catalog: AgentTeamCatalogSnapshot,
   workspaceType: AgentTeamWorkspaceType,
   parentAgentId: string
-): number {
+): readonly ShortAgentSubagentDefinition[] {
   const enabledTeamId = catalog.enabledTeamIds[workspaceType];
-  if (!enabledTeamId) return 0;
-
-  if (workspaceType === "short") {
-    const profile = catalog.teams.find(
-      (team) => team.id === enabledTeamId && team.workspaceType === "short"
-    );
-    return (
-      profile?.settings.teams
-        .find((team) => team.parentAgentId === parentAgentId)
-        ?.subagents.filter((member) => member.enabled).length ?? 0
-    );
-  }
-  if (workspaceType === "script") {
-    const profile = catalog.teams.find(
-      (team) => team.id === enabledTeamId && team.workspaceType === "script"
-    );
-    return (
-      profile?.settings.teams
-        .find((team) => team.parentAgentId === parentAgentId)
-        ?.subagents.filter((member) => member.enabled).length ?? 0
-    );
-  }
+  if (!enabledTeamId) return [];
   const profile = catalog.teams.find(
-    (team) => team.id === enabledTeamId && team.workspaceType === "long"
+    (team) => team.id === enabledTeamId && team.workspaceType === workspaceType
   );
+  const teams: readonly {
+    parentAgentId: string;
+    subagents: readonly ShortAgentSubagentDefinition[];
+  }[] = profile?.settings.teams ?? [];
   return (
-    profile?.settings.teams
+    teams
       .find((team) => team.parentAgentId === parentAgentId)
-      ?.subagents.filter((member) => member.enabled).length ?? 0
+      ?.subagents.filter((member) => member.enabled) ?? []
   );
 }
 
@@ -80,11 +68,8 @@ export function resolveAgentTeamModeAvailability(
     };
   }
   if (
-    enabledMemberCount(
-      input.catalog,
-      input.workspaceType,
-      input.parentAgentId
-    ) === 0
+    enabledTeamMembers(input.catalog, input.workspaceType, input.parentAgentId)
+      .length === 0
   ) {
     return {
       available: false,

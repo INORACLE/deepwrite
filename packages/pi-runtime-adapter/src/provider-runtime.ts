@@ -16,10 +16,6 @@ import { googleGenerativeAIApi } from "@earendil-works/pi-ai/api/google-generati
 import { openAICompletionsApi } from "@earendil-works/pi-ai/api/openai-completions.lazy";
 import { openAIResponsesApi } from "@earendil-works/pi-ai/api/openai-responses.lazy";
 import {
-  getBuiltinModels,
-  getBuiltinProviders
-} from "@earendil-works/pi-ai/providers/all";
-import {
   DEFAULT_CUSTOM_MODEL_CONTEXT_WINDOW,
   DEFAULT_CUSTOM_MODEL_MAX_TOKENS,
   type AgentProviderRuntimeConfig,
@@ -30,9 +26,8 @@ import {
   isOllamaProviderName,
   type ProviderRuntimeCompatibilityOptions
 } from "./portable-tool-schema";
-import { findLongestModelIdBoundaryMatch } from "./model-id-matching";
+import { findProviderModel } from "./provider-model-catalog";
 import { enforceProviderToolSchemaCompatibility } from "./provider-tool-schema-compat";
-import { findDeepWriteRuntimeModel } from "./runtime-model-catalog";
 import {
   appendDeepSeekWebSearchTool,
   assertDeepSeekWebSearchCompatible
@@ -40,7 +35,6 @@ import {
 import { applyGoogleClaudeThinkingCompatibility } from "./google-claude-thinking";
 import { createOpenCodeRequestHeaders } from "./opencode-request-headers";
 import {
-  findVolcengineRuntimeModel,
   isVolcengineProvider,
   VOLCENGINE_COMPLETIONS_COMPAT
 } from "./volcengine-runtime";
@@ -64,25 +58,6 @@ function providerStreams(
     return anthropicMessagesApi();
   }
   return googleGenerativeAIApi();
-}
-
-function findBuiltinModel(
-  config: AgentProviderRuntimeConfig
-): Model<Api> | undefined {
-  const provider = getBuiltinProviders().find(
-    (candidate) => candidate.toLowerCase() === config.provider.toLowerCase()
-  );
-  if (provider) {
-    const model = findLongestModelIdBoundaryMatch(
-      getBuiltinModels(provider),
-      config.modelId
-    ) as Model<Api> | undefined;
-    if (model) return model;
-  }
-  return (
-    findVolcengineRuntimeModel(config) ??
-    findDeepWriteRuntimeModel(config.modelId)
-  );
 }
 
 function resolveOpenAICompletionsCompat(
@@ -180,9 +155,15 @@ export function buildProviderRuntime(
   if (compatibility.webSearchEnabled) {
     assertDeepSeekWebSearchCompatible(config);
   }
-  const builtin = findBuiltinModel(config);
-  const baseUrl =
+  const builtin = findProviderModel(config);
+  const configuredBaseUrl =
     config.baseUrl || (builtin?.api === config.api ? builtin.baseUrl : "");
+  // Anthropic's SDK appends /v1/messages itself; saved gateway URLs often
+  // already include /v1, unlike the SDK's expected unversioned base URL.
+  const baseUrl =
+    config.api === "anthropic-messages"
+      ? configuredBaseUrl.replace(/\/v1\/?$/u, "")
+      : configuredBaseUrl;
   if (!baseUrl) {
     throw new Error("当前模型不在 Pi 内置目录中，请填写 API 地址后再试。");
   }

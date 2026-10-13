@@ -8,7 +8,8 @@ import {
 } from "@deepwrite/contracts";
 import { defineTool, textResult } from "./shared";
 import { stableIdParameter, strictObject } from "./schemas";
-import { longProposalResultSummary, type LongToolContext } from "./context";
+import type { LongToolContext } from "./context";
+import { AUTO_APPROVE_PROPOSAL_SUBMITTED } from "../write-approval";
 
 const ROLE_TITLES: Record<LongContinuityFileRole, string> = {
   foreshadowing_changes: "伏笔变化",
@@ -273,11 +274,11 @@ export function buildLedgerCommitTool(ctx: LongToolContext): AgentTool {
         chapterCardIds.length === 1
           ? `《${lastTitle}》`
           : `《${firstTitle}》至《${lastTitle}》共 ${chapterCardIds.length} 章`;
+      const request = `${rangeTitle}的批量连续性记录请求（末章 ${continuityFiles.length} 份连续性文件）`;
       return textResult(
-        longProposalResultSummary(
-          input,
-          `仅已登记${rangeTitle}的批量连续性记录请求（末章 ${continuityFiles.length} 份连续性文件），当前尚未保存。客户端将在文件卡全部获批后尝试保存记录。`
-        ),
+        input.writeApprovalMode === "auto-approve"
+          ? `已提交${request}；客户端会在本批文件卡自动保存后登记记录。${AUTO_APPROVE_PROPOSAL_SUBMITTED}`
+          : `仅已登记${request}，当前尚未保存。客户端将在文件卡全部获批后尝试保存记录。`,
         {
           kind: "long-ledger-commit-proposal",
           bookId: workspace.bookId,

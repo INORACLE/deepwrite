@@ -24,6 +24,7 @@ const savedCursors = new WeakMap<
   ConversationHistoryApi,
   Map<string, HistoryWriteCursor>
 >();
+const allCursorCaches = new Set<Map<string, HistoryWriteCursor>>();
 function cursorCache(
   api: ConversationHistoryApi
 ): Map<string, HistoryWriteCursor> {
@@ -31,8 +32,17 @@ function cursorCache(
   if (!cache) {
     cache = new Map();
     savedCursors.set(api, cache);
+    allCursorCaches.add(cache);
   }
   return cache;
+}
+
+/** Another writer (device sync) changed every session of this key; read revisions again. */
+export function invalidateConversationHistoryCursors(key: string): void {
+  for (const cache of allCursorCaches)
+    for (const cacheKey of [...cache.keys()])
+      if ((JSON.parse(cacheKey) as [string, string])[0] === key)
+        cache.delete(cacheKey);
 }
 
 /** Explicit lifecycle changes invalidate only their affected writer cursor. */

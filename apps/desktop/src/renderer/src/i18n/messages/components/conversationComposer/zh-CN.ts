@@ -3,6 +3,7 @@ export default {
   noMatchingContent: "没有匹配的内容",
   thisAgentHasNoAvailableSkills: "当前智能体没有可调用的技能",
   thisAgentHasNoAvailableMaterials: "当前智能体没有可用素材",
+  thisTeamHasNoEnabledMembers: "当前团队没有已启用的成员",
   select: "选择",
   insert: "插入",
   referencedManuscriptSelections: "已引用正文选区列表",

@@ -26,11 +26,13 @@ const props = defineProps<{
 const emit = defineEmits<{
   selectChapter: [chapterCardId: LongChapterCardId];
   createChapter: [];
+  editChapter: [chapterCardId: LongChapterCardId];
   deleteChapter: [chapterCardId: LongChapterCardId];
   reorderChapter: [chapterCardId: LongChapterCardId, direction: "up" | "down"];
 }>();
 
 const actionMenuId = ref<LongChapterCardId | null>(null);
+const actionMenuTrigger = ref<HTMLButtonElement | null>(null);
 const orderedItems = computed(() =>
   orderLongChapterNavigationItems(props.items)
 );
@@ -39,17 +41,25 @@ const activeChapter = computed(
     orderedItems.value.find(({ id }) => id === props.activeChapterId) ?? null
 );
 
-function toggleActionMenu(chapterCardId: LongChapterCardId): void {
+function toggleActionMenu(
+  chapterCardId: LongChapterCardId,
+  event: MouseEvent
+): void {
+  actionMenuTrigger.value = event.currentTarget as HTMLButtonElement;
   actionMenuId.value =
     actionMenuId.value === chapterCardId ? null : chapterCardId;
 }
 
 function runMenuAction(
   chapterCardId: LongChapterCardId,
-  action: "up" | "down" | "delete"
+  action: "edit" | "up" | "down" | "delete"
 ): void {
+  if (props.locked) return;
   actionMenuId.value = null;
-  if (action === "delete") {
+  if (action === "edit") {
+    actionMenuTrigger.value?.focus();
+    emit("editChapter", chapterCardId);
+  } else if (action === "delete") {
     emit("deleteChapter", chapterCardId);
   } else {
     emit("reorderChapter", chapterCardId, action);
@@ -196,7 +206,7 @@ onBeforeUnmount(() => {
             :aria-expanded="actionMenuId === chapter.id"
             aria-haspopup="menu"
             :disabled="locked"
-            @click.stop="toggleActionMenu(chapter.id)"
+            @click.stop="toggleActionMenu(chapter.id, $event)"
           >
             <AppIcon name="more" :size="16" />
           </button>
@@ -209,6 +219,16 @@ onBeforeUnmount(() => {
             role="menu"
             @keydown.esc.stop="actionMenuId = null"
           >
+            <button
+              class="long-story-plot-action-menu-item"
+              type="button"
+              role="menuitem"
+              :disabled="locked"
+              @click.stop="runMenuAction(chapter.id, 'edit')"
+            >
+              <AppIcon name="edit" :size="14" />
+              <span>{{ t("change") }}</span>
+            </button>
             <button
               class="long-story-plot-action-menu-item"
               type="button"

@@ -104,6 +104,7 @@ function spawnDescription(
           "带［纯净］标记的成员是受限运行模式：只读成员不能修改作品，无工具成员既看不到作品与素材也不能调用任何工具，需要写入时交给常规成员，或自行根据它们的交接摘要写入。"
         ]
       : []),
+    "用户消息里写作 #成员名 的是点名：对应工作必须交给该成员，不要自己做或改派他人。",
     "可用子智能体：",
     ...definitions.map((definition) => {
       const label = subagentModeLabel(subagentAgentMode(definition));

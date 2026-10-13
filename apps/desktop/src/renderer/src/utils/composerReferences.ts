@@ -1,4 +1,8 @@
-export type ComposerReferenceTrigger = "/" | "@";
+/** `/` skills, `@` materials, `#` agent team members (team mode only). */
+export type ComposerReferenceTrigger = "/" | "@" | "#";
+
+export const DEFAULT_COMPOSER_REFERENCE_TRIGGERS: readonly ComposerReferenceTrigger[] =
+  ["/", "@"];
 
 export interface ComposerReferenceMatch {
   trigger: ComposerReferenceTrigger;
@@ -16,19 +20,23 @@ const INVALID_PRECEDING_TRIGGER_CHARACTER = /[A-Za-z0-9_./:-]/;
 
 export function findComposerReferenceMatch(
   value: string,
-  caret: number
+  caret: number,
+  triggers: readonly ComposerReferenceTrigger[] = DEFAULT_COMPOSER_REFERENCE_TRIGGERS
 ): ComposerReferenceMatch | null {
   const safeCaret = Math.max(0, Math.min(caret, value.length));
   const beforeCaret = value.slice(0, safeCaret);
-  const slashIndex = beforeCaret.lastIndexOf("/");
-  const mentionIndex = beforeCaret.lastIndexOf("@");
-  const start = Math.max(slashIndex, mentionIndex);
+  const start = Math.max(
+    ...triggers.map((trigger) => beforeCaret.lastIndexOf(trigger))
+  );
   if (start < 0) {
     return null;
   }
 
   const query = beforeCaret.slice(start + 1);
-  if (/\s|[/@]/u.test(query)) {
+  if (
+    /\s/u.test(query) ||
+    triggers.some((trigger) => query.includes(trigger))
+  ) {
     return null;
   }
   const preceding = start > 0 ? value[start - 1] : undefined;

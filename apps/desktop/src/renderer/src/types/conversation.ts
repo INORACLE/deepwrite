@@ -5,6 +5,7 @@ import type {
   AgentEvaluationSnapshot,
   AgentRuntimeRef,
   ConversationCheckpoint,
+  ConversationSyncRemote,
   AgentUsage,
   CharacterStructureMutation,
   LongCharacterFileChange,
@@ -400,6 +401,8 @@ export interface ChatMessage {
   contextCompactions?: ChatContextCompaction[];
   /** Present only for runs captured in the opt-in evaluation mode. */
   evaluationSnapshot?: AgentEvaluationSnapshot;
+  /** Received through device sync from another device; read-only here. */
+  remote?: ConversationSyncRemote;
 }
 
 export interface ConversationHistoryItem {

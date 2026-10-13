@@ -9,7 +9,7 @@ import {
   type SyncStatus
 } from "@deepwrite/contracts/renderer";
 import { uiMessage } from "../../ui-feedback";
-import { useSyncScope } from "./useSyncScope";
+import { useConversationScope, useSyncScope } from "./useSyncScope";
 
 const t = createScopedTranslator("extras.deviceSync");
 /** Operations that report progress while they run; any other one returns its status when done. */
@@ -46,6 +46,16 @@ export function useDeviceSync(
       status.value = result.status;
     return result;
   };
+  async function restoreScope(error: unknown) {
+    uiMessage.error(
+      t("scopeSaveFailed", {
+        reason: formatError(error, t("syncIncompleteRetry"))
+      })
+    );
+    await request({ operation: "status" }).catch(() => {
+      /* Keep the last known state; the error is already shown. */
+    });
+  }
   const scope = useSyncScope({
     status,
     idle: () => active,
@@ -54,16 +64,16 @@ export function useDeviceSync(
       epoch++;
       return request({ operation: "configure", config });
     },
-    async restore(error) {
-      uiMessage.error(
-        t("scopeSaveFailed", {
-          reason: formatError(error, t("syncIncompleteRetry"))
-        })
-      );
-      await request({ operation: "status" }).catch(() => {
-        /* Keep the last known state; the error is already shown. */
-      });
-    }
+    restore: restoreScope
+  });
+  const conversationScope = useConversationScope({
+    status,
+    idle: () => active,
+    configure(keys) {
+      epoch++;
+      return request({ operation: "configure-conversations", keys });
+    },
+    restore: restoreScope
   });
   const run = async (input: SyncRequest): Promise<SyncResponse | null> => {
     if (pending.value && input.operation !== "cancel") return null;
@@ -87,6 +97,7 @@ export function useDeviceSync(
     try {
       // The operation must run with the scope the user just chose.
       if (mutation && !(await scope.flush())) return null;
+      if (mutation && !(await conversationScope.flush())) return null;
       if (mutation) {
         epoch++;
         showsProgress = PROGRESS_OPERATIONS.has(input.operation);
@@ -175,6 +186,7 @@ export function useDeviceSync(
     disposed = true;
     if (timer) clearInterval(timer);
     scope.dispose();
+    conversationScope.dispose();
   });
   return {
     status,
@@ -183,6 +195,10 @@ export function useDeviceSync(
     loadInitialStatus,
     run,
     request,
-    scope: { items: scope.items, toggle: scope.toggle }
+    scope: { items: scope.items, toggle: scope.toggle },
+    conversationScope: {
+      items: conversationScope.items,
+      toggle: conversationScope.toggle
+    }
   };
 }

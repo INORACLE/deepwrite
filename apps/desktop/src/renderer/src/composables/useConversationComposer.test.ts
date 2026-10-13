@@ -1,4 +1,4 @@
-import { effectScope, ref } from "vue";
+import { effectScope, nextTick, ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import type { UserPromptAttachment } from "@deepwrite/contracts/renderer";
 import { uiMessage } from "../ui-feedback";
@@ -33,6 +33,7 @@ describe("conversation composer attachment budget", () => {
         libraryDomain: () => undefined,
         availableSkills: () => [],
         availableMaterials: () => [],
+        availableTeamMembers: () => null,
         editorReferences: () => [],
         textAttachmentMaxCharacters: () => 50_000,
         textAttachmentsTotalMaxCharacters: () => 57_600,
@@ -59,6 +60,125 @@ describe("conversation composer attachment budget", () => {
     } finally {
       scope.stop();
       warning.mockRestore();
+    }
+  });
+});
+
+function referenceComposer(teamMembers: ReturnType<typeof teamOptions>) {
+  const draft = ref("");
+  const scope = effectScope();
+  const composer = scope.run(() =>
+    useConversationComposer({
+      draft: () => draft.value,
+      canSend: () => true,
+      canSendAttachments: () => true,
+      runtimeAvailable: () => true,
+      libraryDomain: () => undefined,
+      availableSkills: () => [{ id: "s1", label: "节奏", detail: "技能" }],
+      availableMaterials: () => [{ id: "m1", label: "人物", detail: "素材" }],
+      availableTeamMembers: () => teamMembers.value,
+      editorReferences: () => [],
+      textAttachmentMaxCharacters: () => 50_000,
+      textAttachmentsTotalMaxCharacters: () => 57_600,
+      pendingAttachments: ref([]),
+      readingAttachments: ref(false),
+      emitDraft: (value) => {
+        draft.value = value;
+      },
+      emitSend: vi.fn(),
+      emitClearEditorReferences: vi.fn()
+    })
+  )!;
+  return { composer, scope, draft };
+}
+
+function teamOptions(
+  value: { id: string; label: string; detail: string }[] | null
+) {
+  return ref(value);
+}
+
+function typeInto(
+  composer: ReturnType<typeof useConversationComposer>,
+  value: string
+): void {
+  composer.handleInput({
+    target: { value, selectionStart: value.length }
+  } as unknown as Event);
+}
+
+describe("conversation composer team member references", () => {
+  const members = [
+    { id: "polisher", label: "文风润色师", detail: "统一文风" },
+    { id: "checker", label: "连续性检查员", detail: "检查设定冲突" }
+  ];
+
+  it("opens the member list on # only while team mode is on", () => {
+    const team = referenceComposer(teamOptions(members));
+    const normal = referenceComposer(teamOptions(null));
+    try {
+      typeInto(team.composer, "请 #");
+      expect(team.composer.activeReference.value?.trigger).toBe("#");
+      expect(
+        team.composer.filteredReferenceOptions.value.map((option) => option.id)
+      ).toEqual(["polisher", "checker"]);
+      expect(team.composer.referenceMenuTitle.value).toBe("指派团队成员");
+
+      typeInto(normal.composer, "请 #");
+      expect(normal.composer.activeReference.value).toBeNull();
+      typeInto(normal.composer, "/节");
+      expect(normal.composer.activeReference.value?.trigger).toBe("/");
+    } finally {
+      team.scope.stop();
+      normal.scope.stop();
+    }
+  });
+
+  it("filters members by name or description and inserts the chosen name", () => {
+    const { composer, scope, draft } = referenceComposer(teamOptions(members));
+    try {
+      typeInto(composer, "请 #检查");
+      expect(
+        composer.filteredReferenceOptions.value.map((option) => option.id)
+      ).toEqual(["checker"]);
+      composer.selectReference(composer.filteredReferenceOptions.value[0]!);
+      expect(draft.value).toBe("请 #连续性检查员 ");
+      expect(composer.activeReference.value).toBeNull();
+    } finally {
+      scope.stop();
+    }
+  });
+
+  it("keeps skills on / and materials on @ when team mode is on", () => {
+    const { composer, scope } = referenceComposer(teamOptions(members));
+    try {
+      typeInto(composer, "@人");
+      expect(
+        composer.referenceOptions.value.map((option) => option.id)
+      ).toEqual(["m1"]);
+      typeInto(composer, "/节");
+      expect(
+        composer.referenceOptions.value.map((option) => option.id)
+      ).toEqual(["s1"]);
+    } finally {
+      scope.stop();
+    }
+  });
+
+  it("mentions # in the placeholder only in team mode and closes the menu when team mode ends", async () => {
+    const teamMembers = teamOptions(members);
+    const { composer, scope } = referenceComposer(teamMembers);
+    try {
+      expect(composer.composerPlaceholder.value).toContain("# 指派团队成员");
+      typeInto(composer, "#");
+      expect(composer.activeReference.value?.trigger).toBe("#");
+
+      teamMembers.value = null;
+      await nextTick();
+      expect(composer.activeReference.value).toBeNull();
+      expect(composer.composerPlaceholder.value).not.toContain("#");
+    } finally {
+      scope.stop();
     }
   });
 });

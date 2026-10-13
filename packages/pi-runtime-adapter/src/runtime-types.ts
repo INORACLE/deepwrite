@@ -15,6 +15,7 @@ import type {
   SubagentDrawUpdatedPayload,
   SubagentPlannedTask,
   AgentWriteApprovalMode,
+  ProposalSettlements,
   ContextCompactionRequest,
   ContextCompactionRunSettings,
   ConversationCheckpoint,
@@ -52,6 +53,8 @@ export interface AgentRunInput {
   attachments?: UserPromptAttachment[];
   webSearchEnabled?: boolean;
   writeApprovalMode?: AgentWriteApprovalMode;
+  /** Outcomes of earlier proposals, rendered into this turn's user message. */
+  proposalSettlements?: ProposalSettlements;
   autoApproveCrossStageOperations?: boolean;
   thinkingLevel?: ConfiguredThinkingLevel;
   temperature?: number;

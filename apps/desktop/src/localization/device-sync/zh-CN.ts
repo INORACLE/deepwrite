@@ -46,5 +46,11 @@ export default {
   receivedRemote: "从网盘取回修改",
   preparedUpload: "已准备上传本机修改",
   uploaded: "本机修改已同步到网盘",
-  legacyHistory: "同步历史记录"
+  legacyHistory: "同步历史记录",
+  syncingConversations: "正在同步对话：{title}",
+  conversationsBusy: "作品的对话正在使用，稍后再同步。",
+  conversationsChanged: "部分对话已在本机变化，下次同步时再合并。",
+  conversationsFailed: "对话未能同步，请稍后重试。",
+  conversationsUnreadable: "有设备的对话记录无法读取，已跳过。",
+  conversationsWorkMissing: "作品不在本机，暂不同步对话。"
 } as const;

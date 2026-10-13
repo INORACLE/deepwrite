@@ -85,4 +85,46 @@ describe("provider catalog precedence", () => {
       cost: local.cost
     });
   });
+
+  it.each(["claude-opus-5-5", "claude-sonnet-5-5"])(
+    "keeps %s native compatibility for a gateway's provider name",
+    (modelId) => {
+      const builtin = getBuiltinModels("anthropic").find(
+        (model) => model.id === modelId
+      )!;
+      const { model } = buildProviderRuntime({
+        ...config,
+        provider: "deepwrite-site",
+        modelId,
+        requestModelId: "gateway-claude",
+        api: "anthropic-messages",
+        reasoning: false,
+        defaultThinkingLevel: "off",
+        contextWindow: 32_000,
+        maxTokens: 4_096
+      });
+
+      expect(model).toMatchObject({
+        id: "gateway-claude",
+        provider: "deepwrite-site",
+        baseUrl: "https://gateway.example.test",
+        reasoning: builtin.reasoning,
+        thinkingLevelMap: builtin.thinkingLevelMap,
+        compat: builtin.compat,
+        contextWindow: 32_000,
+        maxTokens: 4_096
+      });
+    }
+  );
+
+  it("does not apply native Claude compatibility to another protocol", () => {
+    const { model } = buildProviderRuntime({
+      ...config,
+      provider: "deepwrite-site",
+      modelId: "claude-opus-5-5"
+    });
+
+    expect(model).not.toHaveProperty("compat.forceAdaptiveThinking");
+    expect(model.baseUrl).toBe(config.baseUrl);
+  });
 });

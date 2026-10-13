@@ -22,6 +22,7 @@ import {
   strictObject
 } from "./schemas";
 import { characterMetadataOperations } from "./character-metadata";
+import { chapterMetadataOperations } from "./chapter-metadata";
 import { LONG_STAGE_ROOTS } from "./entity-registry";
 import {
   longEntityContentPatch,
@@ -111,7 +112,7 @@ export function buildEditTool(ctx: LongToolContext): AgentTool {
     description:
       "修改一个已有对象。" +
       WRITING_EDIT_CONTENT_GUIDANCE +
-      "人物 current_state/history 必须传 chapter_id 才能修改指定章文件，不传时是只读的最新账本映射。meta 用于改标题或关系字段；人物 meta 支持 name、aliases、type_id，type_id 将人物移到已有类型末尾，仅修改人物 meta 时可省略 document。文档对象的 meta 修改要单独调用。" +
+      "人物 current_state/history 必须传 chapter_id 才能修改指定章文件，不传时是只读的最新账本映射。meta 用于改标题或关系字段；人物 meta 支持 name、aliases、type_id，type_id 将人物移到已有类型末尾。章卡 meta 支持 title、primary_arc_id，primary_arc_id 切换同卷主剧情点，null 解除关联并保持章卡顺序。仅修改人物或章卡 meta 时可省略 document。文档对象的 meta 修改要单独调用。" +
       WRITING_CONTENT_COUNT_DESCRIPTION,
     parameters: strictObject({
       id: entityIdParameter,
@@ -150,12 +151,15 @@ export function buildEditTool(ctx: LongToolContext): AgentTool {
     execute: async (toolCallId, params, signal) => {
       const document =
         params.document ??
-        (params.id.startsWith("character_") &&
-        params.meta &&
+        (params.meta &&
         params.content === undefined &&
         !params.replacements &&
         !params.chapter_id
-          ? "core_profile"
+          ? params.id.startsWith("character_")
+            ? "core_profile"
+            : params.id.startsWith("chapter_")
+              ? "card"
+              : undefined
           : undefined);
       let index = await loadIndex(signal);
       let target = resolveLongTarget(index, {
@@ -253,16 +257,22 @@ export function buildEditTool(ctx: LongToolContext): AgentTool {
       }
 
       if (params.meta) {
-        const characterEdit =
+        const metadataEdit =
           target.kind === "character"
             ? characterMetadataOperations(index, target.id, params.meta)
-            : undefined;
-        if (characterEdit?.operations.length === 0)
-          return textResult("无需修改：人物信息和类型归属未变化。");
+            : target.kind === "chapter_card"
+              ? chapterMetadataOperations(index, target.id, params.meta)
+              : undefined;
+        if (metadataEdit?.operations.length === 0)
+          return textResult(
+            target.kind === "character"
+              ? "无需修改：人物信息和类型归属未变化。"
+              : "无需修改：章卡标题和主剧情点未变化。"
+          );
         return formLongProposal(ctx, {
           toolCallId,
           changes: [],
-          operations: characterEdit?.operations ?? [
+          operations: metadataEdit?.operations ?? [
             longStructureUpdateOperation(
               index,
               target,
@@ -270,8 +280,8 @@ export function buildEditTool(ctx: LongToolContext): AgentTool {
             )
           ],
           timestamp,
-          summary: characterEdit?.relocation
-            ? `${summary}（${characterEdit.relocation}）`.slice(0, 1_000)
+          summary: metadataEdit?.relocation
+            ? `${summary}（${metadataEdit.relocation}）`.slice(0, 1_000)
             : summary,
           message: `已形成《${target.title}》信息修改提案，等待客户端审阅。`,
           index

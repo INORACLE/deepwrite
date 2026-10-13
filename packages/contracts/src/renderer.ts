@@ -303,6 +303,7 @@ export { LongWorkspaceRuntimeContextSchema } from "./long-workspace-runtime/cont
 export {
   LongWorkspaceImpactConfirmationSchema,
   LongWorkspaceOperationBatchSchema,
+  createLongChapterPrimaryArcOperation,
   applyLongWorkspaceOperations,
   previewLongWorkspaceOperations
 } from "./long-workspace-operations";
@@ -461,6 +462,11 @@ export {
   syncJoinCodeSchema
 } from "./device-sync/connection-schemas";
 export { syncVersionPreview, resolveSyncVersion } from "./device-sync/preview";
+export { conversationSyncRemoteSchema } from "./device-sync/conversation/schemas";
+export {
+  bookConversationLogicalKey,
+  conversationHistoryKeyFor
+} from "./renderer-state-key";
 
 export type * from "./conversation-history";
 export {
@@ -495,6 +501,11 @@ export {
   SESSION_CONVERSATION_HISTORY_MAX_MESSAGE_LENGTH,
   SESSION_CONVERSATION_HISTORY_MAX_CONTENT_LENGTH
 } from "./session/history-limits";
+export {
+  PROPOSAL_SETTLEMENT_MAX_ITEMS,
+  PROPOSAL_SETTLEMENT_TEXT_MAX_LENGTH,
+  PROPOSAL_SETTLEMENT_TITLE_MAX_LENGTH
+} from "./session/proposal-settlements";
 
 export * from "./book-identity";
 export * from "./image-models";

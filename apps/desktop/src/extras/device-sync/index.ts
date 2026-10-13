@@ -6,6 +6,8 @@ import {
   DeviceSyncRequestEnvelopeSchema,
   DeviceSyncInventorySchema,
   DeviceSyncWorkspaceCommandEnvelopeSchema,
+  DeviceSyncConversationCommandEnvelopeSchema,
+  type DeviceSyncConversationRequest,
   createEnvelope,
   dispatchSyncRequest,
   syncErrorMessage,
@@ -21,6 +23,10 @@ import {
 } from "./local-storage";
 import { withModelConfigSync, type ModelSyncPort } from "./model-workspace";
 import { WebDavSyncTransport } from "./webdav";
+import { desktopConversationPort } from "./conversations/desktop-port";
+import type { ConversationSyncLease } from "./conversations/lease";
+import type { ConversationSyncHooks } from "./conversations/service";
+import { ConversationSyncStateStore } from "./conversations/state-store";
 import { electronDavFetch } from "./webdav-fetch";
 
 export function createDesktopDeviceSync(
@@ -30,6 +36,7 @@ export function createDesktopDeviceSync(
     workspaceDirectory(): Promise<string | null>;
     busy(): boolean;
     models: ModelSyncPort;
+    conversationLease: ConversationSyncLease;
   }
 ) {
   const request = async (
@@ -43,50 +50,77 @@ export function createDesktopDeviceSync(
     if (result.status !== "accepted") throw new Error(result.error.message);
     return result.payload;
   };
+  const conversationRequest = async (
+    payload: DeviceSyncConversationRequest
+  ): Promise<unknown> => {
+    const id = `sync_conversations_${randomUUID()}`;
+    const command = DeviceSyncConversationCommandEnvelopeSchema.parse(
+      createEnvelope("deviceSync.conversations", payload, {
+        id,
+        correlationId: id
+      })
+    );
+    const result = await options.command(command);
+    if (result.status !== "accepted") throw new Error(result.error.message);
+    return result.payload;
+  };
+  const now = () => new Date().toISOString();
+  const conversations: ConversationSyncHooks = {
+    store: new ConversationSyncStateStore(root),
+    port: (key) => desktopConversationPort(key, conversationRequest, now),
+    lease: options.conversationLease,
+    busy: options.busy
+  };
   const metadata = new DesktopSyncMetadataStore(root);
   const initialization = createInitializationWorkspace(root, metadata, {
     ...options,
     request,
     seal: (value) => metadata.seal(value)
   });
-  return new DeviceSyncService({
-    runtime: {
-      id: randomUUID,
-      now: () => new Date().toISOString(),
-      hash: (value) => createHash("sha256").update(value, "utf8").digest("hex")
-    },
-    metadata,
-    credentials: new DesktopSyncCredentialStore(root),
-    transport: (config, password) =>
-      new WebDavSyncTransport(config, password, electronDavFetch),
-    workspace: withModelConfigSync(
-      {
-        initialization: initialization.initialization,
-        list: async () =>
-          DeviceSyncInventorySchema.parse(await request({ operation: "list" })),
-        validate: async (item) => {
-          await request({ operation: "validate", item });
-        },
-        recover: async () => {
-          await initialization.recover();
-        },
-        apply: async (key, expected, next) => {
-          if (options.busy())
-            throw new Error("作品正在生成或保存，请完成后再同步。");
-          const workspaceDirectory = await options.workspaceDirectory();
-          if (!workspaceDirectory) throw new Error("请先选择本机工作目录。");
-          await request({
-            operation: "apply",
-            key,
-            expected,
-            next,
-            workspaceDirectory
-          });
-        }
+  return new DeviceSyncService(
+    {
+      runtime: {
+        id: randomUUID,
+        now: () => new Date().toISOString(),
+        hash: (value) =>
+          createHash("sha256").update(value, "utf8").digest("hex")
       },
-      options.models
-    )
-  });
+      metadata,
+      credentials: new DesktopSyncCredentialStore(root),
+      transport: (config, password) =>
+        new WebDavSyncTransport(config, password, electronDavFetch),
+      workspace: withModelConfigSync(
+        {
+          initialization: initialization.initialization,
+          list: async () =>
+            DeviceSyncInventorySchema.parse(
+              await request({ operation: "list" })
+            ),
+          validate: async (item) => {
+            await request({ operation: "validate", item });
+          },
+          recover: async () => {
+            await initialization.recover();
+          },
+          apply: async (key, expected, next) => {
+            if (options.busy())
+              throw new Error("作品正在生成或保存，请完成后再同步。");
+            const workspaceDirectory = await options.workspaceDirectory();
+            if (!workspaceDirectory) throw new Error("请先选择本机工作目录。");
+            await request({
+              operation: "apply",
+              key,
+              expected,
+              next,
+              workspaceDirectory
+            });
+          }
+        },
+        options.models
+      )
+    },
+    conversations
+  );
 }
 export function registerDeviceSyncIpc(
   service: () => DeviceSyncService | undefined,

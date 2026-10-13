@@ -18,7 +18,8 @@ function renderLongListScopeGuide(): string {
     "list 必须同时提供 stage 与 scope_id，只返回该范围的二层目录，不能查询阶段最上层。",
     "合法容器：worldbuilding=分类 id；character=人物类型 id；plot=book_line / volume_ / arc_ / chapter_ / event_ / foreshadow_；draft=volume_ / arc_；continuity=volume_ / chapter_ / character_。",
     "叶子不要 list，直接 read：worlditem_、storyplot_、connection_、placement_、beat_、character_overview；人物卡与章卡正文也用 read。上一次 list 返回的 id 不都是合法 scope_id。",
-    "连续性不要传 arc_ 或 book_line；查看某章连续性用 list(stage=continuity, scope_id=<chapter_id>)。"
+    "连续性不要传 arc_ 或 book_line；查看某章连续性用 list(stage=continuity, scope_id=<chapter_id>)。",
+    "切换章卡的主剧情点用 edit(id=<chapter_id>, meta={primary_arc_id:<同卷 arc_id>}, summary=<说明>)；解除关联传 primary_arc_id:null。仅修改章卡信息可省略 document，换绑保持章节顺序，形成带关联影响预览的提案。"
   ].join("\n");
 }
 

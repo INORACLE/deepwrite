@@ -224,7 +224,7 @@ describe("long tool creation content counts", () => {
       summary: "写入历史"
     });
     for (const result of [created, edited]) {
-      expect(resultText(result)).toContain("以审批卡的落盘状态为准");
+      expect(resultText(result)).toContain("已提交自动保存，这一步已完成");
       expect(resultText(result)).not.toContain("等待客户端审阅");
     }
     expect(counts(resultText(created))).toEqual([7, 0]);

@@ -1,5 +1,6 @@
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import { appendWritingContentCounts } from "../writing-content-counts";
+import { AUTO_APPROVE_PROPOSAL_SUBMITTED } from "../write-approval";
 import {
   recordUpdatedReadEvidence,
   type ShortUnifiedReadState
@@ -15,6 +16,7 @@ import {
   type ShortUnifiedTarget
 } from "./unified-target";
 
+/** Agent-facing tool result; the card keeps the plain change summary. */
 export function shortProposalSummary(
   input: BuildWritingWorkspaceToolsInput,
   summary: string
@@ -23,9 +25,9 @@ export function shortProposalSummary(
   return summary.includes("等待用户审阅")
     ? summary.replace(
         /，?等待用户审阅。?/u,
-        "，将立即提交自动保存队列；以审批卡的落盘状态为准。"
+        `，${AUTO_APPROVE_PROPOSAL_SUBMITTED}`
       )
-    : `${summary}；将立即提交自动保存队列，以审批卡的落盘状态为准。`;
+    : `${summary.replace(/[。；]$/u, "")}；${AUTO_APPROVE_PROPOSAL_SUBMITTED}`;
 }
 
 export function formShortContentProposal(
@@ -36,13 +38,14 @@ export function formShortContentProposal(
   content: string,
   rawSummary: string
 ): AgentToolResult<ShortWorkspaceToolDetails> {
-  const summary = shortProposalSummary(input, rawSummary.trim());
+  const summary = rawSummary.trim();
   const baseRevision = target.revision;
   const revision = updateShortUnifiedTarget(sharedState, target, content);
   recordUpdatedReadEvidence(readState, target, content, revision);
-  const message = appendWritingContentCounts(summary, [
-    { title: target.title, id: target.documentId, content }
-  ]);
+  const message = appendWritingContentCounts(
+    shortProposalSummary(input, summary),
+    [{ title: target.title, id: target.documentId, content }]
+  );
   if (target.kind === "character_overview" || target.kind === "plot_stage") {
     return textResult(message, {
       kind: "workspace-editor-mutation",

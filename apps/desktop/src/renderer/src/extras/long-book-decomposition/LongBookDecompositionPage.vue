@@ -102,7 +102,6 @@ async function saveRegistry(data: DecompositionRegistryData, confirm: boolean) {
 }
 function newTask() {
   props.controller.job.value = null;
-  props.controller.registry.value = null;
 }
 /** With an open task refresh its progress; otherwise reload tasks and sources. */
 function refresh() {

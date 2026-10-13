@@ -122,7 +122,7 @@ it("名册和方案的响应式草稿在跨进程前转换为可复制的数据"
         extrasAgents: { profiles: { save } }
       }) as unknown as DeepWriteApi
   });
-  controller.job.value = { id: "ldjob_ui" } as NonNullable<
+  controller.job.value = { id: "ldjob_ui", units: {} } as NonNullable<
     typeof controller.job.value
   >;
   controller.registry.value = { version: 1 } as NonNullable<

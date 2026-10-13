@@ -45,6 +45,86 @@ function deleteMutationEvent() {
 }
 
 describe("long workspace proposal approval: structure and manual proposals", () => {
+  it.each(["arc_next", null])(
+    "automatically applies a chapter binding change to %s without a manual approval call",
+    async (arcId) => {
+      const test = harness(true, "auto-approve");
+      const before = {
+        id: "chapter_one",
+        title: "第一章",
+        volumeId: "volume_one",
+        narrativeOrder: 1,
+        primaryArcId: "arc_old"
+      };
+      const confirmation: LongWorkspaceImpactConfirmation = {
+        ...emptyConfirmation,
+        entityChanges: [
+          {
+            action: "update",
+            kind: "chapter-card",
+            id: "chapter_one",
+            before,
+            after: { ...before, primaryArcId: arcId }
+          }
+        ],
+        relationshipChanges: [
+          {
+            action: "delete",
+            kind: "chapter-primary-arc",
+            id: "relation_binding_old",
+            before: { sourceId: "chapter_one", targetId: "arc_old" },
+            after: null
+          },
+          ...(arcId
+            ? [
+                {
+                  action: "create" as const,
+                  kind: "chapter-primary-arc" as const,
+                  id: "relation_binding_new",
+                  before: null,
+                  after: { sourceId: "chapter_one", targetId: arcId }
+                }
+              ]
+            : [])
+        ]
+      };
+      test.previewOperations.mockResolvedValueOnce(previewResult(confirmation));
+      const event = systemEvent(
+        createEnvelope(
+          "long.mutation_proposal",
+          {
+            ...proposalBase,
+            batch: {
+              updatedAt: "2026-10-12T00:00:00.000Z",
+              operations: [
+                {
+                  type: "chapter.move",
+                  id: "chapter_one",
+                  toVolumeId: "volume_one",
+                  toPrimaryArcId: arcId
+                }
+              ],
+              documentWrites: []
+            }
+          },
+          { id: "event_chapter_binding", context: envelopeContext }
+        )
+      );
+      await test.controller.handleEvent(event);
+      expect(test.applyOperations).toHaveBeenCalledTimes(1);
+      expect(test.applyOperations).toHaveBeenCalledWith({
+        bookId: proposalBase.bookId,
+        batch: expect.objectContaining({ expectedImpact: confirmation })
+      });
+      expect(
+        test.controller.itemsForBook(proposalBase.bookId)[0]
+      ).toMatchObject({
+        status: "accepted",
+        approvalMode: "auto-approve"
+      });
+    }
+  );
+
   it("applies the exact impact confirmation already shown to the user", async () => {
     const test = harness();
     await test.controller.handleEvent(mutationEvent());

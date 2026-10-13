@@ -36,4 +36,36 @@ describe("composer references", () => {
       caret: 15
     });
   });
+
+  it("detects the team member trigger only when it is enabled", () => {
+    const triggers = ["/", "@", "#"] as const;
+    expect(findComposerReferenceMatch("请 #文风", 5, triggers)).toEqual({
+      trigger: "#",
+      start: 2,
+      caret: 5,
+      query: "文风"
+    });
+    expect(findComposerReferenceMatch("请 #文风", 5)).toBeNull();
+    expect(findComposerReferenceMatch("/剧情 #", 4, triggers)).toBeNull();
+    expect(findComposerReferenceMatch("/剧情 #", 5, triggers)).toMatchObject({
+      trigger: "#",
+      query: ""
+    });
+  });
+
+  it("does not treat C#, fragments or completed team mentions as triggers", () => {
+    const triggers = ["/", "@", "#"] as const;
+    expect(findComposerReferenceMatch("C#", 2, triggers)).toBeNull();
+    expect(findComposerReferenceMatch("page#top", 8, triggers)).toBeNull();
+    expect(findComposerReferenceMatch("#文风 润色", 6, triggers)).toBeNull();
+  });
+
+  it("inserts a team member reference with the # prefix", () => {
+    const value = "请 #文";
+    const match = findComposerReferenceMatch(value, 5, ["/", "@", "#"]);
+    expect(insertComposerReference(value, match!, "文风润色师")).toEqual({
+      value: "请 #文风润色师 ",
+      caret: 9
+    });
+  });
 });

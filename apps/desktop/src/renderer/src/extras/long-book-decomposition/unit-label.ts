@@ -11,9 +11,10 @@ export function decompositionUnitLabel(
   registry: DecompositionRegistry | null
 ): string {
   const unit = job.units[id];
+  // Until the registry is loaded for this task, show a number, not a raw id.
   const name = (registryId: string) =>
     registry?.characters.find(({ id }) => id === registryId)?.name ??
-    registryId;
+    registryId.replace(/^c(?=\d)/, "#");
   if (unit?.topic) return unit.topic.title;
   if (unit?.biography)
     return t("unitBiography", {

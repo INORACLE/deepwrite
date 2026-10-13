@@ -2,6 +2,7 @@ import { SCRIPT_SCREENPLAY_FORMAT_REQUIREMENTS } from "@deepwrite/contracts";
 import type { WorkspaceRuntimeContext } from "@deepwrite/contracts";
 
 import type { AgentRunInput } from "./runtime-types";
+import { writeApprovalBoundary } from "./write-approval";
 
 export function scriptRuntimeFormatRequirements(): string {
   return [
@@ -136,10 +137,7 @@ function writingRuntimeSystemRequirements(
       ? input.workspaceContext!.scriptWorkspace!
       : input.workspaceContext!.shortWorkspace!;
   const workspaceKind = workspaceType === "script" ? "剧本" : "短篇";
-  const writeBoundary =
-    input.writeApprovalMode === "auto-approve"
-      ? "工具只形成文本变更提案；提案会进入后台自动保存队列，但审批卡确认成功前不得声称已保存。"
-      : "工具只形成待用户审阅的文本变更提案；用户接受并保存前不得声称已写入本地文件。";
+  const writeBoundary = writeApprovalBoundary(input.writeApprovalMode);
   const crossStageBoundary =
     input.autoApproveCrossStageOperations === true
       ? "create、edit、delete 可以跨人物、剧情、正文阶段；跨阶段操作已由用户在常规设置中授权自动允许，不会逐笔询问。该授权只跳过跨阶段确认，变更提案仍按当前写入审批方式处理。阶段切换和剧情结构删除仍由用户在界面完成。"

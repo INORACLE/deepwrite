@@ -11,12 +11,14 @@ import {
   type LoadedSyncDevice,
   type SyncClock,
   type SyncCommit,
+  type SyncFileRef,
   type SyncItem,
   type SyncRevision,
   type SyncRuntime,
   type SyncSpace,
   type SyncTransport
 } from "@deepwrite/contracts";
+import { ConversationRemote } from "../conversations/remote";
 
 export class SyncRemote {
   private fileProgress:
@@ -195,6 +197,27 @@ export class SyncRemote {
       return null;
     return { hash, commit };
   }
+  /** Reads one content from its pack and verifies it against its hash. */
+  async readContent(spaceId: string, ref: SyncFileRef): Promise<string> {
+    const cached = this.contents.get(ref.hash);
+    if (cached !== undefined) return cached;
+    let pack = this.packs.get(ref.pack);
+    if (!pack) {
+      const text = await this.transport.get(
+        `spaces/${spaceId}/objects/${ref.pack.slice(0, 2)}/${ref.pack}.json`,
+        this.signal
+      );
+      if (!text || this.runtime.hash(text) !== ref.pack)
+        throw new Error("同步内容不完整或校验失败。");
+      pack = syncPackSchema.parse(JSON.parse(text)).files;
+      this.packs.set(ref.pack, pack);
+    }
+    const content = pack[ref.hash];
+    if (content === undefined || this.runtime.hash(content) !== ref.hash)
+      throw new Error("同步文件校验失败。");
+    this.contents.set(ref.hash, content);
+    return content;
+  }
   async item(
     spaceId: string,
     revision: SyncRevision
@@ -204,28 +227,7 @@ export class SyncRemote {
     let completed = 0;
     this.fileProgress?.(0, Object.keys(revision.files).length);
     for (const [path, ref] of Object.entries(revision.files)) {
-      const cached = this.contents.get(ref.hash);
-      if (cached !== undefined) {
-        files[path] = cached;
-        this.fileProgress?.(++completed, Object.keys(revision.files).length);
-        continue;
-      }
-      let pack = this.packs.get(ref.pack);
-      if (!pack) {
-        const text = await this.transport.get(
-          `spaces/${spaceId}/objects/${ref.pack.slice(0, 2)}/${ref.pack}.json`,
-          this.signal
-        );
-        if (!text || this.runtime.hash(text) !== ref.pack)
-          throw new Error("同步内容不完整或校验失败。");
-        pack = syncPackSchema.parse(JSON.parse(text)).files;
-        this.packs.set(ref.pack, pack);
-      }
-      const content = pack[ref.hash];
-      if (content === undefined || this.runtime.hash(content) !== ref.hash)
-        throw new Error("同步文件校验失败。");
-      files[path] = content;
-      this.contents.set(ref.hash, content);
+      files[path] = await this.readContent(spaceId, ref);
       this.fileProgress?.(++completed, Object.keys(revision.files).length);
     }
     return checkedSyncItem({
@@ -243,12 +245,36 @@ export class SyncRemote {
     previous: SyncRevision[]
   ): Promise<SyncRevision> {
     if (!item) return { ...identity, clock, files: null };
-    const refs = new Map(
-      previous
-        .flatMap((entry) => Object.values(entry.files ?? {}))
-        .map((ref) => [ref.hash, ref])
+    const refs = await this.uploadContents(
+      spaceId,
+      Object.values(item.files),
+      new Map(
+        previous
+          .flatMap((entry) => Object.values(entry.files ?? {}))
+          .map((ref) => [ref.hash, ref])
+      )
     );
     const files: NonNullable<SyncRevision["files"]> = {};
+    let completed = 0;
+    this.fileProgress?.(0, Object.keys(item.files).length);
+    for (const [path, content] of Object.entries(item.files)) {
+      const ref = refs.get(this.runtime.hash(content));
+      if (!ref) throw new Error("缺少文件上传记录。");
+      files[path] = ref;
+      this.fileProgress?.(++completed, Object.keys(item.files).length);
+    }
+    return { kind: item.kind, id: item.id, title: item.title, clock, files };
+  }
+  /**
+   * Uploads the contents the space does not hold yet into packs, each read back before use, and returns the
+   * reference of every content; `known` references are reused without uploading.
+   */
+  async uploadContents(
+    spaceId: string,
+    contents: Iterable<string>,
+    known: ReadonlyMap<string, SyncFileRef> = new Map()
+  ): Promise<Map<string, SyncFileRef>> {
+    const refs = new Map(known);
     let batch: Record<string, string> = {};
     let size = 0;
     const flush = async () => {
@@ -274,7 +300,7 @@ export class SyncRemote {
       batch = {};
       size = 0;
     };
-    for (const content of Object.values(item.files)) {
+    for (const content of contents) {
       const hash = this.runtime.hash(content);
       if (refs.has(hash) || batch[hash] !== undefined) continue;
       if (size + content.length > 512_000) await flush();
@@ -282,15 +308,16 @@ export class SyncRemote {
       size += content.length;
     }
     await flush();
-    let completed = 0;
-    this.fileProgress?.(0, Object.keys(item.files).length);
-    for (const [path, content] of Object.entries(item.files)) {
-      const ref = refs.get(this.runtime.hash(content));
-      if (!ref) throw new Error("缺少文件上传记录。");
-      files[path] = ref;
-      this.fileProgress?.(++completed, Object.keys(item.files).length);
-    }
-    return { kind: item.kind, id: item.id, title: item.title, clock, files };
+    return refs;
+  }
+  /** The conversation channel shares this space's transport and content packs. */
+  conversations(): ConversationRemote {
+    return new ConversationRemote(
+      this.transport,
+      this.runtime,
+      this,
+      this.signal
+    );
   }
   async publish(commit: SyncCommit): Promise<string> {
     const text = stableSyncJson(syncCommitSchema.parse(commit));

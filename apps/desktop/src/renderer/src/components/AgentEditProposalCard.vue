@@ -2,7 +2,8 @@
 import { createScopedTranslator } from "../i18n";
 import { computed } from "vue";
 import type { AgentEditProposal, ChatMessage } from "../types/conversation";
-import { longImpactConfirmationLines } from "../utils/longImpactConfirmation";
+import { longImpactSummary } from "../utils/longImpactSummary";
+import { useLongWorkspaceStore } from "../stores/longWorkspaceStore";
 import AppIcon from "./AppIcon.vue";
 import AgentEditProposalDiff from "./AgentEditProposalDiff.vue";
 import ApprovalDiscardButton from "./ApprovalDiscardButton.vue";
@@ -14,6 +15,7 @@ import {
 } from "./approvalDiscardPresentation";
 
 const t = createScopedTranslator("components.agentEditProposalCard");
+const longWorkspace = useLongWorkspaceStore();
 
 const props = withDefaults(
   defineProps<{
@@ -146,10 +148,15 @@ const longExpectedImpact = computed(
     props.proposal.longPlotDesignTarget?.expectedImpact ??
     props.proposal.longDraftTarget?.expectedImpact
 );
-const longExpectedImpactLines = computed(() =>
+const longExpectedImpactSummary = computed(() =>
   longExpectedImpact.value
-    ? longImpactConfirmationLines(longExpectedImpact.value)
-    : []
+    ? longImpactSummary(
+        longExpectedImpact.value,
+        longWorkspace.workspaceIndex?.bookId === props.proposal.workspaceId
+          ? longWorkspace.workspaceIndex
+          : undefined
+      )
+    : ""
 );
 
 function canReviewProposalWhileStreaming(): boolean {
@@ -405,14 +412,7 @@ function review(decision: "accept" | "reject"): void {
       :aria-label="t('exactImpactOfThisNovelChange')"
     >
       <strong>{{ t("structuralAndLinkChanges") }}</strong>
-      <ul v-if="longExpectedImpactLines.length">
-        <li v-for="line in longExpectedImpactLines" :key="line">
-          {{ line }}
-        </li>
-      </ul>
-      <p v-else>
-        {{ t("noAdditionalLinksWillChangeOnlyTheProposedFile") }}
-      </p>
+      <p>{{ longExpectedImpactSummary }}</p>
     </section>
 
     <footer class="edit-proposal-footer">
@@ -456,13 +456,6 @@ function review(decision: "accept" | "reject"): void {
 
 .long-proposal-impact strong {
   color: var(--text-primary);
-}
-
-.long-proposal-impact ul {
-  display: grid;
-  gap: 4px;
-  margin: 0;
-  padding-left: 18px;
 }
 
 .long-proposal-impact p {

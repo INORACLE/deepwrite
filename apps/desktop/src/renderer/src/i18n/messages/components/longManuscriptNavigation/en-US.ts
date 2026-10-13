@@ -7,6 +7,7 @@ export default {
   chapterCards: "Chapter cards",
   chapterCard: "Chapter card",
   moreActionsForValue: "More actions for {arg0}",
+  change: "Change",
   moveUp: "Move up",
   moveDown: "Move down",
   delete: "Delete"

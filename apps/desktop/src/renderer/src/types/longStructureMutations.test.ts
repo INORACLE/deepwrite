@@ -670,7 +670,8 @@ describe("long structure mutation builder", () => {
         type: "chapter.move",
         id: "chapter_one",
         toVolumeId: "volume_one",
-        toPrimaryArcId: null
+        toPrimaryArcId: null,
+        beforeChapterCardId: "chapter_two"
       }
     ]);
   });
