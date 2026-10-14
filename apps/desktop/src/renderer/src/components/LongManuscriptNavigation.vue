@@ -3,7 +3,10 @@ import { createScopedTranslator } from "../i18n";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import type { LongChapterCardId } from "@deepwrite/contracts";
 import { handleHorizontalOverflowWheel } from "../utils/horizontalOverflow";
-import { orderLongChapterNavigationItems } from "../utils/orderLongChapterNavigationItems";
+import {
+  longChapterNavigationMove,
+  orderLongChapterNavigationItems
+} from "../utils/orderLongChapterNavigationItems";
 import AppIcon from "./AppIcon.vue";
 
 const t = createScopedTranslator("components.longManuscriptNavigation");
@@ -12,6 +15,7 @@ export interface LongManuscriptNavigationItem {
   id: LongChapterCardId;
   label: string;
   narrativeOrder?: number;
+  recorded?: boolean;
 }
 
 const props = defineProps<{
@@ -40,6 +44,23 @@ const activeChapter = computed(
   () =>
     orderedItems.value.find(({ id }) => id === props.activeChapterId) ?? null
 );
+
+function moveBlocked(index: number, direction: "up" | "down"): boolean {
+  return (
+    longChapterNavigationMove(orderedItems.value, index, direction) !==
+    "allowed"
+  );
+}
+
+function moveTitle(
+  index: number,
+  direction: "up" | "down"
+): string | undefined {
+  return longChapterNavigationMove(orderedItems.value, index, direction) ===
+    "recorded"
+    ? t("recordedChapterOrderLocked")
+    : undefined;
+}
 
 function toggleActionMenu(
   chapterCardId: LongChapterCardId,
@@ -233,7 +254,8 @@ onBeforeUnmount(() => {
               class="long-story-plot-action-menu-item"
               type="button"
               role="menuitem"
-              :disabled="locked || index === 0"
+              :disabled="locked || moveBlocked(index, 'up')"
+              :title="moveTitle(index, 'up')"
               @click.stop="runMenuAction(chapter.id, 'up')"
             >
               <AppIcon name="arrow-up" :size="14" />
@@ -243,7 +265,8 @@ onBeforeUnmount(() => {
               class="long-story-plot-action-menu-item"
               type="button"
               role="menuitem"
-              :disabled="locked || index === orderedItems.length - 1"
+              :disabled="locked || moveBlocked(index, 'down')"
+              :title="moveTitle(index, 'down')"
               @click.stop="runMenuAction(chapter.id, 'down')"
             >
               <AppIcon

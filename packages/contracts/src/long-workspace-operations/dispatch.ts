@@ -5,8 +5,26 @@ import { applyForeshadowingOperation } from "./apply-foreshadowing";
 import { applyPlotOperation } from "./apply-plot";
 import { applyVolumeChapterOperation } from "./apply-volume-chapter";
 import { applyWorldbuildingOperation } from "./apply-worldbuilding";
+import {
+  assertRecordedChapterOrderKept,
+  LONG_CHAPTER_ORDER_OPERATION_TYPES
+} from "./recorded-chapter-order";
+import { orderedChapterIds } from "./state";
 
 export function applyLongWorkspaceOperation(
+  state: MutationState,
+  operation: LongWorkspaceOperation
+): void {
+  if (!LONG_CHAPTER_ORDER_OPERATION_TYPES.has(operation.type)) {
+    dispatchLongWorkspaceOperation(state, operation);
+    return;
+  }
+  const before = orderedChapterIds(state.draft);
+  dispatchLongWorkspaceOperation(state, operation);
+  assertRecordedChapterOrderKept(state.draft, before);
+}
+
+function dispatchLongWorkspaceOperation(
   state: MutationState,
   operation: LongWorkspaceOperation
 ): void {

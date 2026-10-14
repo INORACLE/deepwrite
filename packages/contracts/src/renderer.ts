@@ -304,6 +304,8 @@ export {
   LongWorkspaceImpactConfirmationSchema,
   LongWorkspaceOperationBatchSchema,
   createLongChapterPrimaryArcOperation,
+  longRecordedChapterIds,
+  longVolumeChapterOrderMovesRecordedChapters,
   applyLongWorkspaceOperations,
   previewLongWorkspaceOperations
 } from "./long-workspace-operations";

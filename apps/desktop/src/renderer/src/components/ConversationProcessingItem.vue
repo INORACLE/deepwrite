@@ -171,6 +171,7 @@ function detailId(id: string): string {
     :message-status="messageStatus"
     :allow-live-edit-review="allowLiveEditReview"
     :discardable="item.canDiscard"
+    :remote-device="item.remoteDevice"
     @review="emit('reviewEdit', $event)"
     @locate="emit('locateEditProposal', $event)"
     @discard="emit('discardEditProposal', $event)"

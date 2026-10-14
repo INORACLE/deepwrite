@@ -20,7 +20,6 @@ import {
 import AgentEditProposalCard from "./AgentEditProposalCard.vue";
 import AppIcon from "./AppIcon.vue";
 import ConversationProcessingTimeline from "./ConversationProcessingTimeline.vue";
-import ConversationRemoteDetails from "./ConversationRemoteDetails.vue";
 import ConversationUserMessageEditor from "./ConversationUserMessageEditor.vue";
 import LongProposalReview from "./LongProposalReview.vue";
 import StreamedContent from "./StreamedContent.vue";
@@ -214,6 +213,7 @@ onBeforeUnmount(() => {
               :message-status="message.status"
               :allow-live-edit-review="allowLiveEditReview"
               :discardable="approval.canDiscard"
+              :remote-device="approval.remoteDevice"
               @review="emit('reviewEdit', $event)"
               @locate="emit('locateEditProposal', $event)"
               @discard="emit('discardEditProposal', $event)"
@@ -231,10 +231,6 @@ onBeforeUnmount(() => {
             />
           </template>
         </section>
-        <ConversationRemoteDetails
-          v-if="message.remote"
-          :remote="message.remote"
-        />
       </div>
 
       <div

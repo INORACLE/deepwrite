@@ -93,8 +93,9 @@ describe("AgentConversation edit proposal placement", () => {
   });
 
   it("shows target navigation only for accepted approval cards and relays it", () => {
+    // A proposal received from another device is located only on that device.
     expect(proposalCardSource).toContain(
-      "v-if=\"proposal.status === 'accepted'\""
+      "v-if=\"proposal.status === 'accepted' && !remoteDevice\""
     );
     expect(proposalCardSource).toContain("approval-target-button");
     expect(proposalCardSource).toContain("goToTargetFile");

@@ -37,6 +37,7 @@ import {
 import { longRecordContentTarget } from "./content-counts";
 import { resolveLongTarget, type LongResolvedTarget } from "./target";
 import { longStructureUpdateOperation } from "./structure-operations";
+import { volumeChapterOrderOperation } from "./volume-chapter-order";
 import type { LongToolContext } from "./context";
 import { confirmCrossStageWrite, crossStageWriteCancelled } from "./user-input";
 
@@ -112,7 +113,7 @@ export function buildEditTool(ctx: LongToolContext): AgentTool {
     description:
       "修改一个已有对象。" +
       WRITING_EDIT_CONTENT_GUIDANCE +
-      "人物 current_state/history 必须传 chapter_id 才能修改指定章文件，不传时是只读的最新账本映射。meta 用于改标题或关系字段；人物 meta 支持 name、aliases、type_id，type_id 将人物移到已有类型末尾。章卡 meta 支持 title、primary_arc_id，primary_arc_id 切换同卷主剧情点，null 解除关联并保持章卡顺序。仅修改人物或章卡 meta 时可省略 document。文档对象的 meta 修改要单独调用。" +
+      "人物 current_state/history 必须传 chapter_id 才能修改指定章文件，不传时是只读的最新账本映射。meta 用于改标题或关系字段；人物 meta 支持 name、aliases、type_id，type_id 将人物移到已有类型末尾。章卡 meta 支持 title、primary_arc_id，primary_arc_id 切换同卷主剧情点，null 解除关联并保持章卡顺序。分卷 meta 支持 title、chapter_order，chapter_order 按新顺序列出本卷全部章卡 id 来调整章节先后，已写入连续性账本的章节位置固定。仅修改人物或章卡 meta 时可省略 document。文档对象的 meta 修改要单独调用。" +
       WRITING_CONTENT_COUNT_DESCRIPTION,
     parameters: strictObject({
       id: entityIdParameter,
@@ -201,9 +202,15 @@ export function buildEditTool(ctx: LongToolContext): AgentTool {
 
       if (target.addressing === "field") {
         const contentTargets: WritingContentTarget[] = [];
-        const patch: Record<string, unknown> = params.meta
-          ? longMetaPatch(target.kind, params.meta)
-          : {};
+        const { chapter_order: chapterOrder, ...recordMeta } =
+          params.meta ?? {};
+        const reorder = chapterOrder
+          ? volumeChapterOrderOperation(index, target, chapterOrder)
+          : undefined;
+        const patch: Record<string, unknown> = longMetaPatch(
+          target.kind,
+          recordMeta
+        );
         if (params.content !== undefined || params.replacements) {
           if (target.content.trim()) {
             const evidence = fullyReadRecords.get(target.id);
@@ -235,17 +242,29 @@ export function buildEditTool(ctx: LongToolContext): AgentTool {
             )
           );
         }
-        const operation = {
-          type: longEntityUpdateOperationType(target.record.kind),
-          id: target.id,
-          patch
-        } as unknown as LongWorkspaceOperation;
+        const operations = [
+          ...(Object.keys(patch).length > 0
+            ? [
+                {
+                  type: longEntityUpdateOperationType(target.record.kind),
+                  id: target.id,
+                  patch
+                } as unknown as LongWorkspaceOperation
+              ]
+            : []),
+          ...(reorder ? [reorder.operation] : [])
+        ];
+        if (operations.length === 0) {
+          return textResult("无需修改：本卷章节顺序未变化。");
+        }
         return formLongProposal(ctx, {
           toolCallId,
           changes: [],
-          operations: [operation],
+          operations,
           timestamp,
-          summary,
+          summary: reorder
+            ? `${summary}（${reorder.relocation}）`.slice(0, 1_000)
+            : summary,
           message: `已形成《${target.title}》修改提案，等待客户端审阅。`,
           contentTargets,
           index

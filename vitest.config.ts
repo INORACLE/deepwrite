@@ -2,6 +2,16 @@ import { defineConfig } from "vitest/config";
 import vue from "@vitejs/plugin-vue";
 import { resolveRendererStyles } from "./tools/resolve-renderer-styles.mjs";
 
+const configuredMaxWorkers = process.env.DEEPWRITE_TEST_MAX_WORKERS;
+const maxWorkers =
+  configuredMaxWorkers === undefined ? undefined : Number(configuredMaxWorkers);
+if (
+  maxWorkers !== undefined &&
+  (!Number.isSafeInteger(maxWorkers) || maxWorkers < 1)
+) {
+  throw new Error("DEEPWRITE_TEST_MAX_WORKERS must be a positive integer.");
+}
+
 export default defineConfig({
   plugins: [
     vue(),
@@ -22,6 +32,7 @@ export default defineConfig({
     }
   ],
   test: {
+    maxWorkers,
     globalSetup: ["./tools/setup-i18n-fixtures.ts"],
     setupFiles: ["./tools/setup-renderer-i18n.ts"],
     include: [

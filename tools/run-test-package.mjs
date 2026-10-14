@@ -4,6 +4,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { ensureElectronRuntime } from "./ensure-electron-runtime.mjs";
 import { assertElectronLaunchAllowed } from "./electron-launch-environment.mjs";
+import { resolveWindowsElectronArchive } from "./windows-electron-archive.mjs";
 
 const toolsDirectory = dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = resolve(toolsDirectory, "..");
@@ -137,7 +138,7 @@ async function buildMac(target, version) {
   }
 }
 
-async function buildWindows(target, version) {
+async function buildWindows(target, version, archive) {
   if (!target.buildWinX64) return;
   await run(
     pnpmCommand,
@@ -147,6 +148,7 @@ async function buildWindows(target, version) {
       "--config",
       "electron-builder.yml",
       `--config.electronVersion=${version}`,
+      ...(archive ? [`--config.electronDist=${archive}`] : []),
       "--win",
       "nsis",
       "--x64",
@@ -204,10 +206,13 @@ async function main() {
 
   let packagingError;
   try {
+    const windowsArchive = target.buildWinX64
+      ? await resolveWindowsElectronArchive(version)
+      : undefined;
     await run(pnpmCommand, ["verify"]);
     await buildLinux(target, version);
     await buildMac(target, version);
-    await buildWindows(target, version);
+    await buildWindows(target, version, windowsArchive);
   } catch (error) {
     packagingError = error;
   } finally {

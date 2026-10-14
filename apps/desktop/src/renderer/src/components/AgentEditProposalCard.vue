@@ -23,6 +23,8 @@ const props = withDefaults(
     messageStatus: ChatMessage["status"];
     allowLiveEditReview?: boolean;
     discardable?: boolean;
+    /** Received through device sync: reviewed on that device, read-only here. */
+    remoteDevice?: string | undefined;
   }>(),
   {
     allowLiveEditReview: false,
@@ -85,6 +87,8 @@ const proposalStatusMessages: Record<AgentEditProposal["status"], string> = {
 };
 
 function proposalStatusLabel(): string {
+  if (props.remoteDevice && props.proposal.status === "pending")
+    return t("awaitingReviewOnDevice", { device: props.remoteDevice });
   const discardLabel = approvalDiscardStatusLabel(proposalDiscardState());
   if (discardLabel) return discardLabel;
   if (
@@ -108,6 +112,7 @@ function proposalVisualStatus(): AgentEditProposal["status"] {
 }
 
 function showDiscardButton(): boolean {
+  if (props.remoteDevice) return false;
   return shouldShowApprovalDiscardButton(
     props.discardable,
     props.proposal.status === "accepted",
@@ -164,6 +169,7 @@ function canReviewProposalWhileStreaming(): boolean {
 }
 
 function showProposalReviewActions(): boolean {
+  if (props.remoteDevice) return false;
   if (
     props.proposal.approvalMode === "auto-approve" &&
     canReviewProposalWhileStreaming() &&
@@ -197,6 +203,11 @@ function proposalReviewDisabled(decision: "accept" | "reject"): boolean {
 
 function proposalStatusMessage(): string {
   const proposal = props.proposal;
+  if (props.remoteDevice)
+    return t(
+      proposal.status === "pending" ? "reviewOnlyOnDevice" : "handledOnDevice",
+      { device: props.remoteDevice }
+    );
   const discardMessage = approvalDiscardStatusMessage(proposalDiscardState());
   if (discardMessage) return discardMessage;
   if (!proposal.statusMessage && isLongProposal()) {
@@ -349,7 +360,7 @@ function review(decision: "accept" | "reject"): void {
             {{ proposalStatusLabel() }}
           </span>
           <button
-            v-if="proposal.status === 'accepted'"
+            v-if="proposal.status === 'accepted' && !remoteDevice"
             class="approval-target-button"
             type="button"
             :title="t('goToTargetFile')"

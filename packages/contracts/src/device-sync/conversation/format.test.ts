@@ -69,8 +69,9 @@ const SAMPLES = {
     ],
     subagents: [
       {
-        id: "call_2",
+        id: "sub_1",
         name: "审校",
+        toolCallId: "call_2",
         status: "completed",
         task: "检查错字",
         summary: "没有问题"
@@ -160,7 +161,7 @@ const SAMPLES = {
 
 const EXPECTED = {
   message:
-    '{"attachments":[{"id":"attachment_1","kind":"text","mediaType":"text/markdown","name":"设定.md","size":120}],"compactions":[{"createdAt":"2026-10-12T07:59:00.000Z","id":"compaction_1","summary":"前文摘要"}],"content":"第一章写好了。","createdAt":"2026-10-12T08:00:01.000Z","id":"msg_1","kind":"deepwrite.conversation-message","model":{"configId":"model_writer-1","model":"writer-v1","provider":"custom"},"proposals":[{"additions":12,"deletions":0,"id":"proposal_1","status":"accepted","summary":"新增正文","title":"第一章"}],"role":"assistant","runId":"run_1","schemaVersion":1,"status":"completed","steps":[{"content":"先看大纲。","createdAt":"2026-10-12T08:00:00.000Z","id":"step_1","type":"thinking"},{"createdAt":"2026-10-12T08:00:00.500Z","id":"step_2","toolCallId":"call_1","type":"tool"},{"content":"第一章写好了。","createdAt":"2026-10-12T08:00:01.000Z","id":"step_3","type":"response"}],"subagents":[{"id":"call_2","name":"审校","status":"completed","summary":"没有问题","task":"检查错字"}],"thinking":"先看大纲。","tools":[{"id":"call_1","inputSummary":"大纲","name":"read_document","resultSummary":"已读取","status":"completed"}],"usage":{"cacheReadTokens":0,"cacheWriteTokens":0,"inputTokens":100,"outputTokens":20,"totalTokens":120}}',
+    '{"attachments":[{"id":"attachment_1","kind":"text","mediaType":"text/markdown","name":"设定.md","size":120}],"compactions":[{"createdAt":"2026-10-12T07:59:00.000Z","id":"compaction_1","summary":"前文摘要"}],"content":"第一章写好了。","createdAt":"2026-10-12T08:00:01.000Z","id":"msg_1","kind":"deepwrite.conversation-message","model":{"configId":"model_writer-1","model":"writer-v1","provider":"custom"},"proposals":[{"additions":12,"deletions":0,"id":"proposal_1","status":"accepted","summary":"新增正文","title":"第一章"}],"role":"assistant","runId":"run_1","schemaVersion":1,"status":"completed","steps":[{"content":"先看大纲。","createdAt":"2026-10-12T08:00:00.000Z","id":"step_1","type":"thinking"},{"createdAt":"2026-10-12T08:00:00.500Z","id":"step_2","toolCallId":"call_1","type":"tool"},{"content":"第一章写好了。","createdAt":"2026-10-12T08:00:01.000Z","id":"step_3","type":"response"}],"subagents":[{"id":"sub_1","name":"审校","status":"completed","summary":"没有问题","task":"检查错字","toolCallId":"call_2"}],"thinking":"先看大纲。","tools":[{"id":"call_1","inputSummary":"大纲","name":"read_document","resultSummary":"已读取","status":"completed"}],"usage":{"cacheReadTokens":0,"cacheWriteTokens":0,"inputTokens":100,"outputTokens":20,"totalTokens":120}}',
   session:
     '{"createdAt":"2026-10-12T07:58:00.000Z","id":"session_1","kind":"deepwrite.conversation-session","messages":[{"at":"2026-10-12T08:00:02.000Z","bytes":180,"createdAt":"2026-10-12T08:00:00.000Z","id":"msg_0","parent":null,"record":{"hash":"1111111111111111111111111111111111111111111111111111111111111111","pack":"2222222222222222222222222222222222222222222222222222222222222222"}},{"at":"2026-10-12T08:00:02.000Z","bytes":900,"createdAt":"2026-10-12T08:00:01.000Z","id":"msg_1","parent":"msg_0","record":{"hash":"3333333333333333333333333333333333333333333333333333333333333333","pack":"2222222222222222222222222222222222222222222222222222222222222222"}}],"removed":[{"at":"2026-10-12T08:10:00.000Z","id":"msg_x"}],"schemaVersion":1,"state":{"at":"2026-10-12T07:58:00.000Z","deleted":false}}',
   book: '{"key":"book:book-a1b2c3d4","kind":"deepwrite.conversation-book","schemaVersion":1,"sessions":{"session_1":{"bytes":1080,"deleted":false,"messages":2,"ref":{"hash":"4444444444444444444444444444444444444444444444444444444444444444","pack":"5555555555555555555555555555555555555555555555555555555555555555"}}}}',

@@ -136,24 +136,22 @@ describe("long workspace operation engine: ordering-and-foreshadowing", () => {
     expect(noOp.entityChanges).toEqual([]);
   });
 
-  it("keeps recorded chapters structurally mutable and cascades their records", () => {
+  it("pins recorded chapters in narrative order but still cascades their deletion", () => {
     const source = committedWorkspace();
-    const reordered = applyLongWorkspaceOperations(source, {
-      updatedAt: later,
-      operations: [
-        {
-          type: "chapter.reorder",
-          volumeId: "volume_one",
-          orderedIds: ["chapter_two", "chapter_one"]
-        }
-      ]
-    });
-    expect(
-      reordered.snapshot.plot.chapterCards
-        .filter(({ volumeId }) => volumeId === "volume_one")
-        .sort((left, right) => left.narrativeOrder - right.narrativeOrder)
-        .map(({ id }) => id)
-    ).toEqual(["chapter_two", "chapter_one"]);
+    expectOperationError(
+      () =>
+        applyLongWorkspaceOperations(source, {
+          updatedAt: later,
+          operations: [
+            {
+              type: "chapter.reorder",
+              volumeId: "volume_one",
+              orderedIds: ["chapter_two", "chapter_one"]
+            }
+          ]
+        }),
+      "recorded_chapter_order"
+    );
 
     const batch = LongWorkspaceOperationBatchSchema.parse({
       updatedAt: later,
@@ -190,6 +188,10 @@ describe("long workspace operation engine: ordering-and-foreshadowing", () => {
             summary: "",
             order: 1
           }
+        },
+        {
+          type: "volume.reorder",
+          orderedIds: ["volume_prologue", "volume_one"]
         },
         {
           type: "chapter.move",

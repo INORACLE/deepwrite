@@ -93,6 +93,8 @@ export const conversationSyncSubagentSchema = z
   .object({
     id,
     name: z.string().min(1).max(240),
+    /** The delegating call; its card is shown where the call was made. */
+    toolCallId: id.optional(),
     status: z.enum(["completed", "error", "stopped", "skipped"]),
     task: z.string().max(4000).optional(),
     summary: z.string().max(4000).optional(),

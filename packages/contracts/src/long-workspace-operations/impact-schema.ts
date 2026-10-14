@@ -326,6 +326,7 @@ export const LONG_WORKSPACE_OPERATION_ERROR_CODES = [
   "invalid_reference",
   "impact_mismatch",
   "invalid_order",
+  "recorded_chapter_order",
   "invalid_document_write",
   "invalid_result"
 ] as const;

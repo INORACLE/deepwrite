@@ -1,4 +1,5 @@
 import { createScopedTranslator } from "../i18n";
+import { remoteEditProposals } from "./conversationRemoteCards";
 import type {
   AgentEditProposal,
   AgentToolTrace,
@@ -65,6 +66,8 @@ export type ApprovalCardItem =
       toolCallIds: string[];
       canDiscard: boolean;
       proposal: AgentEditProposal;
+      /** Made and reviewed on this other device; shown read-only. */
+      remoteDevice?: string;
     }
   | {
       id: string;
@@ -125,7 +128,20 @@ export function approvalItemsForMessage(
     toolCallIds: [item.event.payload.toolCallId],
     item
   }));
-  return [...editItems, ...longItems].sort(compareApprovalCards);
+  const remoteItems: ApprovalCardItem[] = remoteEditProposals(message).map(
+    (proposal) => ({
+      id: `remote:${proposal.id}`,
+      type: "edit-proposal",
+      createdAt: proposal.createdAt,
+      toolCallIds: [],
+      canDiscard: false,
+      proposal,
+      remoteDevice: message.remote!.device
+    })
+  );
+  return [...editItems, ...longItems, ...remoteItems].sort(
+    compareApprovalCards
+  );
 }
 
 export function liveTimelineItems(

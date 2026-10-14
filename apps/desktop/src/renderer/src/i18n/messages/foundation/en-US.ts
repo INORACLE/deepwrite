@@ -71,6 +71,8 @@ export default {
   invalidReference:
     "A referenced item changed or is no longer available. Refresh and try again.",
   invalidOrder: "The item order is no longer valid. Refresh and try again.",
+  recordedChapterOrder:
+    "Chapters recorded in the continuity ledger keep their position, and other chapters cannot be moved across them.",
   invalidDocumentWrite:
     "The manuscript edit is no longer valid. Generate it again from the latest version.",
   invalidOperationResult:

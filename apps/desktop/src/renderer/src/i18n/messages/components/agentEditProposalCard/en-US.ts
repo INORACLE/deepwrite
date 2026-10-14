@@ -73,5 +73,8 @@ export default {
   noAdditionalLinksWillChangeOnlyTheProposedFile:
     "No additional links will change. Only the proposed file content will be saved.",
   reject: "Reject",
-  targetMessage: "Target {arg0}: {arg1}"
+  targetMessage: "Target {arg0}: {arg1}",
+  awaitingReviewOnDevice: "Awaiting review on {device}",
+  reviewOnlyOnDevice: "This proposal can only be reviewed on {device}.",
+  handledOnDevice: "Handled on {device}. View only here."
 };

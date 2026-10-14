@@ -9,6 +9,8 @@ export default {
   moreActionsForValue: "More actions for {arg0}",
   change: "Change",
   moveUp: "Move up",
+  recordedChapterOrderLocked:
+    "Chapters recorded in the continuity ledger keep their position",
   moveDown: "Move down",
   delete: "Delete"
 };

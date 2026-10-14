@@ -53,7 +53,8 @@ export function createLongChapterLookup(
       chapters.map((chapter) => ({
         id: chapter.id,
         label: chapter.title || chapter.id,
-        narrativeOrder: chapter.narrativeOrder
+        narrativeOrder: chapter.narrativeOrder,
+        recorded: (entries.get(chapter.id)?.commitId ?? null) !== null
       }))
     ])
   );

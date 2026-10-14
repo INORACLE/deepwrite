@@ -47,7 +47,6 @@ import conversationContextCompactionNotice from "./conversationContextCompaction
 import conversationHistoryDeleteDialog from "./conversationHistoryDeleteDialog/en-US";
 import conversationHistoryMenu from "./conversationHistoryMenu/en-US";
 import conversationMessageItem from "./conversationMessageItem/en-US";
-import conversationRemoteDetails from "./conversationRemoteDetails/en-US";
 import conversationModelConfigSelect from "./conversationModelConfigSelect/en-US";
 import conversationProcessingItem from "./conversationProcessingItem/en-US";
 import conversationProcessingTimeline from "./conversationProcessingTimeline/en-US";
@@ -236,7 +235,6 @@ export default {
   conversationHistoryDeleteDialog,
   conversationHistoryMenu,
   conversationMessageItem,
-  conversationRemoteDetails,
   conversationModelConfigSelect,
   conversationProcessingItem,
   conversationProcessingTimeline,

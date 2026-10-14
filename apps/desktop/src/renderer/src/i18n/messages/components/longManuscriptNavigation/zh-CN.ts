@@ -9,6 +9,7 @@ export default {
   moreActionsForValue: "{arg0}更多操作",
   change: "修改",
   moveUp: "上移",
+  recordedChapterOrderLocked: "已写入连续性账本的章节位置固定",
   moveDown: "下移",
   delete: "删除"
 };

@@ -13,3 +13,18 @@ export function orderLongChapterNavigationItems<
     })
     .map(({ item }) => item);
 }
+
+export type LongChapterNavigationMove = "allowed" | "edge" | "recorded";
+
+/** Swapping with a neighbour moves both, so a recorded chapter on either side blocks it. */
+export function longChapterNavigationMove(
+  orderedItems: readonly { recorded?: boolean }[],
+  index: number,
+  direction: "up" | "down"
+): LongChapterNavigationMove {
+  const neighbour = orderedItems[direction === "up" ? index - 1 : index + 1];
+  if (!neighbour || !orderedItems[index]) return "edge";
+  return orderedItems[index].recorded || neighbour.recorded
+    ? "recorded"
+    : "allowed";
+}

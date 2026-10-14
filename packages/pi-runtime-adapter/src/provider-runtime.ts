@@ -35,9 +35,10 @@ import {
 import { applyGoogleClaudeThinkingCompatibility } from "./google-claude-thinking";
 import { createOpenCodeRequestHeaders } from "./opencode-request-headers";
 import {
-  isVolcengineProvider,
-  VOLCENGINE_COMPLETIONS_COMPAT
-} from "./volcengine-runtime";
+  isGeminiOpenAIConfig,
+  withGeminiOpenAIToolSignatures
+} from "./gemini-openai";
+import { resolveOpenAICompletionsCompat } from "./provider-completions-compat";
 
 type ProviderStreamFn = (
   model: Model<Api>,
@@ -58,42 +59,6 @@ function providerStreams(
     return anthropicMessagesApi();
   }
   return googleGenerativeAIApi();
-}
-
-function resolveOpenAICompletionsCompat(
-  config: AgentProviderRuntimeConfig,
-  builtin: Model<Api> | undefined
-): Model<"openai-completions">["compat"] | undefined {
-  if (config.api !== "openai-completions") {
-    return undefined;
-  }
-
-  const compat: NonNullable<Model<"openai-completions">["compat"]> = {
-    ...(builtin?.api === "openai-completions" ? builtin.compat : {})
-  };
-
-  const provider = config.provider.toLowerCase();
-  const baseUrl = config.baseUrl.toLowerCase();
-  if (isVolcengineProvider(provider)) {
-    Object.assign(compat, VOLCENGINE_COMPLETIONS_COMPAT);
-  } else if (
-    provider === "qwen" ||
-    provider === "dashscope" ||
-    provider === "qwen-token-plan" ||
-    (baseUrl.includes("dashscope") && baseUrl.includes("aliyuncs.com"))
-  ) {
-    compat.thinkingFormat = "qwen";
-  } else if (
-    provider === "zai" ||
-    provider === "zhipu" ||
-    baseUrl.includes("bigmodel.cn")
-  ) {
-    compat.thinkingFormat = "zai";
-  }
-  if (config.supportsDeveloperRole !== undefined) {
-    compat.supportsDeveloperRole = config.supportsDeveloperRole;
-  }
-  return Object.keys(compat).length > 0 ? compat : undefined;
 }
 
 export function toPiThinkingLevel(
@@ -287,7 +252,12 @@ export function buildProviderRuntime(
       })
     );
   };
-  return { model, streamFn };
+  return {
+    model,
+    streamFn: isGeminiOpenAIConfig(config)
+      ? withGeminiOpenAIToolSignatures(streamFn)
+      : streamFn
+  };
 }
 
 export function resolveProviderModelCapacity(

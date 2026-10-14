@@ -134,6 +134,8 @@ export interface LongWorkspaceSelection {
     id: LongChapterCardId;
     label: string;
     narrativeOrder?: number;
+    /** Recorded in the continuity ledger, so its narrative slot is fixed. */
+    recorded?: boolean;
   }>;
   title: string;
   breadcrumbs: string[];

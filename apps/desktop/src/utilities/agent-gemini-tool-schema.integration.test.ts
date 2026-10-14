@@ -157,4 +157,107 @@ describe("desktop Agent utility Gemini gateway tool schemas", () => {
       }
     }
   );
+  it("reads the directory and then the selected section through the official Gemini OpenAI route", async () => {
+    const officialConfig = {
+      ...config,
+      provider: "deepwrite-site",
+      modelId: "gemini-3.8-flash-high",
+      reasoning: true,
+      defaultThinkingLevel: "high"
+    };
+    const requests: Array<Record<string, unknown>> = [];
+    const fetcher: typeof globalThis.fetch = async (input, init) => {
+      const body =
+        init?.body ??
+        (input instanceof Request ? await input.clone().text() : "");
+      const payload = JSON.parse(String(body)) as Record<string, unknown>;
+      requests.push(payload);
+      const step = requests.length;
+      const args =
+        step === 1
+          ? { kind: "draft", id: "draft", include_all_sections: false }
+          : { kind: "draft_section", id: "section-1", document: "body" };
+      const delta =
+        step <= 2
+          ? {
+              tool_calls: [
+                {
+                  index: 0,
+                  id: `call-read-${step}`,
+                  type: "function",
+                  function: { name: "read", arguments: JSON.stringify(args) },
+                  extra_content: {
+                    google: {
+                      thought_signature: `opaque-query-signature-${step}`
+                    }
+                  }
+                }
+              ]
+            }
+          : { content: "已读到第一节正文。" };
+      const chunk = {
+        id: "completion-read-test",
+        object: "chat.completion.chunk",
+        created: 0,
+        model: officialConfig.modelId,
+        choices: [
+          { index: 0, delta, finish_reason: step <= 2 ? "tool_calls" : "stop" }
+        ]
+      };
+      return new Response(
+        `data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`,
+        { headers: { "content-type": "text/event-stream" } }
+      );
+    };
+    vi.stubGlobal("fetch", fetcher);
+    const payload = AgentPromptCommandPayloadSchema.parse({
+      sessionId: "session-official-gemini-read",
+      message: "先查正文目录，再读取第一节正文。",
+      thinkingLevel: "high",
+      runtimeConfig: officialConfig,
+      ...domainInput("short")
+    });
+    const events: AgentRuntimeEvent[] = [];
+    for await (const event of new PiAgentRuntimeAdapter().start(
+      createAgentRunInput(
+        payload,
+        "run-official-gemini-read",
+        new AbortController().signal
+      )
+    )) {
+      events.push(event);
+    }
+    expect(events.filter((event) => event.type === "agent.error")).toEqual([]);
+    expect(events.some((event) => event.type === "agent.completed")).toBe(true);
+    expect(requests).toHaveLength(3);
+    for (const request of requests.slice(1)) {
+      const messages = request.messages as Array<Record<string, unknown>>;
+      const calls = messages.flatMap((message) =>
+        message.role === "assistant"
+          ? (message.tool_calls as Array<Record<string, unknown>>)
+          : []
+      );
+      calls.forEach((call, index) => {
+        expect(call).toHaveProperty(
+          "extra_content.google.thought_signature",
+          `opaque-query-signature-${index + 1}`
+        );
+      });
+    }
+    const results = (
+      requests[2]!.messages as Array<Record<string, unknown>>
+    ).filter((message) => message.role === "tool");
+    expect(results).toMatchObject([
+      {
+        name: "read",
+        tool_call_id: "call-read-1",
+        content: expect.stringContaining("section-1")
+      },
+      {
+        name: "read",
+        tool_call_id: "call-read-2",
+        content: expect.stringContaining("汽笛迟到了七分钟。")
+      }
+    ]);
+  });
 });

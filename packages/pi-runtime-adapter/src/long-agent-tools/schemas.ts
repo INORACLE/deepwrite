@@ -213,6 +213,15 @@ export const editMetaParameter = strictObject(
           "仅章卡：切换到同一分卷内的主剧情点，传 null 解除关联；保持章卡顺序。"
       })
     ),
+    chapter_order: Type.Optional(
+      Type.Array(stableIdParameter("chapter"), {
+        minItems: 1,
+        maxItems: 10_000,
+        uniqueItems: true,
+        description:
+          "仅分卷：按新的叙事顺序完整列出本卷全部章卡 id，用于调整章节先后；章卡、正文和章末文件随章节一起移动。已写入连续性账本的章节位置固定，其他章节也不能越过它们。"
+      })
+    ),
     aliases: Type.Optional(
       Type.Array(Type.String({ minLength: 1, maxLength: 120 }), {
         maxItems: 64,

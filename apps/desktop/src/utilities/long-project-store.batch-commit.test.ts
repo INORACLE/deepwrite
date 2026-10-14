@@ -50,7 +50,7 @@ function chapterFiles(chapterCardId: string) {
 }
 
 describe("LongProjectStore: batch continuity commits", () => {
-  it("stores contiguous chapters in one record and invalidates the batch together", async () => {
+  it("stores contiguous chapters in one record, pins their order and invalidates the batch together", async () => {
     const { projectStore, created } = await createFixture("batch-commit");
     const firstChapterId = created.book.workspaceIndex.plot.chapterCards[0]!.id;
     const volumeId = created.book.workspaceIndex.plot.volumes[0]!.id;
@@ -152,28 +152,12 @@ describe("LongProjectStore: batch continuity commits", () => {
       ],
       documentWrites: []
     };
-    const reorderPreview = await projectStore.previewWorkspaceOperations(
-      created.projectDirectory,
-      reorderBatch
-    );
-    const reordered = await projectStore.applyWorkspaceOperations(
-      created.projectDirectory,
-      {
-        batch: {
-          ...reorderBatch,
-          expectedImpact: reorderPreview.confirmation
-        }
-      }
-    );
-    expect(reordered.book.workspaceIndex.ledger.commits).toHaveLength(1);
-    expect(
-      [...reordered.book.workspaceIndex.plot.chapterCards]
-        .sort((left, right) => left.narrativeOrder - right.narrativeOrder)
-        .map(({ id }) => id)
-    ).toEqual([secondChapterId, firstChapterId]);
-    expect(reordered.book.workspaceIndex.ledger.committedThroughChapterId).toBe(
-      firstChapterId
-    );
+    await expect(
+      projectStore.previewWorkspaceOperations(
+        created.projectDirectory,
+        reorderBatch
+      )
+    ).rejects.toMatchObject({ code: "recorded_chapter_order" });
 
     const deletionBatch = {
       updatedAt: FIXED_NOW,

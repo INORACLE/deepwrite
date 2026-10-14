@@ -5,6 +5,7 @@ import type {
   ChatMessage
 } from "../types/conversation";
 import { visibleCompaction } from "./conversationCompactionPresentation";
+import { remoteSubagentRuns } from "./conversationRemoteCards";
 
 export type ProcessingItem =
   | { id: string; type: "thinking"; content: string; createdAt: string }
@@ -49,7 +50,9 @@ function lastResponseIndex(items: readonly ProcessingItem[]): number {
 export function processingItems(message: ChatMessage): ProcessingItem[] {
   const items: ProcessingItem[] = [];
   const runs = new Map<string, AgentSubagentRun[]>();
-  for (const run of message.subagentRuns ?? []) {
+  for (const run of message.subagentRuns?.length
+    ? message.subagentRuns
+    : remoteSubagentRuns(message)) {
     const group = runs.get(run.parentToolCallId);
     if (group) group.push(run);
     else runs.set(run.parentToolCallId, [run]);

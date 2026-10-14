@@ -10,6 +10,7 @@ const errorKeys: Readonly<Record<string, TranslationKey>> = {
   "long.operation.already_exists": "foundation.targetExists",
   "long.operation.invalid_reference": "foundation.invalidReference",
   "long.operation.invalid_order": "foundation.invalidOrder",
+  "long.operation.recorded_chapter_order": "foundation.recordedChapterOrder",
   "long.operation.invalid_document_write": "foundation.invalidDocumentWrite",
   "long.operation.invalid_result": "foundation.invalidOperationResult",
   "long.ledger.audit_failed": "foundation.ledgerAuditFailed"

@@ -24,31 +24,43 @@ export function interceptToolCallStream(
   ) => void
 ): StreamFn {
   let assistantTurnIndex = 0;
-  return async (model, context, options) => {
+  return (model, context, options) => {
     const currentTurnIndex = assistantTurnIndex;
     assistantTurnIndex += 1;
+    return observeAssistantStream(sourceStreamFn, (event) => {
+      if (
+        event.type === "toolcall_start" ||
+        event.type === "toolcall_delta" ||
+        event.type === "toolcall_end"
+      ) {
+        onToolCallEvent(event, currentTurnIndex);
+      }
+    })(model, context, {
+      ...options,
+      // DeepWrite owns the visible retry lifecycle. Prevent an SDK retry
+      // budget from multiplying the adapter's attempt budget.
+      maxRetries: 0
+    });
+  };
+}
+
+/** Observe normalized events before their messages enter the Agent transcript. */
+export function observeAssistantStream(
+  sourceStreamFn: StreamFn,
+  onEvent: (event: AssistantMessageEvent) => void
+): StreamFn {
+  return async (model, context, options) => {
     const forwarded = createAssistantMessageEventStream();
     void (async () => {
       let partialMessage: AssistantMessage | undefined;
       let terminalSeen = false;
       try {
-        const source = await sourceStreamFn(model, context, {
-          ...options,
-          // DeepWrite owns the visible retry lifecycle. Prevent an SDK retry
-          // budget from multiplying the adapter's attempt budget.
-          maxRetries: 0
-        });
+        const source = await sourceStreamFn(model, context, options);
         for await (const event of source) {
           if ("partial" in event) {
             partialMessage = event.partial;
           }
-          if (
-            event.type === "toolcall_start" ||
-            event.type === "toolcall_delta" ||
-            event.type === "toolcall_end"
-          ) {
-            onToolCallEvent(event, currentTurnIndex);
-          }
+          onEvent(event);
           if (event.type === "done" || event.type === "error") {
             terminalSeen = true;
           }

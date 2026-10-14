@@ -146,6 +146,9 @@ export function desktopMessageRecord(
       ...list(value.subagentRuns).map((run): Subagent => ({
         id: String(run.subagentRunId ?? run.parentToolCallId),
         name: String(run.name ?? run.subagentId ?? "子智能体").slice(0, 240),
+        ...(typeof run.parentToolCallId === "string"
+          ? { toolCallId: run.parentToolCallId }
+          : {}),
         status: subagentStatus(run.status),
         ...(text(run.task, 4000) ? { task: text(run.task, 4000) } : {}),
         ...(text(run.summary, 4000)

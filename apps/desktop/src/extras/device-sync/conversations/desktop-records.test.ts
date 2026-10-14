@@ -84,6 +84,32 @@ describe("desktop conversation records", () => {
     expect(JSON.stringify(record)).not.toContain("evaluationSnapshot");
   });
 
+  it("keeps where each subagent was delegated, so its card can be placed", () => {
+    const record = desktopMessageRecord({
+      ...assistant,
+      subagentRuns: [
+        {
+          parentToolCallId: "call_spawn",
+          subagentRunId: "sub_1",
+          name: "审校",
+          task: "检查错字",
+          status: "completed",
+          summary: "没有问题"
+        }
+      ]
+    });
+    expect(record?.subagents).toEqual([
+      {
+        id: "sub_1",
+        name: "审校",
+        toolCallId: "call_spawn",
+        status: "completed",
+        task: "检查错字",
+        summary: "没有问题"
+      }
+    ]);
+  });
+
   it("keeps unfinished messages local", () => {
     expect(desktopMessageRecord({ ...assistant, status: "streaming" })).toBe(
       null

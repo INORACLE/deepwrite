@@ -7,10 +7,14 @@ import {
 import { findLongestModelIdBoundaryMatch } from "./model-id-matching";
 import { findDeepWriteRuntimeModel } from "./runtime-model-catalog";
 import { findVolcengineRuntimeModel } from "./volcengine-runtime";
+import { isGeminiOpenAIConfig } from "./gemini-openai";
+import { findSiteOfficialRuntimeModel } from "./site-official-model-catalog";
 
 export function findProviderModel(
   config: AgentProviderRuntimeConfig
 ): Model<Api> | undefined {
+  const official = findSiteOfficialRuntimeModel(config);
+  if (official) return official;
   const provider = getBuiltinProviders().find(
     (candidate) => candidate.toLowerCase() === config.provider.toLowerCase()
   );
@@ -25,6 +29,13 @@ export function findProviderModel(
     findVolcengineRuntimeModel(config) ??
     findDeepWriteRuntimeModel(config.modelId);
   if (local) return local;
+
+  if (config.api === "google-generative-ai" || isGeminiOpenAIConfig(config)) {
+    return findLongestModelIdBoundaryMatch(
+      getBuiltinModels("google"),
+      config.modelId.replace(/^(?:google|models)\//iu, "")
+    ) as Model<Api> | undefined;
+  }
 
   // Gateway provider names identify routes rather than model families. Claude's
   // native API still needs its catalog's thinking and sampling compatibility.

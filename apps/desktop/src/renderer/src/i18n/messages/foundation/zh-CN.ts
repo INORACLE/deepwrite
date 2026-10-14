@@ -57,6 +57,8 @@ export default {
   targetExists: "同名目标已存在，请检查后重试。",
   invalidReference: "引用的条目已变化或不再可用，请刷新后重试。",
   invalidOrder: "条目顺序已失效，请刷新后重试。",
+  recordedChapterOrder:
+    "已写入连续性账本的章节位置固定，其他章节也不能越过它们调整顺序。",
   invalidDocumentWrite: "文稿写入内容已失效，请基于最新版本重新生成。",
   invalidOperationResult: "结构操作返回了无效结果，请刷新后重试。",
   ledgerAuditFailed: "连续性账本与当前章节不一致，请刷新工作区并核对后重试。",

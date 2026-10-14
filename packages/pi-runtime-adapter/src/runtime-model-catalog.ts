@@ -11,6 +11,32 @@ import { OPENAI_RUNTIME_MODELS } from "./runtime-model-catalog-openai";
  */
 const DEEPWRITE_RUNTIME_MODELS = [
   {
+    // https://ai.google.dev/gemini-api/docs/models/gemini-4-argon
+    id: "gemini-4-argon",
+    name: "Gemini 4 Argon",
+    api: "google-generative-ai",
+    provider: "google",
+    baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+    reasoning: true,
+    // Thinking is mandatory; the provider defaults to medium.
+    thinkingLevelMap: {
+      off: null,
+      minimal: null,
+      low: "low",
+      medium: "medium",
+      high: "high",
+      xhigh: null,
+      max: null
+    },
+    input: ["text", "image"],
+    // Managed-model billing comes from DeepWrite's remote catalog.
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    // Input, thinking and output share this context window.
+    contextWindow: 1_048_576,
+    // Streaming calls stop at 64K; larger output needs long-decode continuation.
+    maxTokens: 65_536
+  } satisfies Model<"google-generative-ai">,
+  {
     id: "deepseek-v4-pro",
     name: "DeepSeek V4 Pro",
     api: "openai-completions",

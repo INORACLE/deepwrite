@@ -69,5 +69,8 @@ export default {
   noAdditionalLinksWillChangeOnlyTheProposedFile:
     "没有额外关联变化，仅保存提案中的文件内容。",
   reject: "拒绝",
-  targetMessage: "目标{arg0}：{arg1}"
+  targetMessage: "目标{arg0}：{arg1}",
+  awaitingReviewOnDevice: "在{device}上待审核",
+  reviewOnlyOnDevice: "这个提案只能在{device}上审核。",
+  handledOnDevice: "这是{device}上的处理结果，这里只能查看。"
 };
