@@ -52,6 +52,22 @@ describe("cover image prompts", () => {
     expect(result.negativePrompt).toBe(candidate.negativePrompt);
   });
 
+  it("retains title and layout requirements within MiniMax's character limit", () => {
+    const result = buildCoverImagePrompt(
+      { ...candidate, prompt: `${"scene ".repeat(100)} no text` },
+      "model",
+      '雨夜"来信"',
+      1500
+    );
+    expect(result.prompt.length).toBeLessThanOrEqual(1500);
+    expect(result.prompt).toContain(JSON.stringify('雨夜"来信"'));
+    expect(result.prompt).toContain(candidate.typography);
+    expect(result.prompt).toContain("arranged vertically");
+    expect(result.prompt).toContain("supersedes any earlier title");
+    expect(result.prompt).not.toContain("no text");
+    expect(result.negativePrompt).toBe("low quality, watermark");
+  });
+
   it("rejects missing titles and oversized combined prompts before generation", () => {
     expect(() => buildCoverImagePrompt(candidate, "model", " ")).toThrow(
       "有效书名"

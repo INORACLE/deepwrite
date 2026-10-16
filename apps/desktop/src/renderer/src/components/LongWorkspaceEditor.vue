@@ -1042,6 +1042,7 @@ const {
 
 const {
   workspaceSavePending,
+  manualSaving,
   currentState,
   isDocumentSwitchPending,
   displayDocumentState,
@@ -1437,17 +1438,12 @@ watch(
 );
 
 watch(
-  () =>
-    [
-      props.bookId,
-      currentSelectionFile.value?.file.id,
-      activeWorldbuildingItemId.value,
-      activeBookLineVolumeId.value,
-      activeBookLineContentTab.value,
-      props.selection?.plotPointId,
-      activePlotPointTab.value,
-      props.selection?.chapterCardId
-    ] as const,
+  // Saving replaces selection metadata without changing the active document.
+  // Match the short editor's stable identity while honoring read-only changes.
+  [
+    activeEditorScrollMemoryKey,
+    () => Boolean(currentSelectionFile.value?.readOnly)
+  ],
   () => {
     resetToDefault(Boolean(currentSelectionFile.value?.readOnly));
     closeFindPanel();
@@ -2638,11 +2634,12 @@ onBeforeUnmount(() => {
         </span>
         <span class="long-footer-spacer" />
         <button
-          v-if="!currentIsForeshadowingView"
+          v-if="!autoSaveEnabled && !currentIsForeshadowingView"
           class="long-editor-save-button"
           type="button"
           :disabled="
             currentReadOnly ||
+            manualSaving ||
             !currentDirty ||
             isDocumentContentBusy ||
             currentSaving ||
@@ -2652,7 +2649,7 @@ onBeforeUnmount(() => {
           @click="saveCurrentDocument"
         >
           <AppIcon name="save" :size="14" />
-          {{ currentSaving ? t("saving") : t("saveNow") }}
+          {{ manualSaving ? t("saving") : t("saveNow") }}
         </button>
       </footer>
     </template>

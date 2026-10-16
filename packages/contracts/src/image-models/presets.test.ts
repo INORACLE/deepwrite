@@ -8,6 +8,23 @@ import {
 } from "./presets";
 
 describe("image model aspect ratios", () => {
+  it("exposes MiniMax native dimensions and its prompt limit to the workbench", () => {
+    expect(imageModelAspectRatios("minimax-image", "image-01")).toEqual({
+      "3:4": "864x1152",
+      "2:3": "832x1248",
+      "9:16": "720x1280",
+      "1:1": "1024x1024",
+      "16:9": "1280x720"
+    });
+    const capability = imageModelCapability("minimax-image", "image-01");
+    expect(capability).toMatchObject({
+      promptLanguage: "en",
+      rendersCjkText: false,
+      maxPromptCharacters: 1500
+    });
+    expect(ImageModelCapabilitySchema.safeParse(capability).success).toBe(true);
+  });
+
   it("preserves each provider's existing dimensions for custom models", () => {
     for (const id of IMAGE_PRESET_IDS) {
       if (id === "openai-compatible") continue;

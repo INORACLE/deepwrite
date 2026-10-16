@@ -20,6 +20,8 @@ export const LongMaterialPackOptionsSchema = z
     /** `grouped`: minor characters share entries; `individual`: one each. */
     characterScope: z.enum(["grouped", "individual"]),
     chapterGrouping: z.enum(["auto", "20", "50"]),
+    /** Copy every non-empty chapter body as an on-demand material. */
+    transferAllBodies: z.boolean().optional(),
     sampleChapterIds: z
       .array(LongChapterCardIdSchema)
       .max(LONG_MATERIAL_SAMPLE_CHAPTER_LIMIT)

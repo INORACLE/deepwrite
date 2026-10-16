@@ -186,6 +186,9 @@ interface SubmissionIssue {
   message: string;
   maximum?: unknown;
   minimum?: unknown;
+  expected?: string;
+  values?: readonly unknown[];
+  errors?: readonly (readonly SubmissionIssue[])[];
 }
 const MAX_LISTED_ISSUES = 6;
 
@@ -198,14 +201,60 @@ function valueAt(data: unknown, path: PropertyKey[]): unknown {
   return value;
 }
 
+// Union errors keep their real field errors inside `errors`. Prefer the branch
+// matching the submitted kind, not a shorter but unrelated asset variant.
+function fieldIssues(
+  issues: readonly SubmissionIssue[],
+  data: unknown,
+  prefix: PropertyKey[] = []
+): SubmissionIssue[] {
+  return issues.flatMap((issue) => {
+    const field = { ...issue, path: [...prefix, ...issue.path] };
+    if (issue.code !== "invalid_union" || !issue.errors?.length) return [field];
+    // Zod's branch paths are relative to the union, even for nested unions.
+    const branches = issue.errors
+      .map((branch) => fieldIssues(branch, data, field.path))
+      .filter(
+        (branch) =>
+          !branch.some(
+            (error) =>
+              error.code === "invalid_value" &&
+              error.path.at(-1) === "kind" &&
+              error.values &&
+              !error.values.includes(valueAt(data, error.path))
+          )
+      );
+    branches.sort((a, b) => a.length - b.length);
+    return branches[0] ?? [field];
+  });
+}
+
+const TYPE_NAMES: Record<string, string> = {
+  string: "字符串",
+  number: "数字",
+  int: "整数",
+  boolean: "布尔值",
+  array: "数组",
+  object: "对象"
+};
+
 /** Short, field-level reasons; never echoes the submitted content. */
 export function describeSubmissionIssues(
   issues: readonly SubmissionIssue[],
   data: unknown
 ): string {
-  const lines = issues.slice(0, MAX_LISTED_ISSUES).map((issue) => {
+  const fields = fieldIssues(issues, data);
+  const lines = fields.slice(0, MAX_LISTED_ISSUES).map((issue) => {
     const path = issue.path.map(String).join(".") || "data";
     const value = valueAt(data, issue.path);
+    if (issue.code === "invalid_type") {
+      const expected = TYPE_NAMES[issue.expected ?? ""] ?? "符合要求的类型";
+      return value === undefined
+        ? `${path}：缺少必填字段，应填写${expected}`
+        : `${path}：类型错误，应填写${expected}`;
+    }
+    if (issue.code === "invalid_union")
+      return `${path}：结构不符合要求，请按工具参数填写 kind 对应的对象及字段`;
     if (issue.code !== "too_big" && issue.code !== "too_small")
       return `${path}：${issue.message}`;
     const size = Array.isArray(value)
@@ -217,7 +266,7 @@ export function describeSubmissionIssues(
       ? `${path}：当前 ${size}，上限 ${String(issue.maximum)}`
       : `${path}：当前 ${size}，下限 ${String(issue.minimum)}`;
   });
-  if (issues.length > MAX_LISTED_ISSUES)
-    lines.push(`另有 ${issues.length - MAX_LISTED_ISSUES} 处`);
+  if (fields.length > MAX_LISTED_ISSUES)
+    lines.push(`另有 ${fields.length - MAX_LISTED_ISSUES} 处`);
   return lines.join("；");
 }

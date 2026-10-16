@@ -155,7 +155,13 @@ export class UpdateService {
       // download when the native updater considers that version numerically older.
       autoUpdater.allowDowngrade =
         autoUpdater.currentVersion.compare(manifest.version) > 0;
-      autoUpdater.setFeedURL({ provider: "generic", url: manifest.feedUrl });
+      autoUpdater.setFeedURL({
+        provider: "generic",
+        url: manifest.feedUrl,
+        ...(process.platform === "win32" && process.arch === "arm64"
+          ? { channel: "latest-arm64" }
+          : {})
+      });
       const result = await autoUpdater.checkForUpdates();
       if (!result?.updateInfo) {
         throw new Error("GitHub Release 没有返回可用的更新信息。");

@@ -109,6 +109,7 @@ export function useLongEditorDocumentSession(options: {
 }): {
   heldSelectionFile: Ref<LongWorkspaceSelectionFile | null>;
   workspaceSavePending: Ref<boolean>;
+  manualSaving: Ref<boolean>;
   currentState: ComputedRef<LongDocumentState | undefined>;
   isDocumentSwitchPending: ComputedRef<boolean>;
   displayDocumentState: ComputedRef<LongDocumentState | undefined>;
@@ -137,6 +138,7 @@ export function useLongEditorDocumentSession(options: {
   const { documentStates } = options;
   const heldSelectionFile = ref<LongWorkspaceSelectionFile | null>(null);
   const workspaceSavePending = ref(false);
+  const manualSaving = ref(false);
   const requestClockByFile = new Map<string, number>();
   const inflightDocumentLoads = new Map<string, Promise<void>>();
   const documentLoadQueue = createLongDocumentLoadQueue();
@@ -671,6 +673,16 @@ export function useLongEditorDocumentSession(options: {
   }
 
   async function saveCurrentDocument(): Promise<void> {
+    if (manualSaving.value) return;
+    manualSaving.value = true;
+    try {
+      await persistCurrentDocument();
+    } finally {
+      manualSaving.value = false;
+    }
+  }
+
+  async function persistCurrentDocument(): Promise<void> {
     const viewport = captureCurrentEditorViewport();
     pendingSaveViewport = viewport;
     completedSaveViewport = null;
@@ -1043,6 +1055,7 @@ export function useLongEditorDocumentSession(options: {
   return {
     heldSelectionFile,
     workspaceSavePending,
+    manualSaving,
     currentState,
     isDocumentSwitchPending,
     displayDocumentState,

@@ -150,6 +150,15 @@ describe("book identity agents", () => {
     for (const tool of tools)
       assertProviderToolParameterSchema(tool.name, tool.parameters);
   });
+  it("reserves room for lettering when the selected image service limits prompt characters", () => {
+    const resolved = task("book-cover-design");
+    if (resolved.agentId !== "book-cover-design") throw new Error("wrong task");
+    resolved.input.imageCapability.maxPromptCharacters = 1500;
+    const definition = resolveExtrasAgent(resolved);
+    expect(definition.systemPrompt).toContain("最终提示词上限为 1500 字符");
+    expect(definition.systemPrompt).toContain("prompt 不超过 650 字符");
+    expect(definition.systemPrompt).toContain("typography 不超过 120 字符");
+  });
   it("designs a finished cover with the authoritative title when model lettering is selected", async () => {
     const resolved = task("book-cover-design");
     if (resolved.agentId !== "book-cover-design") throw new Error("wrong task");

@@ -7,6 +7,23 @@ export interface WritingContentTarget {
 export const WRITING_CONTENT_COUNT_DESCRIPTION =
   "创建或修改正文形成提案后，返回各目标完整内容的字数（去除空白，包含标点和 Markdown 符号）；字数对应本次提案，不代表已经落盘。";
 
+export const WRITING_READ_CONTENT_COUNT_DESCRIPTION =
+  "读取结果同时返回所读内容的当前字数（去除空白，包含标点和 Markdown 符号）；截断快照只统计已返回内容，不代表全文字数。";
+
+export function countWritingContentCharacters(content: string): number {
+  return content.replace(/\s/gu, "").length;
+}
+
+export function writingReadContentCountLine(
+  content: string,
+  truncated = false
+): string {
+  const count = countWritingContentCharacters(content);
+  return truncated
+    ? `已返回内容字数：${count} 字（快照已截断，非全文字数）`
+    : `当前字数：${count} 字`;
+}
+
 export function appendWritingContentCounts(
   message: string,
   targets: readonly WritingContentTarget[]
@@ -15,7 +32,7 @@ export function appendWritingContentCounts(
     message,
     ...targets.map(
       ({ title, id, content }) =>
-        `${title}（文档标识=${id}）目标内容字数（本次提案）：${content.replace(/\s/gu, "").length} 字`
+        `${title}（文档标识=${id}）目标内容字数（本次提案）：${countWritingContentCharacters(content)} 字`
     )
   ].join("\n");
 }

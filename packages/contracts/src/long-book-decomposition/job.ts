@@ -171,6 +171,8 @@ export function decompositionTaskUnitIds(
 export function readyDecompositionUnitIds(
   job: LongBookDecompositionJob
 ): string[] {
+  // Target preparation and finalization are Core work, never agent packages.
+  if (!DecompositionRunPhaseSchema.safeParse(job.phase).success) return [];
   const model =
     job.phase === "read" ? job.models.reading : job.models.integration;
   const packageSize = Math.min(

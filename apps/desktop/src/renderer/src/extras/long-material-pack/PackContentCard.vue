@@ -130,7 +130,16 @@ function removeSample(id: string) {
         />
       </label>
     </div>
-    <div class="pack-samples">
+    <label class="pack-switch">
+      <input
+        v-model="store.transferAllBodies"
+        type="checkbox"
+        :disabled="store.busy"
+      />
+      <span>{{ t("transferAllBodies") }}</span>
+    </label>
+    <p class="pack-muted">{{ t("transferAllBodiesHelp") }}</p>
+    <div v-if="!store.transferAllBodies" class="pack-samples">
       <span class="setup-field-label">{{ t("sampleChapters") }}</span>
       <ul class="pack-chips">
         <li v-for="id in store.sampleChapterIds" :key="id">

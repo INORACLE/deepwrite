@@ -44,6 +44,37 @@ describe("local Windows Electron archive", () => {
     ).resolves.toBe(archivePath);
   });
 
+  it("accepts the ARM64 archive only when that architecture was requested", async () => {
+    const archivePath = await archiveFixture(
+      `electron-v${version}-win32-arm64.zip`
+    );
+    await expect(
+      resolveWindowsElectronArchive(version, {
+        arch: "arm64",
+        archivePath,
+        sha256
+      })
+    ).resolves.toBe(archivePath);
+    await expect(
+      resolveWindowsElectronArchive(version, {
+        arch: "x64",
+        archivePath,
+        sha256
+      })
+    ).rejects.toThrow("匹配锁定的版本和架构");
+  });
+
+  it("rejects an x64 archive for an ARM64 build", async () => {
+    const archivePath = await archiveFixture();
+    await expect(
+      resolveWindowsElectronArchive(version, {
+        arch: "arm64",
+        archivePath,
+        sha256
+      })
+    ).rejects.toThrow("匹配锁定的版本和架构");
+  });
+
   it.each(["", "invalid-checksum"])(
     "requires a valid checksum before reading an archive: %s",
     async (checksum) => {

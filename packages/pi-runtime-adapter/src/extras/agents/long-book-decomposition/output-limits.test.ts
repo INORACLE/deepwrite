@@ -134,6 +134,98 @@ describe("decomposition output limits", () => {
     expect(task.input.units["world:items"]!.status).toBe("done");
   });
 
+  it("explains invalid chronicle fields, stages the points, then finishes with only a summary", async () => {
+    const { task, services, submit } = setup(["chronicle:1"]);
+    const writer = toolNamed(
+      decompositionSubmissionTools(task, services, "chronicler"),
+      "write_chronicle"
+    );
+    const item = {
+      unitId: "chronicle:1",
+      data: {
+        asset: {
+          points: [
+            {
+              title: "夜访",
+              summary: "主角夜访旧宅。",
+              startOrder: 1,
+              endOrder: 2
+            }
+          ]
+        }
+      }
+    };
+    await expect(callAsModel(writer, { items: [item] })).rejects.toThrow(
+      "格式校验失败：asset.summary：缺少必填字段，应填写字符串"
+    );
+    expect(submit).not.toHaveBeenCalled();
+    await expect(callAsModel(writer, { items: [item] })).rejects.toThrow(
+      "将 more: true 放在 unitId、data 同级"
+    );
+    const staged = await callAsModel(writer, {
+      items: [{ ...item, more: true }]
+    });
+    expect(JSON.stringify(staged.content)).toContain("summary");
+    expect(JSON.stringify(staged.content)).toContain("不要重交已暂存的剧情点");
+    expect(task.input.units["chronicle:1"]!.status).toBe("running");
+    await callAsModel(writer, {
+      items: [
+        {
+          unitId: "chronicle:1",
+          data: { asset: { summary: "旧宅夜访引出失踪案。" } }
+        }
+      ]
+    });
+    expect(submit.mock.calls.map(([input]) => input.data.kind)).toEqual([
+      "asset-part",
+      "asset"
+    ]);
+    expect(submit.mock.calls[1]![0].data).toEqual({
+      kind: "asset",
+      asset: { kind: "chronicle", summary: "旧宅夜访引出失踪案。", points: [] }
+    });
+    expect(task.input.units["chronicle:1"]!.status).toBe("done");
+  });
+
+  it("does not report an invalid chronicle as saved or discard another valid unit", async () => {
+    const { task, services, submit } = setup(["chronicle:1", "chronicle:2"]);
+    const writer = toolNamed(
+      decompositionSubmissionTools(task, services, "chronicler"),
+      "write_chronicle"
+    );
+    const result = await callAsModel(writer, {
+      items: [
+        { unitId: "chronicle:1", data: { asset: { summary: "完整编年。" } } },
+        {
+          unitId: "chronicle:2",
+          data: {
+            asset: {
+              summary: "另一段编年。",
+              points: [
+                {
+                  title: "私密条目".repeat(31),
+                  summary: "剧情概述。",
+                  startOrder: 1,
+                  endOrder: 2
+                }
+              ]
+            }
+          }
+        }
+      ]
+    });
+    const text = JSON.stringify(result.content);
+    expect(text).toContain("chronicle:1：已保存");
+    expect(text).toContain(
+      "chronicle:2：未保存（格式校验失败：asset.points.0.title：当前 124 字，上限 120"
+    );
+    expect(text).not.toContain("私密条目");
+    expect(submit.mock.calls.map(([input]) => input.unitId)).toEqual([
+      "chronicle:1"
+    ]);
+    expect(task.input.units["chronicle:2"]!.status).toBe("running");
+  });
+
   it("submits a registrar's numbered decisions as a plan", async () => {
     const { task, services, submit } = setup(["registry:part:2"]);
     const registrar = toolNamed(

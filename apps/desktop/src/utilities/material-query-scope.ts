@@ -14,6 +14,8 @@ export interface MaterialCandidate {
   entryId: string;
   title: string;
   entryTitle: string;
+  libraryTitle: string;
+  overview?: boolean;
   kind: MaterialKind;
   stamp: string;
 }
@@ -98,6 +100,7 @@ export function scopedMaterialCandidates(
               ? combined
               : `${combined.slice(0, 240 - suffix.length)}${suffix}`,
           entryTitle: entry.title,
+          libraryTitle: library.title,
           kind,
           stamp: entry.contentStamp
         });

@@ -128,7 +128,9 @@ export class LongMaterialPackService {
       this.deps.longs,
       this.deps.workspaceDirectory,
       request.bookId,
-      request.options.sampleChapterIds
+      request.options.sampleChapterIds,
+      undefined,
+      request.options.transferAllBodies
     );
     const snapshot = await this.deps.catalog.indexSnapshot();
     const libraryIds =
@@ -177,7 +179,8 @@ export class LongMaterialPackService {
       this.deps.workspaceDirectory,
       input.bookId,
       input.options.sampleChapterIds,
-      (done, total) => progress({ phase: "reading", done, total })
+      (done, total) => progress({ phase: "reading", done, total }),
+      input.options.transferAllBodies
     );
     const target = await prepareLongMaterialTarget(this.deps.catalog, {
       packId,

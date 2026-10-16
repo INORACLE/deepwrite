@@ -11,6 +11,10 @@ import { LONG_STAGE_ROOTS } from "./entity-registry";
 import { longEntityMeta } from "./entity-records";
 import { resolveLongTarget } from "./target";
 import type { LongToolContext } from "./context";
+import {
+  writingReadContentCountLine,
+  WRITING_READ_CONTENT_COUNT_DESCRIPTION
+} from "../writing-content-counts";
 
 function metaLines(meta: Record<string, unknown>): string[] {
   return Object.entries(meta).flatMap(([key, value]) => {
@@ -32,7 +36,8 @@ export function buildReadTool(ctx: LongToolContext): AgentTool {
     name: "read",
     label: "读取对象正文",
     description:
-      "按稳定业务 id 一次读全目标的正文与精简信息，没有预览模式。人物和章卡必须同时给出 document。人物 current_state/history 默认映射最新已提交账本；可传 chapter_id 精确读取指定章。修改任何已有正文之前必须先用本工具完整读取。",
+      "按稳定业务 id 一次读全目标的正文与精简信息，没有预览模式。人物和章卡必须同时给出 document。人物 current_state/history 默认映射最新已提交账本；可传 chapter_id 精确读取指定章。修改任何已有正文之前必须先用本工具完整读取。" +
+      WRITING_READ_CONTENT_COUNT_DESCRIPTION,
     parameters: strictObject({
       id: entityIdParameter,
       document: Type.Optional(documentParameter),
@@ -55,6 +60,7 @@ export function buildReadTool(ctx: LongToolContext): AgentTool {
           [
             `${target.title}（${target.id}）`,
             ...metaLines(longEntityMeta(target.record)),
+            writingReadContentCountLine(target.content),
             "",
             target.content || "（正文为空）"
           ].join("\n")
@@ -78,6 +84,7 @@ export function buildReadTool(ctx: LongToolContext): AgentTool {
               publicDocument ? `／${publicDocument}` : ""
             }）`,
             ...characterMeta,
+            writingReadContentCountLine(target.inlineContent),
             "",
             target.inlineContent || "（正文为空）"
           ].join("\n")
@@ -96,6 +103,7 @@ export function buildReadTool(ctx: LongToolContext): AgentTool {
             publicDocument ? `／${publicDocument}` : ""
           }）`,
           ...characterMeta,
+          writingReadContentCountLine(live.content),
           "",
           live.content || "（正文为空）"
         ].join("\n")

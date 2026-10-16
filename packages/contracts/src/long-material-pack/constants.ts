@@ -17,9 +17,11 @@ export const LONG_MATERIAL_GUIDE_MIN_CONTEXT_WINDOW = 16_000;
 export const DEFAULT_LONG_MATERIAL_PACK_OPTIONS = {
   sections: [...LONG_MATERIAL_SECTIONS],
   characterScope: "grouped",
-  chapterGrouping: "auto"
+  chapterGrouping: "auto",
+  transferAllBodies: false
 } as const satisfies {
   sections: LongMaterialSection[];
   characterScope: "grouped" | "individual";
   chapterGrouping: "auto" | "20" | "50";
+  transferAllBodies: boolean;
 };

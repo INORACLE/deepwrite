@@ -46,17 +46,25 @@ export function buildCoverImagePrompt(
     "prompt" | "negativePrompt" | "typography" | "titlePlacement"
   >,
   titleRendering: CoverTitleRendering,
-  currentTitle = ""
+  currentTitle = "",
+  maxPromptCharacters = 8000
 ): { prompt: string; negativePrompt?: string } {
   const region = titleRegions[candidate.titlePlacement];
   const instructions =
     titleRendering === "model"
-      ? [
-          "Create a complete, finished book cover with its title rendered directly into the image.",
-          `The exact current book title is ${JSON.stringify(currentTitle)}. Reproduce every character accurately; do not rename, translate or substitute it. This current title supersedes any earlier title in the scene description.`,
-          `Place the title in the ${region}. Typography style: ${candidate.typography.trim() || "choose a clear, readable font matching the artwork"}. Set a suitable size, weight, color and texture with strong contrast; integrate the lettering with the composition without covering the main subject.`,
-          "Do not add a subtitle, author name, watermark, logo or other text. These title requirements override any conflicting instructions that omit lettering in the scene description."
-        ].join("\n")
+      ? maxPromptCharacters < 8000
+        ? [
+            "Create a complete, finished book cover with readable title lettering.",
+            `The exact current book title is ${JSON.stringify(currentTitle)}. Reproduce it accurately without translation; it supersedes any earlier title.`,
+            `Place the title in the ${region}. Typography style: ${candidate.typography.trim() || "a clear, readable font matching the artwork"}. Use strong contrast and keep the main subject visible.`,
+            "Do not add a subtitle, author name, watermark, logo or other text. These title requirements override conflicting scene instructions."
+          ].join("\n")
+        : [
+            "Create a complete, finished book cover with its title rendered directly into the image.",
+            `The exact current book title is ${JSON.stringify(currentTitle)}. Reproduce every character accurately; do not rename, translate or substitute it. This current title supersedes any earlier title in the scene description.`,
+            `Place the title in the ${region}. Typography style: ${candidate.typography.trim() || "choose a clear, readable font matching the artwork"}. Set a suitable size, weight, color and texture with strong contrast; integrate the lettering with the composition without covering the main subject.`,
+            "Do not add a subtitle, author name, watermark, logo or other text. These title requirements override any conflicting instructions that omit lettering in the scene description."
+          ].join("\n")
       : [
           "Create only a text-free book cover background. Do not render any text, letters, book title, subtitle, author name, watermark or logo.",
           `Leave a clean, quiet area covering approximately one third of the image in the ${region}, with enough contrast for later local title typography. Keep the main subject outside this area.`
@@ -71,9 +79,9 @@ export function buildCoverImagePrompt(
   ]
     .filter(Boolean)
     .join("\n\n");
-  if (prompt.length > 8000)
+  if (prompt.length > maxPromptCharacters)
     throw new SafeImageError(
-      "封面提示词加上书名与排版要求后超过 8000 字符，请缩短方案提示词后重试。"
+      `封面提示词加上书名与排版要求后超过 ${maxPromptCharacters} 字符，请缩短方案提示词后重试。`
     );
   const negativePrompt =
     titleRendering === "model"

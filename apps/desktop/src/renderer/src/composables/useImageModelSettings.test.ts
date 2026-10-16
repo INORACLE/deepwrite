@@ -4,6 +4,7 @@ import type {
   ImageModelSettingsInput
 } from "@deepwrite/contracts/renderer";
 import { useImageModelSettings } from "./useImageModelSettings";
+import { uiMessage } from "../ui-feedback";
 function fixture(): ImageModelSettings {
   return {
     activeProfileId: "img_active",
@@ -29,7 +30,10 @@ function fixture(): ImageModelSettings {
     ]
   };
 }
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 describe("image settings editor", () => {
   it("can edit a configuration without a key and preserves other configurations and secrets", async () => {
     const stored = fixture();
@@ -85,5 +89,51 @@ describe("image settings editor", () => {
     expect(c.draft.value?.name).toBe("Changed");
     expect(c.settings.value.profiles[0]?.name).toBe("Active");
     expect(c.saving.value).toBe(false);
+  });
+
+  it("switches an existing profile to MiniMax with native capabilities and preserves its saved key", async () => {
+    const stored = fixture();
+    vi.stubGlobal("window", {
+      deepwrite: { imageModels: { getSettings: async () => stored } }
+    });
+    const c = useImageModelSettings();
+    await c.load();
+    c.edit();
+    c.draft.value!.quality = "high";
+    c.draft.value!.defaultAspectRatio = "9:16";
+    c.applyPreset("minimax-image");
+    expect(c.draft.value).toMatchObject({
+      id: "img_active",
+      presetId: "minimax-image",
+      model: "image-01",
+      defaultAspectRatio: "3:4",
+      watermark: false
+    });
+    expect(c.draft.value!.quality).toBeUndefined();
+    expect(c.draft.value!.apiKey).toBeUndefined();
+    expect(c.draft.value!.clearApiKey).toBeUndefined();
+    expect(c.settings.value.profiles[0]!.hasApiKey).toBe(true);
+  });
+
+  it("shows the safe MiniMax business error received over IPC and completes the test state", async () => {
+    const error = vi.spyOn(uiMessage, "error").mockReturnValue(-1);
+    const message = "MiniMax 账户余额不足，请检查账户余额。";
+    vi.stubGlobal("window", {
+      deepwrite: {
+        imageModels: {
+          getSettings: async () => fixture(),
+          test: async () => {
+            throw { code: "image.operation_failed", message };
+          },
+          getUsage: async () => []
+        }
+      }
+    });
+    const c = useImageModelSettings();
+    await c.load();
+    await c.test("A book cover");
+    expect(error).toHaveBeenCalledWith(message);
+    expect(c.testRequestId.value).toBeNull();
+    expect(c.preview.value).toBe("");
   });
 });

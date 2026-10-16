@@ -41,6 +41,8 @@ export async function runPackagedSmoke(
         `--user-data-dir=${profile}`,
         ...(targetPlatform === "mac" ? ["--use-mock-keychain"] : []),
         "--use-fake-device-for-media-stream",
+        // Fake microphone sampling must not depend on the host output device.
+        "--disable-audio-output",
         "--password-store=basic"
       ],
       {

@@ -42,6 +42,7 @@ export * from "./long-worldbuilding-markdown";
 export * from "./long-workspace-operations";
 export * from "./marketplace";
 export * from "./material-markdown";
+export * from "./material-context-policy";
 export * from "./material-markdown-edit";
 export * from "./material-metadata";
 export * from "./material-query";

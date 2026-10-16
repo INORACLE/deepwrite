@@ -164,58 +164,64 @@ it("re-plans unfinished fixed-size registry parts on resume", async () => {
   ]);
 });
 
-it("stages list batches and finishes the unit with every batch", async () => {
-  const context = await setup();
-  const job = await context.service.state.load(context.job.id);
-  job.units = {};
-  job.phase = "integrate";
-  job.chronicleSegments = [{ id: "chronicle:1", chunkIds: ["chunk:1"] }];
-  addDecompositionUnit(job, "chronicle:1", "integrate");
-  await context.service.state.save(job);
-  const { input } = await context.open("integrate", ["chronicle:1"]);
-  const point = (title: string, order: number) => ({
-    title,
-    summary: `${title}的经过。`,
-    startOrder: order,
-    endOrder: order
-  });
-  const staged = await context.submit("chronicle:1", input.attemptId, {
-    kind: "asset-part",
-    asset: { kind: "chronicle", points: [point("夜访", 1), point("得铃", 2)] }
-  });
-  expect(staged).toMatchObject({ staged: 2, refs: [] });
-  let current = await context.service.state.load(context.job.id);
-  expect(current.units["chronicle:1"]!.status).toBe("running");
-  const brief = await queryDecomposition(
-    current,
-    context.root,
-    context.service.reader,
-    { kind: "brief", unitIds: ["chronicle:1"] }
-  );
-  expect(brief.content).toContain("【chronicle:1 已暂存 2 条】");
-  // The final batch may revise a staged point and adds the text fields.
-  await context.submit("chronicle:1", input.attemptId, {
-    kind: "asset",
-    asset: {
-      kind: "chronicle",
-      summary: "主角取回铜铃。",
-      points: [point("得铃", 2), point("离城", 3)]
-    }
-  });
-  current = await context.service.state.load(context.job.id);
-  expect(current.units["chronicle:1"]!.status).toBe("done");
-  const record = await context.service.reader.record(current, "chronicle:1");
-  expect(record.data).toMatchObject({
-    kind: "asset",
-    asset: {
-      summary: "主角取回铜铃。",
-      points: [{ title: "夜访" }, { title: "得铃" }, { title: "离城" }]
-    }
-  });
-  expect(
-    await context.service.records.draft(current, "chronicle:1")
-  ).toBeUndefined();
-});
+it.each([false, true])(
+  "preserves staged points when finishing with text only: %s",
+  async (textOnly) => {
+    const context = await setup();
+    const job = await context.service.state.load(context.job.id);
+    job.units = {};
+    job.phase = "integrate";
+    job.chronicleSegments = [{ id: "chronicle:1", chunkIds: ["chunk:1"] }];
+    addDecompositionUnit(job, "chronicle:1", "integrate");
+    await context.service.state.save(job);
+    const { input } = await context.open("integrate", ["chronicle:1"]);
+    const point = (title: string, order: number) => ({
+      title,
+      summary: `${title}的经过。`,
+      startOrder: order,
+      endOrder: order
+    });
+    const staged = await context.submit("chronicle:1", input.attemptId, {
+      kind: "asset-part",
+      asset: { kind: "chronicle", points: [point("夜访", 1), point("得铃", 2)] }
+    });
+    expect(staged).toMatchObject({ staged: 2, refs: [] });
+    let current = await context.service.state.load(context.job.id);
+    expect(current.units["chronicle:1"]!.status).toBe("running");
+    const brief = await queryDecomposition(
+      current,
+      context.root,
+      context.service.reader,
+      { kind: "brief", unitIds: ["chronicle:1"] }
+    );
+    expect(brief.content).toContain("【chronicle:1 已暂存 2 条】");
+    expect(brief.content).toContain("提交空条目列表即可收尾");
+    // A final call can add points, or only the required text after all points were staged.
+    await context.submit("chronicle:1", input.attemptId, {
+      kind: "asset",
+      asset: {
+        kind: "chronicle",
+        summary: "主角取回铜铃。",
+        points: textOnly ? [] : [point("得铃", 2), point("离城", 3)]
+      }
+    });
+    current = await context.service.state.load(context.job.id);
+    expect(current.units["chronicle:1"]!.status).toBe("done");
+    const record = await context.service.reader.record(current, "chronicle:1");
+    expect(record.data).toMatchObject({
+      kind: "asset",
+      asset: {
+        summary: "主角取回铜铃。",
+        points: textOnly
+          ? [{ title: "夜访" }, { title: "得铃" }]
+          : [{ title: "夜访" }, { title: "得铃" }, { title: "离城" }]
+      }
+    });
+    expect(
+      await context.service.records.draft(current, "chronicle:1")
+    ).toBeUndefined();
+  }
+);
 
 it("splits names by the model budget and asks the registrar only about cross-part clusters", async () => {
   const context = await setup();

@@ -7,10 +7,14 @@ import { basename, resolve } from "node:path";
 export async function resolveWindowsElectronArchive(
   version,
   {
+    arch = "x64",
     archivePath = process.env.DEEPWRITE_WINDOWS_ELECTRON_ARCHIVE,
     sha256 = process.env.DEEPWRITE_WINDOWS_ELECTRON_SHA256
   } = {}
 ) {
+  if (arch !== "x64" && arch !== "arm64") {
+    throw new Error("Windows Electron 归档架构只支持 x64 或 arm64。");
+  }
   if (archivePath === undefined && sha256 === undefined) return undefined;
   if (!archivePath || !sha256 || !/^[a-f\d]{64}$/iu.test(sha256)) {
     throw new Error(
@@ -18,7 +22,7 @@ export async function resolveWindowsElectronArchive(
     );
   }
   const archive = resolve(archivePath);
-  if (basename(archive) !== `electron-v${version}-win32-x64.zip`) {
+  if (basename(archive) !== `electron-v${version}-win32-${arch}.zip`) {
     throw new Error("本地 Windows Electron 归档必须匹配锁定的版本和架构。");
   }
   const info = await stat(archive);

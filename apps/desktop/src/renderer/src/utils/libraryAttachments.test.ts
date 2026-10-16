@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CatalogSnapshotSchema,
+  MATERIAL_ON_DEMAND_MARKER,
   WorkspaceRuntimeContextSchema,
   type CatalogSnapshot
 } from "@deepwrite/contracts";
@@ -158,6 +159,36 @@ function fixture(): CatalogSnapshot {
 }
 
 describe("library attachments", () => {
+  it.each(["\n", "\r\n"])(
+    "never automatically attaches on-demand bodies with %j line endings",
+    (newline) => {
+      const snapshot = fixture();
+      const library = snapshot.materials[0]!;
+      library.entries.push({
+        ...library.entries[0]!,
+        id: "on-demand-body",
+        stageId: "draft_excerpt",
+        title: "正文·第1章",
+        body: `${MATERIAL_ON_DEMAND_MARKER}${newline}不能主动推送的正文`
+      });
+      const result = buildLibraryAttachments(snapshot, "book-1");
+      expect(JSON.stringify(result.attachedMaterials)).not.toContain(
+        "正文·第1章"
+      );
+      expect(JSON.stringify(result.attachedMaterials)).not.toContain(
+        "不能主动推送的正文"
+      );
+      expect(
+        result.omittedAttachments.some(
+          ({ entryId }) => entryId === "on-demand-body"
+        )
+      ).toBe(false);
+      expect(
+        result.attachedMaterials.some(({ title }) => title.includes("人物条目"))
+      ).toBe(true);
+    }
+  );
+
   it("resolves a long book directly without registering it as a short Catalog book", () => {
     const source = fixture();
     const snapshot = CatalogSnapshotSchema.parse({

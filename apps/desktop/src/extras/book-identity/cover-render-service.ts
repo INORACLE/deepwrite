@@ -46,7 +46,10 @@ export class CoverRenderService {
   >();
   constructor(
     private readonly core: IdentityCore,
-    private readonly images: Pick<ImageService, "render" | "cancel">
+    private readonly images: Pick<
+      ImageService,
+      "render" | "cancel" | "capability"
+    >
   ) {}
 
   async render(
@@ -81,12 +84,14 @@ export class CoverRenderService {
         if (current.diagnostics?.foreignBookId)
           throw new SafeImageError("请先继承此作品的设计记录，再生成封面。");
         releaseCapacity = this.capacity.reserve(bookKey, current, round.id);
+        const capability = await this.images.capability();
         const prompt = buildCoverImagePrompt(
           candidate,
           round.request.titleRendering,
           round.request.titleRendering === "model"
             ? await currentBookTitle(this.core, input.book)
-            : undefined
+            : undefined,
+          capability?.maxPromptCharacters
         );
         if (pending.cancelled) throw new SafeImageError("图片生成已取消。");
         const result = await this.images.render(

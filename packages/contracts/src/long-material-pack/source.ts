@@ -110,6 +110,8 @@ export interface LongMaterialSource {
   events: LongMaterialSourceEvent[];
   connections: { source: string; target: string; type: string; note: string }[];
   samples: LongMaterialSourceSample[];
+  /** Only loaded when transferring all chapter bodies. */
+  bodies?: LongMaterialSourceSample[];
   decomposition?: {
     completed: boolean;
     style?: {

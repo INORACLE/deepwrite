@@ -11,7 +11,7 @@ import {
   type ImageUsageRecord
 } from "@deepwrite/contracts/renderer";
 import { createScopedTranslator } from "../i18n";
-import { formatError } from "../i18n/errors";
+import { getErrorDetail } from "../i18n/errors";
 import { uiMessage } from "../ui-feedback";
 const t = createScopedTranslator("components.imageModelSettings");
 export function useImageModelSettings() {
@@ -33,7 +33,7 @@ export function useImageModelSettings() {
     try {
       return await operation();
     } catch (error) {
-      uiMessage.error(formatError(error, t("error")));
+      uiMessage.error(getErrorDetail(error) ?? t("error"));
     }
   }
   async function load() {

@@ -1,4 +1,5 @@
 import { createRequire } from "node:module";
+import { open } from "node:fs/promises";
 import { posix } from "node:path";
 import ts from "typescript";
 
@@ -86,4 +87,26 @@ export function verifyPackagedRuntime(archive) {
   return validateRuntimeFiles(asar.listPackage(archive), (file) =>
     asar.extractFile(archive, file).toString("utf8")
   );
+}
+
+export async function verifyWindowsArchitecture(executable, arch) {
+  const machine = { x64: 0x8664, arm64: 0xaa64 }[arch];
+  if (!machine) throw new Error(`Unsupported Windows architecture: ${arch}`);
+  const file = await open(executable, "r");
+  try {
+    const dos = Buffer.alloc(64);
+    const header = await file.read(dos, 0, dos.length, 0);
+    if (header.bytesRead !== dos.length || dos.toString("ascii", 0, 2) !== "MZ")
+      throw new Error("Invalid Windows executable header.");
+    const pe = Buffer.alloc(6);
+    const result = await file.read(pe, 0, pe.length, dos.readUInt32LE(60));
+    if (result.bytesRead !== pe.length || pe.readUInt32LE(0) !== 0x4550)
+      throw new Error("Invalid Windows PE header.");
+    if (pe.readUInt16LE(4) !== machine)
+      throw new Error(
+        `Windows runtime architecture mismatch: expected ${arch}.`
+      );
+  } finally {
+    await file.close();
+  }
 }

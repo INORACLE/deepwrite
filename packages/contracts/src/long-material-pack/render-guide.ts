@@ -88,7 +88,8 @@ export function renderBookGuide(
   context: LongMaterialRenderContext,
   stats: LongMaterialBookStats,
   entries: readonly LongMaterialIndexEntry[],
-  guideGenerated: boolean
+  guideGenerated: boolean,
+  hasOnDemandBodies = false
 ): LongMaterialPlannedEntry {
   const book = context.bookTitle;
   const style = {
@@ -120,6 +121,11 @@ export function renderBookGuide(
         `这里是《${book}》仿写素材的总索引。条目用「库名 · 条目名」写出，可直接按这个名称读取。`,
         `## 作品概况\n\n${overview}`,
         `## 条目目录\n\n${catalogLines(context, entries, length).join("\n\n")}`,
+        ...(hasOnDemandBodies
+          ? [
+              `章节正文目录仅记录在${entryRef(context, "draft", "库说明")}，需要原文时先读库说明，再搜索章名、章号或正文关键词；正文条目不会主动推送。`
+            ]
+          : []),
         `## 读取路线\n\n${ROUTES}`,
         [
           "## 仿写边界",
@@ -212,7 +218,8 @@ const LIBRARY_LEADS: Record<MaterialKind, (book: string) => string> = {
   gimmick: (book) => `本库存放《${book}》的核心梗、金手指、卖点与爽点模式。`,
   plot: (book) =>
     `本库存放《${book}》的剧情设计：全书导读、主线、分卷、细纲、章纲与伏笔线。`,
-  draft: (book) => `本库存放《${book}》的文风画像、典型片段与精选范文。`,
+  draft: (book) =>
+    `本库存放《${book}》的正文参考，包括文风、片段、范文或按需读取的章节正文。`,
   other: (book) =>
     `本库存放《${book}》的世界观设定：规则、势力、地理、境界等类别的概览与条目。`
 };
@@ -226,6 +233,11 @@ export function renderLibraryOverview(
   return [
     LIBRARY_LEADS[kind](book),
     `以下 ${entries.length} 条由“长篇转素材库”生成，再次转换会原地更新：`,
+    ...(entries.some(({ key }) => key.startsWith("body:"))
+      ? [
+          "章节正文只在本库说明中列出，不主动附加正文或逐条推送名称与描述。需要时用 query_linked_material_entries 的 search 搜索章名、章号或正文关键词，再用 read 读取；只供参考，不照抄原句。"
+        ]
+      : []),
     entries
       .map(({ title, description }) => `- ${title}${brief(description, 40)}`)
       .join("\n")

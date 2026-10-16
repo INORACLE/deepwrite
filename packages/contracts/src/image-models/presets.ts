@@ -9,6 +9,7 @@ export const IMAGE_PRESET_IDS = [
   "aliyun-qwen-image",
   "siliconflow",
   "zhipu-cogview",
+  "minimax-image",
   "openai-compatible"
 ] as const;
 export const ImagePresetIdSchema = z.enum(IMAGE_PRESET_IDS);
@@ -16,8 +17,9 @@ export type ImagePresetId = z.infer<typeof ImagePresetIdSchema>;
 export interface ImageModelPreset {
   id: ImagePresetId;
   label: string;
-  protocol: "openai-images" | "dashscope-async";
-  variant: "openai" | "volcengine" | "siliconflow" | "zhipu" | "dashscope";
+  protocol: "openai-images" | "dashscope-async" | "minimax-images";
+  variant:
+    "openai" | "volcengine" | "siliconflow" | "zhipu" | "dashscope" | "minimax";
   baseUrl: string;
   model: string;
   aspectRatios: Partial<Record<CoverAspectRatio, string>>;
@@ -27,6 +29,7 @@ export interface ImageModelPreset {
   supportsNegativePrompt: boolean;
   supportsWatermark: boolean;
   supportsQuality: boolean;
+  maxPromptCharacters?: number;
 }
 const sizes = {
   "3:4": "1728x2304",
@@ -112,6 +115,28 @@ export const IMAGE_MODEL_PRESETS: Record<ImagePresetId, ImageModelPreset> = {
     supportsWatermark: true,
     supportsQuality: true
   },
+  "minimax-image": {
+    id: "minimax-image",
+    label: "MiniMax · Image-01",
+    protocol: "minimax-images",
+    variant: "minimax",
+    baseUrl: "https://api.minimax.cn/v1",
+    model: "image-01",
+    aspectRatios: {
+      "3:4": "864x1152",
+      "2:3": "832x1248",
+      "9:16": "720x1280",
+      "1:1": "1024x1024",
+      "16:9": "1280x720"
+    },
+    maxImagesPerRequest: 1,
+    promptLanguage: "en",
+    rendersCjkText: false,
+    supportsNegativePrompt: false,
+    supportsWatermark: true,
+    supportsQuality: false,
+    maxPromptCharacters: 1500
+  },
   "openai-compatible": {
     id: "openai-compatible",
     label: "OpenAI 兼容",
@@ -169,7 +194,8 @@ export const ImageModelCapabilitySchema = z
   .object({
     aspectRatios: z.array(CoverAspectRatioSchema).min(1).max(5),
     promptLanguage: z.enum(["zh", "en"]),
-    rendersCjkText: z.boolean()
+    rendersCjkText: z.boolean(),
+    maxPromptCharacters: z.number().int().positive().max(8000).optional()
   })
   .strict();
 export type ImageModelCapability = z.infer<typeof ImageModelCapabilitySchema>;
@@ -183,6 +209,9 @@ export function imageModelCapability(
       imageModelAspectRatios(presetId, model)
     ) as CoverAspectRatio[],
     promptLanguage: preset.promptLanguage,
-    rendersCjkText: (!model || model === preset.model) && preset.rendersCjkText
+    rendersCjkText: (!model || model === preset.model) && preset.rendersCjkText,
+    ...(preset.maxPromptCharacters
+      ? { maxPromptCharacters: preset.maxPromptCharacters }
+      : {})
   };
 }

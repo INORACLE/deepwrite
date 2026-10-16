@@ -70,6 +70,26 @@ describe("ImagePersistence", () => {
     expect((await store.getSettings()).profiles).toEqual([]);
   });
 
+  it("keeps the encrypted key when an existing configuration switches to MiniMax", async () => {
+    const { root, store } = await setup();
+    const settings = await store.saveSettings(imageSettingsInput());
+    const { hasApiKey: _key, ...profile } = settings.profiles[0]!;
+    await store.saveSettings({
+      activeProfileId: settings.activeProfileId,
+      profiles: [{ ...profile, presetId: "minimax-image", model: "image-01" }]
+    });
+    const reopened = new ImagePersistence(root, testSecureStorage);
+    expect(await reopened.resolve()).toMatchObject({
+      id: profile.id,
+      presetId: "minimax-image",
+      model: "image-01",
+      apiKey: INVALID_IMAGE_KEY
+    });
+    expect((await reopened.getSettings()).profiles[0]).not.toHaveProperty(
+      "apiKey"
+    );
+  });
+
   it("serializes concurrent usage and retains the latest 100 privacy-safe entries", async () => {
     const { store } = await setup();
     await Promise.all(

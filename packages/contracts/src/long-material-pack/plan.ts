@@ -6,6 +6,7 @@ import type {
 import type { LongMaterialGuideSubmission } from "./guide";
 import type { LongMaterialPackOptions } from "./options";
 import { renderCharacters } from "./render-characters";
+import { renderBodies } from "./render-bodies";
 import {
   chaptersPerEntry,
   renderChapters,
@@ -76,6 +77,7 @@ const RANK: Record<string, number> = {
   "style-excerpts": 2,
   "enhance:style-excerpts": 3,
   sample: 4,
+  body: 5,
   world: 1,
   "world-item": 1
 };
@@ -155,7 +157,10 @@ export function planLongMaterialPack(
       ...(has("timeline") ? renderTimeline(context, source) : []),
       ...(has("characters") ? renderCharacters(context, source, options) : []),
       ...(style ? renderStyle(context, style, false) : []),
-      ...(has("style") ? renderSamples(context, source) : []),
+      ...(has("style") && !options.transferAllBodies
+        ? renderSamples(context, source)
+        : []),
+      ...(options.transferAllBodies ? renderBodies(source) : []),
       ...(has("worldbuilding") ? renderWorld(context, source) : []),
       ...renderTopics(context, source, topicKinds)
     ],
@@ -185,10 +190,21 @@ export function planLongMaterialPack(
       )
       .map(({ value }) => value);
   const all = sort([...base, ...enhanced]);
-  const listed: LongMaterialIndexEntry[] = all.map(
-    ({ key, kind, title, description }) => ({ key, kind, title, description })
+  const listed: LongMaterialIndexEntry[] = all
+    .filter((entry) => !entry.readOnDemand)
+    .map(({ key, kind, title, description }) => ({
+      key,
+      kind,
+      title,
+      description
+    }));
+  const guide = renderBookGuide(
+    context,
+    stats,
+    listed,
+    Boolean(input.guide),
+    all.some((entry) => entry.readOnDemand)
   );
-  const guide = renderBookGuide(context, stats, listed, Boolean(input.guide));
   return {
     entries: sort([guide, ...all]),
     chaptersPerEntry: perEntry,

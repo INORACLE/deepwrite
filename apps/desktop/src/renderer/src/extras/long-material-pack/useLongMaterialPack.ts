@@ -46,6 +46,7 @@ export const useLongMaterialPackStore = defineStore(
     const characterScope = ref<"grouped" | "individual">("grouped");
     const chapterGrouping = ref<"auto" | "20" | "50">("auto");
     const sampleChapterIds = ref<string[]>([]);
+    const transferAllBodies = ref(false);
     const targetMode = ref<"create" | "update">("create");
     const groupTitle = ref("");
     const packId = ref("");
@@ -76,7 +77,8 @@ export const useLongMaterialPackStore = defineStore(
           sections: [...sections.value],
           characterScope: characterScope.value,
           chapterGrouping: chapterGrouping.value,
-          sampleChapterIds: [...sampleChapterIds.value]
+          sampleChapterIds: [...sampleChapterIds.value],
+          transferAllBodies: transferAllBodies.value
         },
         target:
           targetMode.value === "update" && packId.value
@@ -169,7 +171,10 @@ export const useLongMaterialPackStore = defineStore(
     async function runPreview() {
       const current = request.value;
       if (!current || previewing.value) return;
-      if (!current.options.sections.length)
+      if (
+        !current.options.sections.length &&
+        !current.options.transferAllBodies
+      )
         return uiMessage.error(t("chooseContent"));
       previewing.value = true;
       try {
@@ -185,7 +190,10 @@ export const useLongMaterialPackStore = defineStore(
     async function convert(model: ModelConfig | undefined) {
       const current = request.value;
       if (!current || busy.value) return;
-      if (!current.options.sections.length)
+      if (
+        !current.options.sections.length &&
+        !current.options.transferAllBodies
+      )
         return uiMessage.error(t("chooseContent"));
       operationId ||= createId("long_material_convert");
       converting.value = true;
@@ -251,6 +259,7 @@ export const useLongMaterialPackStore = defineStore(
       characterScope,
       chapterGrouping,
       sampleChapterIds,
+      transferAllBodies,
       targetMode,
       groupTitle,
       packId,

@@ -156,7 +156,8 @@ describe("book identity run registration", () => {
     f.deps.imageCapability = async () => ({
       aspectRatios: ["3:4"],
       promptLanguage: "en",
-      rendersCjkText: false
+      rendersCjkText: false,
+      maxPromptCharacters: 1500
     });
     expect(
       await runExtrasAgent(f.deps, f.command("cover", "cmd_cover"))
@@ -168,7 +169,10 @@ describe("book identity run registration", () => {
           input: {
             titleRendering: "model",
             bookSnapshot: { title: "测试作品" },
-            imageCapability: { rendersCjkText: false }
+            imageCapability: {
+              rendersCjkText: false,
+              maxPromptCharacters: 1500
+            }
           }
         }
       }

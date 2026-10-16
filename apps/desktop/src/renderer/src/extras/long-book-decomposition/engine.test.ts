@@ -1,7 +1,8 @@
 import { afterEach, expect, it, vi } from "vitest";
-import type {
-  DeepWriteApi,
-  LongBookDecompositionJob
+import {
+  readyDecompositionUnitIds,
+  type DeepWriteApi,
+  type LongBookDecompositionJob
 } from "@deepwrite/contracts/renderer";
 import { runEvent } from "../agent-runtime/extrasAgent.test-support";
 import {
@@ -13,6 +14,71 @@ afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
+it.each(["pending", "failed"] as const)(
+  "收尾单元为 %s 时只推进 Core，不派发模型工作包",
+  async (status) => {
+    const f = fixture();
+    const stored = f.stored();
+    stored.phase = "finalize";
+    stored.status = "failed";
+    stored.units["chunk:1"]!.status = "done";
+    stored.units["summary:characters"] = {
+      ...structuredClone(stored.units["chunk:1"]!),
+      phase: "finalize",
+      status
+    };
+    const completed = structuredClone(stored.units["chunk:1"]!);
+    f.engine.job.value = structuredClone(stored);
+    f.control.mockImplementation(async ({ action }) => {
+      if (action === "resume") stored.status = "idle";
+      if (action === "advance") {
+        stored.units["summary:characters"]!.status = "done";
+        stored.phase = "done";
+        stored.status = "completed";
+      }
+      return structuredClone(stored);
+    });
+    expect(readyDecompositionUnitIds(stored)).toEqual([]);
+    await f.engine.run();
+    expect(f.control.mock.calls.map(([input]) => input.action)).toEqual([
+      "resume",
+      "advance"
+    ]);
+    expect(f.extras.run).not.toHaveBeenCalled();
+    expect(f.engine.job.value).toMatchObject({
+      phase: "done",
+      status: "completed"
+    });
+    expect(f.engine.job.value?.units["chunk:1"]).toEqual(completed);
+    expect(f.engine.error.value).toBeNull();
+    f.engine.dispose();
+  }
+);
+
+it("收尾再次失败时保留真实错误与检查点，不派发模型任务", async () => {
+  const f = fixture();
+  f.stored().phase = "finalize";
+  f.stored().units["chunk:1"]!.status = "done";
+  f.stored().units["summary:characters"] = {
+    ...structuredClone(f.stored().units["chunk:1"]!),
+    phase: "finalize",
+    status: "pending"
+  };
+  f.engine.job.value = structuredClone(f.stored());
+  const control = f.control.getMockImplementation()!;
+  f.control.mockImplementation(async (input) => {
+    if (input.action === "advance")
+      throw { code: "storage.write_failed", message: "人物概览写入失败" };
+    return control(input);
+  });
+  await f.engine.run();
+  expect(f.extras.run).not.toHaveBeenCalled();
+  expect(f.engine.error.value).toBe("人物概览写入失败");
+  expect(f.engine.job.value?.phase).toBe("finalize");
+  expect(f.engine.isBusy.value).toBe(false);
+  f.engine.dispose();
+});
+
 it("名额不足时等待并重试，不增加单元失败次数，名册确认时停下", async () => {
   vi.useFakeTimers();
   const f = fixture();

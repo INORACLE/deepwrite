@@ -33,6 +33,7 @@ describe("test package target selection", () => {
     [["mac", "arm64"], ["buildMacArm64"]],
     [["mac", "x64"], ["buildMacX64"]],
     [["win", "x64"], ["buildWinX64"]],
+    [["win", "arm64"], ["buildWinArm64"]],
     [["linux", "x64"], ["buildLinuxX64"]]
   ])("preserves the requested targets for %j", (args, targets) => {
     expect(selected(args)).toEqual(targets);
@@ -41,7 +42,8 @@ describe("test package target selection", () => {
   it.each([
     { args: [] },
     { args: ["desktop", "x64"] },
-    { args: ["win", "arm64"] },
+    { args: ["win", "ia32"] },
+    { args: ["win", "arm64", "extra"] },
     { args: ["mac"] },
     { args: ["other"] }
   ])("rejects unsupported target combinations $args", ({ args }) => {

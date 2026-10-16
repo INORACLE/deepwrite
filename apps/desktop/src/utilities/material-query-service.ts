@@ -1,5 +1,6 @@
 import {
   MaterialQueryInputSchema,
+  isOnDemandMaterial,
   materialPreview,
   MaterialQueryResultSchema,
   parseMaterialMarkdown,
@@ -9,6 +10,7 @@ import {
   type MaterialQueryResult,
   type MaterialReadScope
 } from "@deepwrite/contracts";
+import { materialOverviewCandidates } from "./material-query-overviews";
 import type { FolderCatalogStore } from "./folder-catalog-store";
 import type { LongWorkspaceService } from "./long-workspace-service";
 import {
@@ -22,6 +24,7 @@ interface CachedMetadata {
   entry: MaterialCatalogEntry;
   configuredName?: string;
   hasBody: boolean;
+  readOnDemand: boolean;
 }
 
 /** Rebuildable metadata only: manuscript bodies are never retained in this cache. */
@@ -73,9 +76,10 @@ export class MaterialQueryService {
       ...(configuredName && configuredName.length <= 512
         ? { configuredName }
         : {}),
-      hasBody: Boolean(content.trim())
+      hasBody: Boolean(content.trim()),
+      readOnDemand: !candidate.overview && isOnDemandMaterial(content)
     };
-    const key = `${candidate.libraryId}\0${candidate.entryId}`;
+    const key = `${candidate.libraryId}\0${candidate.overview ? "overview" : "entry"}\0${candidate.entryId}`;
     this.metadata.delete(key);
     this.metadata.set(key, value);
     if (this.metadata.size > 16_384)
@@ -86,8 +90,9 @@ export class MaterialQueryService {
   private async read(candidate: MaterialCandidate) {
     const document = await this.catalog.readDocument({
       projectId: candidate.libraryId,
-      target: "document",
-      documentId: candidate.entryId
+      ...(candidate.overview
+        ? { target: "overview" as const }
+        : { target: "document" as const, documentId: candidate.entryId })
     });
     return {
       content: document.content,
@@ -97,7 +102,7 @@ export class MaterialQueryService {
 
   private async indexed(candidate: MaterialCandidate): Promise<CachedMetadata> {
     const cached = this.metadata.get(
-      `${candidate.libraryId}\0${candidate.entryId}`
+      `${candidate.libraryId}\0${candidate.overview ? "overview" : "entry"}\0${candidate.entryId}`
     );
     if (
       cached?.stamp === candidate.stamp &&
@@ -123,8 +128,13 @@ export class MaterialQueryService {
       (item) => !input.material_kind || item.kind === input.material_kind
     );
     if (input.mode === "read")
-      return this.readQuery(input, candidates, notices);
+      return this.readQuery(
+        input,
+        [...candidates, ...materialOverviewCandidates(candidates)],
+        notices
+      );
     const matches: MaterialCatalogEntry[] = [];
+    const onDemandLibraries = new Set<string>();
     for (const candidate of candidates) {
       try {
         if (input.mode === "search" && input.query?.trim()) {
@@ -152,12 +162,26 @@ export class MaterialQueryService {
           }
         } else {
           const cached = await this.indexed(candidate);
-          if (cached.hasBody) matches.push(cached.entry);
+          if (cached.readOnDemand) onDemandLibraries.add(candidate.libraryId);
+          else if (cached.hasBody) matches.push(cached.entry);
         }
       } catch {
         if (notices.length < 20)
           notices.push(
             `素材「${candidate.title}」暂时无法读取，请刷新后重试。`
+          );
+      }
+    }
+    // One library introduction replaces any number of hidden chapter entries.
+    for (const overview of materialOverviewCandidates(candidates).filter(
+      (item) => onDemandLibraries.has(item.libraryId)
+    )) {
+      try {
+        matches.unshift((await this.read(overview)).cached.entry);
+      } catch {
+        if (notices.length < 20)
+          notices.push(
+            `素材库「${overview.libraryTitle}」的库说明暂时无法读取。`
           );
       }
     }
@@ -237,7 +261,11 @@ export class MaterialQueryService {
     const candidate = found[0]!;
     const { content, cached } = await this.read(candidate);
     // Check the live association again after IO, including a concurrent unbind.
-    const stillReadable = (await this.candidates(input.scope)).some(
+    const liveCandidates = await this.candidates(input.scope);
+    const stillReadable = [
+      ...liveCandidates,
+      ...materialOverviewCandidates(liveCandidates)
+    ].some(
       (item) =>
         item.id === candidate.id &&
         item.libraryId === candidate.libraryId &&

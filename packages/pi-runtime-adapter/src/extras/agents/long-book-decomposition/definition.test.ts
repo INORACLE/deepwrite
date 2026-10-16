@@ -305,7 +305,7 @@ describe("decomposition child execution boundaries", () => {
     const text = JSON.stringify((await tool.execute("write", args)).content);
     expect(text).toContain("reading:chapter_1：已保存");
     expect(text).toContain(
-      "reading:chapter_3：未保存（card.chapters.0.events：当前 9 项，上限 8）"
+      "reading:chapter_3：未保存（格式校验失败：card.chapters.0.events：当前 9 项，上限 8）"
     );
     expect(text).not.toContain("私密事件");
     expect(submit.mock.calls.map(([input]) => input.unitId)).toEqual([

@@ -5,7 +5,11 @@ import {
 } from "./limits";
 import { DEFAULT_LONG_MATERIAL_PACK_OPTIONS } from "./constants";
 import { containsInternalId, nestHeadings, packSections } from "./markdown";
-import { longMaterialKeyRank, planLongMaterialPack } from "./plan";
+import {
+  longMaterialKeyRank,
+  planLongMaterialPack,
+  renderLibraryOverview
+} from "./plan";
 import { splitGimmick } from "./render-plot";
 import type { LongMaterialSource } from "./source";
 
@@ -167,6 +171,38 @@ function plan(
 }
 
 describe("long material pack planning", () => {
+  it("keeps transferred body titles only in the library introduction, not the book guide", () => {
+    const book = source();
+    book.bodies = book.samples;
+    const result = plan({
+      source: book,
+      options: {
+        ...DEFAULT_LONG_MATERIAL_PACK_OPTIONS,
+        sampleChapterIds: [book.samples[0]!.chapterId],
+        transferAllBodies: true
+      }
+    });
+    const bodies = result.entries.filter((entry) => entry.readOnDemand);
+    expect(bodies.length).toBeGreaterThan(1);
+    expect(bodies.every((entry) => entry.description === "")).toBe(true);
+    expect(result.entries.some(({ key }) => key.startsWith("sample:"))).toBe(
+      false
+    );
+    expect(bodies.map(({ body }) => body).join("")).toBe(book.samples[0]!.body);
+    const guide = result.entries.find(({ key }) => key === "guide")!;
+    expect(guide.body).toContain("《测试书》正文 · 库说明");
+    for (const { title, body } of bodies) {
+      expect(guide.body).not.toContain(title);
+      expect(body.length).toBeLessThanOrEqual(
+        LONG_MATERIAL_ENTRY_MAX_CHARACTERS
+      );
+      expect(body).not.toMatch(/[\uD800-\uDBFF]$/u);
+    }
+    const overview = renderLibraryOverview("draft", book.title, bodies);
+    for (const { title } of bodies) expect(overview).toContain(`- ${title}`);
+    expect(overview).toContain("按需");
+  });
+
   it("writes agent-readable entries: headers, sizes, unique names, no ids", () => {
     const { entries } = plan();
     const titles = entries.map(({ title }) => title);

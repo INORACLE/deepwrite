@@ -40,6 +40,17 @@ export const STAGED_TOOLS = new Set([
   "write_foreshadowing",
   "write_world_category"
 ]);
+/** Final text-only calls finish already-staged lists without resending them. */
+export const stagedCompletionNotes: Record<string, string> = {
+  write_chronicle:
+    '若剧情点已全部暂存，直接提交 data: {asset: {summary: "完整编年总结", points: []}}，省略 more；不要重交已暂存的剧情点。',
+  write_book_line:
+    '若分卷已全部暂存，直接提交 data: {asset: {content: "完整主线", gimmick: "核心梗", volumes: []}}，省略 more；不要重交已暂存的分卷。',
+  write_foreshadowing:
+    "若伏笔线已全部暂存，直接提交 data: {asset: {lines: []}}，省略 more；不要重交已暂存的伏笔线。",
+  write_world_category:
+    '若条目已全部暂存，直接提交 data: {asset: {categoryId: "本单元类别标识", overview: "完整类别概览", items: []}}，省略 more；不要重交已暂存的条目。'
+};
 export const submissionNotes: Record<string, string> = {
   submit_chapter_reading:
     "每项一个 reading 单元，data.card.chapters 只放这一章；按章节顺序提交，本块全部章节保存后系统自动完成阅读块。",

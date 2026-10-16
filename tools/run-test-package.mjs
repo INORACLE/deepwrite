@@ -35,57 +35,32 @@ function run(command, args, cwd = workspaceRoot) {
 }
 
 export function parseTarget(args) {
-  const [platform, arch] = args;
-  if ((platform === "all" || platform === "desktop") && arch === undefined) {
-    return {
-      buildLinuxX64: platform === "all",
-      buildMacArm64: true,
-      buildMacX64: true,
-      buildWinX64: true
-    };
+  const targets = {
+    all: ["buildLinuxX64", "buildMacArm64", "buildMacX64", "buildWinX64"],
+    desktop: ["buildMacArm64", "buildMacX64", "buildWinX64"],
+    "mac all": ["buildMacArm64", "buildMacX64"],
+    "mac arm64": ["buildMacArm64"],
+    "mac x64": ["buildMacX64"],
+    "win x64": ["buildWinX64"],
+    "win arm64": ["buildWinArm64"],
+    "linux x64": ["buildLinuxX64"]
+  };
+  const selected = Object.hasOwn(targets, args.join(" "))
+    ? targets[args.join(" ")]
+    : undefined;
+  if (!selected) {
+    throw new Error(
+      "Usage: node tools/run-test-package.mjs <all | desktop | linux x64 | mac arm64 | mac x64 | mac all | win x64 | win arm64>"
+    );
   }
-  if (platform === "mac" && arch === "all") {
-    return {
-      buildLinuxX64: false,
-      buildMacArm64: true,
-      buildMacX64: true,
-      buildWinX64: false
-    };
-  }
-  if (platform === "mac" && arch === "arm64") {
-    return {
-      buildLinuxX64: false,
-      buildMacArm64: true,
-      buildMacX64: false,
-      buildWinX64: false
-    };
-  }
-  if (platform === "mac" && arch === "x64") {
-    return {
-      buildLinuxX64: false,
-      buildMacArm64: false,
-      buildMacX64: true,
-      buildWinX64: false
-    };
-  }
-  if (platform === "win" && arch === "x64") {
-    return {
-      buildLinuxX64: false,
-      buildMacArm64: false,
-      buildMacX64: false,
-      buildWinX64: true
-    };
-  }
-  if (platform === "linux" && arch === "x64") {
-    return {
-      buildLinuxX64: true,
-      buildMacArm64: false,
-      buildMacX64: false,
-      buildWinX64: false
-    };
-  }
-  throw new Error(
-    "Usage: node tools/run-test-package.mjs <all | desktop | linux x64 | mac arm64 | mac x64 | mac all | win x64>"
+  return Object.fromEntries(
+    [
+      "buildLinuxX64",
+      "buildMacArm64",
+      "buildMacX64",
+      "buildWinX64",
+      "buildWinArm64"
+    ].map((target) => [target, selected.includes(target)])
   );
 }
 
@@ -138,8 +113,8 @@ async function buildMac(target, version) {
   }
 }
 
-async function buildWindows(target, version, archive) {
-  if (!target.buildWinX64) return;
+async function buildWindows(arch, version, archive) {
+  if (!arch) return;
   await run(
     pnpmCommand,
     [
@@ -148,10 +123,11 @@ async function buildWindows(target, version, archive) {
       "--config",
       "electron-builder.yml",
       `--config.electronVersion=${version}`,
+      ...(arch === "arm64" ? ["--config.publish.channel=latest-arm64"] : []),
       ...(archive ? [`--config.electronDist=${archive}`] : []),
       "--win",
       "nsis",
-      "--x64",
+      `--${arch}`,
       "--publish",
       "never"
     ],
@@ -159,7 +135,7 @@ async function buildWindows(target, version, archive) {
   );
   await run(
     pnpmCommand,
-    ["exec", "node", "scripts/verify-test-package.mjs", "win", "x64"],
+    ["exec", "node", "scripts/verify-test-package.mjs", "win", arch],
     appDirectory
   );
 }
@@ -192,6 +168,11 @@ async function buildLinux(target, version) {
 
 async function main() {
   const target = parseTarget(process.argv.slice(2));
+  const windowsArch = target.buildWinArm64
+    ? "arm64"
+    : target.buildWinX64
+      ? "x64"
+      : undefined;
   if (
     target.buildMacArm64 ||
     (target.buildMacX64 && process.env.DEEPWRITE_SKIP_MAC_X64_SMOKE !== "1")
@@ -206,13 +187,13 @@ async function main() {
 
   let packagingError;
   try {
-    const windowsArchive = target.buildWinX64
-      ? await resolveWindowsElectronArchive(version)
+    const windowsArchive = windowsArch
+      ? await resolveWindowsElectronArchive(version, { arch: windowsArch })
       : undefined;
     await run(pnpmCommand, ["verify"]);
     await buildLinux(target, version);
     await buildMac(target, version);
-    await buildWindows(target, version, windowsArchive);
+    await buildWindows(windowsArch, version, windowsArchive);
   } catch (error) {
     packagingError = error;
   } finally {

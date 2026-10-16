@@ -110,6 +110,42 @@ describe("long material pack page store", () => {
     expect(store.previewStale).toBe(true);
   });
 
+  it("defaults all-body transfer off, invalidates previews on toggle and supports bodies only", async () => {
+    const api = install();
+    api.longMaterialPack.convert.mockReset().mockResolvedValue(result);
+    const store = useLongMaterialPackStore();
+    await store.loadBooks();
+    expect(store.transferAllBodies).toBe(false);
+    await store.runPreview();
+    expect(api.longMaterialPack.preview).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({ transferAllBodies: false })
+      })
+    );
+    store.transferAllBodies = true;
+    await nextTick();
+    expect(store.previewStale).toBe(true);
+    store.sections = [];
+    await store.runPreview();
+    expect(api.longMaterialPack.preview).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          sections: [],
+          transferAllBodies: true
+        })
+      })
+    );
+    await store.convert(undefined);
+    expect(api.longMaterialPack.convert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          sections: [],
+          transferAllBodies: true
+        })
+      })
+    );
+  });
+
   it("retries a failed create with the same operation and then updates in place", async () => {
     const api = install();
     const store = useLongMaterialPackStore();

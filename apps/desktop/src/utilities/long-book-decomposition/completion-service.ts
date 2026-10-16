@@ -37,23 +37,26 @@ export async function finalizeDecomposition(
   if (unfinished.length)
     throw new Error(`仍有 ${unfinished.length} 个单元未写入。`);
   await reader.snapshot(async () => {
-    const receipts = new Set(
-      (await reader.receipts(job, completion.postCommitRefs)).map(
-        ({ unitId }) => unitId
-      )
+    const receipts = new Map(
+      (await reader.receipts(job, completion.postCommitRefs)).map((receipt) => [
+        receipt.unitId,
+        receipt
+      ])
     );
     const current = new Set(
       currentDecompositionRefs(
-        Object.values(job.units).flatMap(({ outputRefs }) => outputRefs)
+        [...receipts.values()].flatMap(({ refs }) => refs)
       )
     );
     for (const [id, unit] of Object.entries(job.units)) {
       if (unit.status !== "done") continue;
       // The task record is the unit's content; an asset may legitimately write nothing.
-      if (!receipts.has(id)) throw new Error(`完成单元的内容或回执缺失：${id}`);
+      const receipt = receipts.get(id);
+      if (!receipt) throw new Error(`完成单元的内容或回执缺失：${id}`);
       await reader.record(job, id);
-      for (const ref of unit.outputRefs)
+      for (const ref of receipt.refs)
         if (current.has(ref)) await reader.validateRef(job, ref);
+      unit.outputRefs = receipt.refs;
     }
   });
   if (job.target.kind === "long") {

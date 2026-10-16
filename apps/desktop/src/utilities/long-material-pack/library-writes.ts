@@ -57,13 +57,15 @@ export async function writeReconciledLibraries(
       renderLibraryOverview(
         kind,
         input.bookTitle,
-        planned.map(({ key, view }) => ({
-          key,
-          kind,
-          title: view.title,
-          description:
-            input.plan.find((entry) => entry.key === key)?.description ?? ""
-        }))
+        [...planned, ...kept.filter(({ key }) => key.startsWith("body:"))].map(
+          ({ key, view }) => ({
+            key,
+            kind,
+            title: view.title,
+            description:
+              input.plan.find((entry) => entry.key === key)?.description ?? ""
+          })
+        )
       )
     );
     const writes = own.flatMap((entry) =>

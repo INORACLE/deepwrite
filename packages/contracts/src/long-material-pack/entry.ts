@@ -19,6 +19,8 @@ export interface LongMaterialPlannedEntry {
   description: string;
   body: string;
   enhanced?: boolean;
+  /** No generated metadata header; excluded from unsolicited context. */
+  readOnDemand?: boolean;
 }
 
 export interface LongMaterialRenderContext {

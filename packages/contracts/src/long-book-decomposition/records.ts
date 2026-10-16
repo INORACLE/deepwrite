@@ -6,10 +6,31 @@ import {
 } from "./assets";
 import { DecompositionIdSchema } from "./limits";
 
-export const DecompositionRecordSchema = z.object({
-  unitId: DecompositionIdSchema,
-  data: DecompositionSubmissionDataSchema
+// Task records share the local document/transaction ceiling. Unlike one
+// model submission, a Core-generated overview contains many valid assets.
+export const DECOMPOSITION_RECORD_MAX_BYTES = 32 * 1024 * 1024;
+
+const generatedCharacterOverview = z.object({
+  unitId: z.literal("summary:characters"),
+  data: z.object({
+    kind: z.literal("asset"),
+    asset: z.object({
+      kind: z.literal("topic"),
+      domain: z.literal("character"),
+      title: z.literal("人物概览"),
+      // The store also checks the serialized UTF-8 bytes, including escaping.
+      content: z.string().trim().min(1).max(DECOMPOSITION_RECORD_MAX_BYTES)
+    })
+  })
 });
+
+export const DecompositionRecordSchema = z.union([
+  generatedCharacterOverview,
+  z.object({
+    unitId: DecompositionIdSchema,
+    data: DecompositionSubmissionDataSchema
+  })
+]);
 export type DecompositionRecord = z.infer<typeof DecompositionRecordSchema>;
 
 /**

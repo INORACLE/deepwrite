@@ -3,6 +3,7 @@ import {
   MATERIAL_KINDS,
   SKILL_KINDS,
   resolveMaterialMetadata,
+  isOnDemandMaterial,
   type CatalogSnapshot,
   type MaterialKind,
   type SkillKind
@@ -82,7 +83,11 @@ export function collectMaterialCandidates(
       }
       for (const entry of library.entries) {
         const entryKind = MATERIAL_STAGE_KINDS[entry.stageId];
-        if (entryKind !== selectedKind || !entry.body.trim()) {
+        if (
+          entryKind !== selectedKind ||
+          !entry.body.trim() ||
+          isOnDemandMaterial(entry.body)
+        ) {
           continue;
         }
         const baseId = `material:${library.id}:${entry.id}`;

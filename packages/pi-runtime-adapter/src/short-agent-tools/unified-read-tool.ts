@@ -2,6 +2,11 @@ import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type } from "typebox";
 import { defineTool } from "./schema";
 import {
+  countWritingContentCharacters,
+  writingReadContentCountLine,
+  WRITING_READ_CONTENT_COUNT_DESCRIPTION
+} from "../writing-content-counts";
+import {
   orderedExpertSections,
   textResult,
   workspaceKindLabel,
@@ -58,14 +63,26 @@ function readDraftDirectory(
   state: ShortWorkspaceToolSharedState
 ): string {
   const sections = orderedExpertSections(input, state.expertSections);
+  const bodyCharacters = sections.reduce(
+    (total, section) =>
+      total + countWritingContentCharacters(section.body.content),
+    0
+  );
+  const characterStateCharacters = sections.reduce(
+    (total, section) =>
+      total + countWritingContentCharacters(section.characterState.content),
+    0
+  );
   return [
     `【${input.workspace.expertDraft.title}】`,
     "kind: draft",
     "id: draft",
+    `正文总字数：${bodyCharacters} 字`,
+    `人物状态总字数：${characterStateCharacters} 字`,
     "",
     ...sections.map(
       (section, index) =>
-        `${index + 1}. ${section.title}（id=${section.id}；字数要求=${section.wordCountRequirement || "未设置"}）`
+        `${index + 1}. ${section.title}（id=${section.id}；字数要求=${section.wordCountRequirement || "未设置"}；正文字数=${countWritingContentCharacters(section.body.content)}；人物状态字数=${countWritingContentCharacters(section.characterState.content)}）`
     )
   ].join("\n");
 }
@@ -86,17 +103,20 @@ function readAllDraftSections(
     });
     return [
       `【${index + 1}. ${section.title}｜id=${section.id}｜document=${document}】`,
+      writingReadContentCountLine(file.content),
       file.content || "（正文为空）"
     ].join("\n");
   });
   const totalCharacters = sections.reduce(
-    (total, section) => total + section[fileKind].content.length,
+    (total, section) =>
+      total + countWritingContentCharacters(section[fileKind].content),
     0
   );
   return [
     `【${input.workspace.expertDraft.title}｜全部${document === "body" ? "正文" : "人物状态"}】`,
     `sections: ${sections.length}`,
     `total_characters: ${totalCharacters}`,
+    `合计字数：${totalCharacters} 字`,
     ...(totalCharacters > LARGE_DRAFT_CHARACTER_THRESHOLD
       ? [
           `长度提示：合计超过 ${LARGE_DRAFT_CHARACTER_THRESHOLD} 字，后续精读或修改时建议按 draft_section 的稳定 id 分步读取；本次仍按明确请求完整返回。`
@@ -116,7 +136,8 @@ export function buildShortUnifiedReadTool(
     name: "read",
     label: `读取${workspaceKindLabel(input)}对象`,
     description:
-      "按稳定业务 id 一次读全人物概览、人物条目、剧情结构或正文小节，没有分页和预览模式。kind=draft_section 必须同时给出 document=body 或 character_state。kind=draft、id=draft 读取正文目录；再设置 include_all_sections=true 可一次返回全部小节，不传 document 时默认 body。全部正文超过五万字时会给出分步精读建议，但仍完整返回。修改任何已有正文前必须先 read 完整读取。",
+      "按稳定业务 id 一次读全人物概览、人物条目、剧情结构或正文小节，没有分页和预览模式。kind=draft_section 必须同时给出 document=body 或 character_state。kind=draft、id=draft 读取正文目录及各小节的正文、人物状态字数；再设置 include_all_sections=true 可一次返回全部小节及合计字数，不传 document 时默认 body。全部正文超过五万字时会给出分步精读建议，但仍完整返回。修改任何已有正文前必须先 read 完整读取。" +
+      WRITING_READ_CONTENT_COUNT_DESCRIPTION,
     parameters: Type.Object(
       {
         kind: writingReadKindParameter,
@@ -178,6 +199,7 @@ export function buildShortUnifiedReadTool(
           `kind: ${target.kind}`,
           `id: ${target.id}`,
           ...(params.document ? [`document: ${params.document}`] : []),
+          writingReadContentCountLine(target.content, target.truncated),
           ...(target.truncated
             ? ["读取状态：运行时快照已截断，不能据此修改目标。"]
             : []),

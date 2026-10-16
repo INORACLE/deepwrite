@@ -17,6 +17,7 @@ import {
   assetKinds,
   dataKinds,
   roleSubmissionTools,
+  stagedCompletionNotes,
   submissionNotes,
   submissionUnitIds
 } from "./submission-kinds";
@@ -176,7 +177,7 @@ export function decompositionSubmissionTools(
     const tool = defineStrictTool({
       name,
       label: name,
-      description: `批量提交本任务单元的完整结构化产出，items 每项写成 {unitId, data}；kind 由工具填写，没有内容的列表可省略。每项单独校验并立即保存，逐项返回结果，失败项按提示修正后只重交失败项。字段说明里的数量与字数上限必须遵守。单元 id 见任务消息。${staged ? "条目超过任务消息给出的每批上限时分批提交：前几批带 more: true 只交条目，最后一批不带 more。" : ""}${submissionNotes[name] ?? ""}`,
+      description: `批量提交本任务单元的完整结构化产出，items 每项写成 {unitId, data}；kind 由工具填写，没有内容的列表可省略。每项单独校验并立即保存，逐项返回结果，失败项按提示修正后只重交失败项。字段说明里的数量与字数上限必须遵守。单元 id 见任务消息。${staged ? "条目超过任务消息给出的每批上限时分批提交：前几批带 more: true 只交条目，最后一批不带 more。" : ""}${stagedCompletionNotes[name] ?? ""}${submissionNotes[name] ?? ""}`,
       parameters,
       execute: async (_id, params) => {
         if (!ids.length) throw new Error("本任务没有此类单元可提交。");
@@ -206,7 +207,7 @@ export function decompositionSubmissionTools(
             const checked = DecompositionSubmissionDataSchema.safeParse(data);
             if (!checked.success)
               throw new Error(
-                describeSubmissionIssues(checked.error.issues, data)
+                `格式校验失败：${describeSubmissionIssues(checked.error.issues, data)}${staged && !more ? `；若本批只是中间批次，将 more: true 放在 unitId、data 同级；若要完成单元，补齐必填文字字段并省略 more。${stagedCompletionNotes[name]}` : ""}`
               );
             const result = await saveDecompositionSubmission(
               task,
@@ -217,7 +218,7 @@ export function decompositionSubmissionTools(
             progressed = true;
             if (more) {
               lines.push(
-                `${item.unitId}：本批已暂存（累计 ${result.receipt.staged ?? 0} 条），单元未完成；继续提交其余条目，最后一批不带 more。`
+                `${item.unitId}：本批已暂存（累计 ${result.receipt.staged ?? 0} 条），单元未完成；继续提交其余条目，最后一批不带 more。${stagedCompletionNotes[name]}`
               );
               continue;
             }

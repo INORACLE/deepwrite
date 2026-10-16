@@ -4,6 +4,7 @@ import {
   BookSchema,
   createCatalogDraftDirectory,
   createDefaultCreativePlotStages,
+  imageModelCapability,
   type ChatAssistantProjectRef,
   type CommandEnvelope,
   type CommandResult
@@ -155,6 +156,9 @@ function titleSnapshot(
 
 function imageService() {
   return {
+    capability: vi
+      .fn<ImageService["capability"]>()
+      .mockResolvedValue(undefined),
     render: vi.fn<ImageService["render"]>().mockResolvedValue({
       images: [
         {
@@ -201,7 +205,7 @@ describe("CoverRenderService", () => {
               payload: fixture().record
             }
     );
-    const images = { render: vi.fn(), cancel: vi.fn() };
+    const images = imageService();
     const service = new CoverRenderService(core, images);
     const operation = service.render(input, 7);
     const rejected = expect(operation).rejects.toThrow("已取消");
@@ -242,7 +246,7 @@ describe("CoverRenderService", () => {
             : current.record
       })
     );
-    const images = { render: vi.fn(), cancel: vi.fn() };
+    const images = imageService();
     await expect(
       new CoverRenderService(core, images).render(input, 7)
     ).rejects.toThrow("240 张");
@@ -353,6 +357,28 @@ describe("CoverRenderService", () => {
     await expect(
       new CoverRenderService(core, images).render(input, 7)
     ).rejects.toThrow("超过 8000 字符");
+    expect(images.render).not.toHaveBeenCalled();
+  });
+
+  it("uses MiniMax's final prompt limit and compact lettering instructions", async () => {
+    const current = fixture();
+    current.round.request.titleRendering = "model";
+    current.candidate.prompt = "景".repeat(650);
+    current.candidate.typography = "字".repeat(120);
+    const core = renderCore(current, titleSnapshot(book, "名".repeat(120)));
+    const images = imageService();
+    images.capability.mockResolvedValue(imageModelCapability("minimax-image"));
+    const service = new CoverRenderService(core, images);
+    await service.render(input, 7);
+    const prompt = images.render.mock.calls[0]![0].prompt;
+    expect(prompt).toContain(JSON.stringify("名".repeat(120)));
+    expect(prompt.length).toBeLessThanOrEqual(1500);
+
+    current.candidate.prompt = "景".repeat(1500);
+    images.render.mockClear();
+    await expect(
+      service.render({ ...input, requestId: "next" }, 7)
+    ).rejects.toThrow("超过 1500 字符");
     expect(images.render).not.toHaveBeenCalled();
   });
 

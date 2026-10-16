@@ -40,6 +40,9 @@ export default {
   chapterGroupingAuto: "Automatic",
   chapterGrouping20: "About 20 chapters each",
   chapterGrouping50: "About 50 chapters each",
+  transferAllBodies: "Transfer all chapter bodies",
+  transferAllBodiesHelp:
+    "Copy every non-empty chapter body into the material library’s Draft stage, keeping the source book. No per-entry name/description headers or unsolicited body entries; the library overview records the directory for on-demand search and reading.",
   sampleChapters: "Sample chapters",
   addSampleChapter: "Add a chapter (up to {limit})",
   removeSampleChapter: "Remove chapter {number}",

@@ -42,10 +42,11 @@ export async function prepareIdentitySmokeInRenderer() {
       {
         id: "identity_smoke_image",
         name: "冒烟固定图片",
-        presetId: "openai-compatible",
+        presetId: "minimax-image",
         baseUrl: "https://image.example.test/v1",
-        model: "qwen-image-2.0",
+        model: "image-01",
         defaultAspectRatio: "3:4",
+        watermark: false,
         apiKey: "invalid-smoke-placeholder"
       }
     ]

@@ -29,6 +29,7 @@ import { ImagePersistence } from "./image-persistence";
 import { imageAbortable, ImageQueue } from "./image-queue";
 import { generateOpenAiImages } from "./providers/openai-images";
 import { generateDashscopeImages } from "./providers/dashscope-async";
+import { generateMiniMaxImages } from "./providers/minimax-images";
 
 export interface ImageServiceOptions {
   secureStorage?: VoiceSecureStorage;
@@ -184,14 +185,16 @@ export class ImageService {
           images: Math.min(preset.maxImagesPerRequest, count - offset)
         };
         const sources = await imageAbortable(
-          preset.protocol === "dashscope-async"
-            ? generateDashscopeImages(
-                generation,
-                fetcher,
-                signal,
-                this.options.pollIntervalMs
-              )
-            : generateOpenAiImages(generation, fetcher, signal),
+          preset.protocol === "minimax-images"
+            ? generateMiniMaxImages(generation, fetcher, signal)
+            : preset.protocol === "dashscope-async"
+              ? generateDashscopeImages(
+                  generation,
+                  fetcher,
+                  signal,
+                  this.options.pollIntervalMs
+                )
+              : generateOpenAiImages(generation, fetcher, signal),
           signal
         );
         delivered += sources.length;

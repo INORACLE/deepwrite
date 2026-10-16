@@ -23,7 +23,9 @@ export async function advanceDecompositionJob(
     (unit) =>
       unit.phase === job.phase && !["done", "skipped"].includes(unit.status)
   );
-  if (remaining.length) return job;
+  // Finalization itself writes local units (such as the character overview).
+  // After an interruption, let it retry those writes instead of waiting for an agent.
+  if (remaining.length && job.phase !== "finalize") return job;
   if (
     ["read", "registry"].includes(job.phase) &&
     job.units["registry:merge"]?.status === "done"

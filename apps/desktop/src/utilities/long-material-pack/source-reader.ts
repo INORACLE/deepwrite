@@ -1,16 +1,12 @@
 import {
   latestCommittedContinuityChapter,
-  type LongMarkdownFileReference,
   type LongMaterialCharacterTier,
   type LongMaterialSource,
   type LongWorkspaceIndexSnapshot
 } from "@deepwrite/contracts";
-import { readSecureTextFile } from "../long-project-store/io";
 import type { LongWorkspaceService } from "../long-workspace-service";
 import { readDecompositionMaterial } from "./decomposition-source";
-
-const MAX_FILE_BYTES = 32 * 1024 * 1024;
-const READ_CONCURRENCY = 16;
+import { createFileReader } from "./source-files";
 
 export interface OpenedLongBook {
   projectDirectory: string;
@@ -63,36 +59,6 @@ export function characterTier(group: string): LongMaterialCharacterTier {
   return "minor";
 }
 
-/** Reads index-referenced Markdown with bounded parallelism; missing is empty. */
-export function createFileReader(projectDirectory: string) {
-  return async function read(
-    refs: readonly (LongMarkdownFileReference | undefined | null)[]
-  ): Promise<string[]> {
-    const result: string[] = [];
-    for (let start = 0; start < refs.length; start += READ_CONCURRENCY)
-      result.push(
-        ...(await Promise.all(
-          refs.slice(start, start + READ_CONCURRENCY).map(async (ref) => {
-            if (!ref) return "";
-            try {
-              return (
-                await readSecureTextFile(
-                  projectDirectory,
-                  ref.path,
-                  MAX_FILE_BYTES
-                )
-              ).content;
-            } catch (error) {
-              if ((error as NodeJS.ErrnoException).code === "ENOENT") return "";
-              throw error;
-            }
-          })
-        ))
-      );
-    return result;
-  };
-}
-
 const ordered = <T extends { order: number; id: string }>(
   values: readonly T[]
 ) => [...values].sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
@@ -103,7 +69,8 @@ export async function readLongMaterialSource(
   workspaceDirectory: string,
   bookId: string,
   sampleChapterIds: readonly string[],
-  onProgress?: (done: number, total: number) => void
+  onProgress?: (done: number, total: number) => void,
+  transferAllBodies = false
 ): Promise<LongMaterialSource> {
   const book = await openLongBook(longs, bookId);
   const { index } = book;
@@ -205,10 +172,18 @@ export async function readLongMaterialSource(
   const characterName = new Map(
     index.characters.map(({ id, name }) => [id, name])
   );
-  const samples = chapters.filter(({ card }) =>
-    sampleChapterIds.includes(card.id)
+  const samples = chapters.filter(({ card, files }) =>
+    transferAllBodies
+      ? Boolean(files?.body)
+      : sampleChapterIds.includes(card.id)
   );
   const bodies = await read(samples.map(({ files }) => files?.body));
+  const bodySources = samples.map(({ card, number }, i) => ({
+    chapterId: card.id,
+    number,
+    title: card.title,
+    body: bodies[i]!
+  }));
   step(2);
   return {
     bookId: book.bookId,
@@ -285,12 +260,10 @@ export async function readLongMaterialSource(
       type: connection.type,
       note: connection.note
     })),
-    samples: samples.map(({ card, number }, i) => ({
-      chapterId: card.id,
-      number,
-      title: card.title,
-      body: bodies[i]!
-    })),
+    samples: bodySources.filter(({ chapterId }) =>
+      sampleChapterIds.includes(chapterId)
+    ),
+    ...(transferAllBodies ? { bodies: bodySources } : {}),
     ...(await readDecompositionMaterial(workspaceDirectory, bookId))
   };
 }

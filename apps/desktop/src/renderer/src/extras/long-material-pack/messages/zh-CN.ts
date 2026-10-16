@@ -39,6 +39,9 @@ export default {
   chapterGroupingAuto: "自动",
   chapterGrouping20: "每段约 20 章",
   chapterGrouping50: "每段约 50 章",
+  transferAllBodies: "转移全部正文",
+  transferAllBodiesHelp:
+    "把全部非空章节正文复制到素材库的正文阶段，保留源长篇。不添加逐条名称与描述头部，只在库说明中记录目录；创作空间按需搜索读取，不主动推送正文条目。",
   sampleChapters: "范文章节",
   addSampleChapter: "添加章节（最多 {limit} 章）",
   removeSampleChapter: "移除第 {number} 章",

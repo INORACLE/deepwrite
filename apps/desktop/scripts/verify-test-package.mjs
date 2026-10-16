@@ -5,7 +5,10 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assertElectronLaunchAllowed } from "../../../tools/electron-launch-environment.mjs";
-import { verifyPackagedRuntime } from "./package-runtime-files.mjs";
+import {
+  verifyPackagedRuntime,
+  verifyWindowsArchitecture
+} from "./package-runtime-files.mjs";
 import {
   runPackagedSmoke,
   validateSmokeSummary
@@ -20,10 +23,10 @@ if (!(
   (targetPlatform === "mac" &&
     (targetArch === "arm64" || targetArch === "x64")) ||
   (targetPlatform === "linux" && targetArch === "x64") ||
-  (targetPlatform === "win" && targetArch === "x64")
+  (targetPlatform === "win" && (targetArch === "x64" || targetArch === "arm64"))
 )) {
   console.error(
-    "Usage: node scripts/verify-test-package.mjs <linux x64|mac arm64|mac x64|win x64>"
+    "Usage: node scripts/verify-test-package.mjs <linux x64|mac arm64|mac x64|win x64|win arm64>"
   );
   process.exit(1);
 }
@@ -31,7 +34,9 @@ if (!(
 const hostCanRunTarget =
   (targetPlatform === "mac" && process.platform === "darwin") ||
   (targetPlatform === "linux" && process.platform === "linux") ||
-  (targetPlatform === "win" && process.platform === "win32");
+  (targetPlatform === "win" &&
+    process.platform === "win32" &&
+    process.arch === targetArch);
 const skipMacX64Smoke =
   process.env.DEEPWRITE_SKIP_MAC_X64_SMOKE === "1" &&
   targetPlatform === "mac" &&
@@ -123,13 +128,22 @@ const unpackedDirectory = join(
     ? targetArch === "arm64"
       ? "mac-arm64"
       : "mac"
-    : `${targetPlatform === "win" ? "win" : "linux"}-unpacked`
+    : targetPlatform === "win"
+      ? targetArch === "arm64"
+        ? "win-arm64-unpacked"
+        : "win-unpacked"
+      : "linux-unpacked"
 );
 const resources =
   targetPlatform === "mac"
     ? join(unpackedDirectory, "DeepWrite.app", "Contents", "Resources")
     : join(unpackedDirectory, "resources");
 const inventory = verifyPackagedRuntime(join(resources, "app.asar"));
+if (targetPlatform === "win")
+  await verifyWindowsArchitecture(
+    join(unpackedDirectory, "DeepWrite.exe"),
+    targetArch
+  );
 console.log(
   `PACKAGE_RUNTIME_FILES_OK entries=${inventory.entries} checkedModules=${inventory.checkedModules}`
 );
@@ -153,7 +167,7 @@ let executable =
       )
     : targetPlatform === "linux"
       ? join(releaseDir, "linux-unpacked", "deepwrite")
-      : join(releaseDir, "win-unpacked", "DeepWrite.exe");
+      : join(unpackedDirectory, "DeepWrite.exe");
 await stat(executable);
 
 const smokeUserData = await mkdtemp(

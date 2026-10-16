@@ -3,6 +3,7 @@ import { join } from "node:path";
 import {
   DecompositionDraftFileSchema,
   DecompositionRecordFileSchema,
+  DECOMPOSITION_RECORD_MAX_BYTES,
   type DecompositionAssetPart,
   type DecompositionDraftFile,
   type DecompositionRecord,
@@ -14,7 +15,9 @@ import { commitProjectTransaction } from "../project-transaction";
 import { readNoFollowFile } from "../long-project-store/io";
 import { decompositionReceiptId } from "./identity";
 
-const MAX_RECORD_BYTES = 8 * 1024 * 1024;
+// Keep writes and reads aligned with recovery of the shared task directory.
+// The submission schemas still cap ordinary model assets at 200,000 characters.
+const MAX_RECORD_BYTES = DECOMPOSITION_RECORD_MAX_BYTES;
 
 /** Identity of the record a unit's current revision was submitted with. */
 export function decompositionRecordId(

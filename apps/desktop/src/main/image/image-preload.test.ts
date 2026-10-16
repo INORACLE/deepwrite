@@ -37,6 +37,34 @@ describe("image and identity preload validation", () => {
     expect(invoke).not.toHaveBeenCalled();
   });
 
+  it("validates a MiniMax configuration in both directions through the existing API", async () => {
+    const profile = {
+      id: "img_test",
+      name: "MiniMax test",
+      presetId: "minimax-image" as const,
+      baseUrl: "https://image.example.test/v1",
+      model: "image-01",
+      defaultAspectRatio: "9:16" as const,
+      watermark: false
+    };
+    invoke.mockResolvedValue({
+      activeProfileId: profile.id,
+      profiles: [{ ...profile, hasApiKey: true }]
+    });
+    const saved = await imageModels.saveSettings({
+      activeProfileId: profile.id,
+      profiles: [{ ...profile, apiKey: "invalid-test-image-key" }]
+    });
+    expect(invoke.mock.calls[0]![0].payload.profiles[0].presetId).toBe(
+      "minimax-image"
+    );
+    expect(saved.profiles[0]).toMatchObject({
+      presetId: "minimax-image",
+      hasApiKey: true
+    });
+    expect(saved.profiles[0]).not.toHaveProperty("apiKey");
+  });
+
   it("validates image previews and cancellation replies", async () => {
     invoke.mockResolvedValue({
       requestId: "request_test",

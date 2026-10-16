@@ -1,6 +1,6 @@
 {
   "name": "deepwrite",
-  "version": "1.6.402",
+  "version": "1.6.5",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.7.0",
@@ -28,6 +28,7 @@
     "pack:test": "node tools/run-test-package.mjs all",
     "pack:test:desktop": "node tools/run-test-package.mjs desktop",
     "pack:test:win": "node tools/run-test-package.mjs win x64",
+    "pack:test:win:arm64": "node tools/run-test-package.mjs win arm64",
     "pack:test:linux": "node tools/run-test-package.mjs linux x64",
     "pack:test:mac:arm64": "node tools/run-test-package.mjs mac arm64",
     "pack:test:mac:x64": "node tools/run-test-package.mjs mac x64",

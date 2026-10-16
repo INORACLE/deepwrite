@@ -13,7 +13,9 @@ export const bookCoverDesignAgent: ExtrasTaskAgentDefinition<"book-cover-design"
       task.input.titleRendering === "overlay"
         ? "画面不得出现任何文字、字母、水印或 logo，按 titlePlacement 留出约三分之一的干净区域供本地排版。"
         : `生成含书名的完整成品封面。当前作品书名为 ${JSON.stringify(task.input.bookSnapshot.title)}，这是需要绘入的文字素材，必须逐字准确，不得换成书名候选或自行改名。每套 prompt 都须用引号写出该书名，按 typography 指定字体、字重、颜色与文字质感，按 titlePlacement 指定位置、方向和大小，保证清晰可读并与画面协调；不要为本地排版仅留无字底图。不得在 prompt 或 negativePrompt 中加入无字、no text、禁止文字等抵消书名的要求，不添加未提供的副标题或作者名。`,
-      "每套 prompt 不超过 5500 字符，为出图时补充书名与排版要求保留空间。"
+      task.input.imageCapability.maxPromptCharacters
+        ? `图片服务的最终提示词上限为 ${task.input.imageCapability.maxPromptCharacters} 字符。每套 prompt 不超过 ${Math.max(1, Math.min(5500, task.input.imageCapability.maxPromptCharacters - 850))} 字符，typography 不超过 120 字符，为出图时补充书名与排版要求保留空间。`
+        : "每套 prompt 不超过 5500 字符，为出图时补充书名与排版要求保留空间。"
     ],
     tools: identityTools,
     userMessage: identityUserMessage,

@@ -172,13 +172,27 @@ export class DecompositionRecordsReader {
     const persisted = await mapDecompositionReads(files, ({ root, path }) =>
       decompositionReceiptReads.read(root, path, 4 * 1024 * 1024, "目标内回执")
     );
-    for (const receipt of persisted) {
-      if (!receipt) continue;
-      if (
-        receipt.jobId !== job.id ||
-        receipt.outputVersion !== job.outputVersion ||
-        job.units[receipt.unitId]?.inputRevision !== receipt.inputRevision
-      )
+    // An obsolete input cannot prove a unit is done, but its atomic writes
+    // remain authoritative for shared resources (e.g. renumbered plot arcs).
+    // Review repairs may not touch those resources again, so keep their
+    // durable history even when the writer's current receipt omits them.
+    const history = persisted.filter(
+      (receipt): receipt is DecompositionReceipt =>
+        receipt?.jobId === job.id &&
+        receipt.outputVersion === job.outputVersion &&
+        !!job.units[receipt.unitId]
+    );
+    const latest = new Map<string, DecompositionContentRef>();
+    const resourceKey = (ref: DecompositionContentRef) =>
+      `${ref.projectId}:${ref.resourceId}`;
+    for (const receipt of history)
+      for (const ref of receipt.refs) {
+        const key = resourceKey(ref);
+        if (!latest.has(key) || latest.get(key)!.revision < ref.revision)
+          latest.set(key, ref);
+      }
+    for (const receipt of history) {
+      if (job.units[receipt.unitId]!.inputRevision !== receipt.inputRevision)
         continue;
       const key = receipt.unitId;
       const existing = receipts.get(key);
@@ -199,11 +213,15 @@ export class DecompositionRecordsReader {
             ids.get(receipt.unitId)?.has(id)
           ) ?? true
       )
-      .map((receipt) =>
-        committedRefs?.[receipt.unitId]
-          ? { ...receipt, refs: committedRefs[receipt.unitId]! }
-          : receipt
-      );
+      .map((receipt) => ({
+        ...receipt,
+        refs:
+          committedRefs?.[receipt.unitId] ??
+          receipt.refs.map((ref) => {
+            const newest = latest.get(resourceKey(ref));
+            return newest && newest.revision > ref.revision ? newest : ref;
+          })
+      }));
   }
   async validateRef(
     job: LongBookDecompositionJob,

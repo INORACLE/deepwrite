@@ -146,6 +146,10 @@ export {
   resolveMaterialMetadata
 } from "./material-markdown";
 export { updateMaterialMarkdownMetadata } from "./material-markdown-edit";
+export {
+  isOnDemandMaterial,
+  MATERIAL_ON_DEMAND_MARKER
+} from "./material-context-policy";
 export { isDeepWriteSiteOfficialModel } from "./models";
 export {
   APPEARANCE_CUSTOM_FONT_DISPLAY_NAME_MAX_LENGTH,

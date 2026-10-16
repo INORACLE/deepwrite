@@ -109,6 +109,35 @@ describe("UpdateService character version ordering", () => {
     expect(runtime.downloadedVersions).toEqual(["1.6.4"]);
   });
 
+  it.each([
+    ["win32", "arm64", "latest-arm64"],
+    ["win32", "x64", undefined],
+    ["darwin", "arm64", undefined]
+  ])(
+    "selects the matching update channel on %s/%s",
+    async (platform, arch, channel) => {
+      const platformDescriptor = Object.getOwnPropertyDescriptor(
+        process,
+        "platform"
+      )!;
+      const archDescriptor = Object.getOwnPropertyDescriptor(process, "arch")!;
+      try {
+        Object.defineProperty(process, "platform", { value: platform });
+        Object.defineProperty(process, "arch", { value: arch });
+        const service = new UpdateService(() => undefined);
+        expect(await service.check()).toMatchObject({ status: "available" });
+        expect(autoUpdater.setFeedURL).toHaveBeenCalledWith({
+          provider: "generic",
+          url: "https://example.test/updates",
+          ...(channel ? { channel } : {})
+        });
+      } finally {
+        Object.defineProperty(process, "platform", platformDescriptor);
+        Object.defineProperty(process, "arch", archDescriptor);
+      }
+    }
+  );
+
   it.each(["1.6.10", "1.6.1000", "1.6.302", "1.6.303"])(
     "blocks character-older or equal %s before reaching the updater",
     async (version) => {

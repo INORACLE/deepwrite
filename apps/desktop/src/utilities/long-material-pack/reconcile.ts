@@ -1,4 +1,5 @@
 import {
+  MATERIAL_ON_DEMAND_MARKER,
   updateMaterialMarkdownMetadata,
   type LongMaterialEntryStatus,
   type LongMaterialEntryView,
@@ -36,6 +37,7 @@ export interface ReconciledEntry {
 }
 
 export function plannedContent(entry: LongMaterialPlannedEntry): string {
+  if (entry.readOnDemand) return `${MATERIAL_ON_DEMAND_MARKER}\n${entry.body}`;
   const result = updateMaterialMarkdownMetadata(entry.body, {
     name: entry.title,
     description: entry.description
