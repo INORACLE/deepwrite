@@ -54,7 +54,6 @@ it("reconstructs a large paged status result from streamed JSON fragments", asyn
   for (let index = 0; index < 500; index += 1) {
     fixture.job.units[`unit:test:${index}`] = {
       ...template,
-      id: `unit:test:${index}`,
       dependencies: []
     };
   }
