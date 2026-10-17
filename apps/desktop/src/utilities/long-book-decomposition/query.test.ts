@@ -60,7 +60,7 @@ it("reconstructs a large paged status result from streamed JSON fragments", asyn
 
   let cursor = 0;
   let content = "";
-  let totalCharacters = 0;
+  let totalCharacters: number | undefined;
   let pages = 0;
   do {
     const page = await queryDecomposition(
