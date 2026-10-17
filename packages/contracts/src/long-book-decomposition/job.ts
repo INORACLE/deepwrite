@@ -3,6 +3,7 @@ import { ThinkingLevelSchema } from "../models";
 import { decompositionInputBudget, DecompositionChunkSchema } from "./chunking";
 import {
   DecompositionIdSchema,
+  DECOMPOSITION_MAX_CHARACTERS,
   DecompositionPhaseSchema,
   DecompositionRangeSchema,
   DecompositionRunPhaseSchema
@@ -23,7 +24,7 @@ export const DecompositionSourceRefSchema = z.object({
   confirmationId: DecompositionIdSchema,
   confirmedAt: z.string().datetime(),
   chapterCount: z.number().int().min(1).max(10_000),
-  characterCount: z.number().int().min(1).max(20_000_000),
+  characterCount: z.number().int().min(1).max(DECOMPOSITION_MAX_CHARACTERS),
   range: DecompositionRangeSchema
 });
 export const DecompositionUnitSchema = z.object({

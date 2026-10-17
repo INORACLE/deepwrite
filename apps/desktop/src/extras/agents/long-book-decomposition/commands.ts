@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   LongBookDecompositionJobSchema,
+  DECOMPOSITION_MAX_CHARACTERS,
   LongBookAnalysisSourceSchema,
   DecompositionSourceConfirmationSchema,
   DecompositionCommandRecoverySchema,
@@ -79,8 +80,10 @@ export async function handleDecompositionCommands(
         (sum, { text }) => sum + text.length,
         0
       );
-      if (characterCount > 20_000_000)
-        throw new Error("单任务正文超过 2,000 万字，请缩小章节范围。");
+      if (characterCount > DECOMPOSITION_MAX_CHARACTERS)
+        throw new Error(
+          `单任务正文超过 ${DECOMPOSITION_MAX_CHARACTERS.toLocaleString("zh-CN")} 字符，请缩小章节范围。`
+        );
       const profile = await config.resolve(
         "long-book-decomposition",
         profileId
