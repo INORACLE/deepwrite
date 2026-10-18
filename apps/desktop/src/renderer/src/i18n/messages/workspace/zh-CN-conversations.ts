@@ -299,6 +299,10 @@ export default {
       "智能体运行已停止，工具调用未返回完整终态。"
   },
   sendMessage: {
+    messageExceedsContextBudget:
+      "消息和附件约 {used} token，超过当前可用的 {limit} token。已按压缩上下文上限 {budget} token 预留 10% 余量，请缩短内容或调整设置。",
+    messageTooLong:
+      "单条消息最多 {limit} 个字符，当前为 {length} 个字符。请将内容分段发送。",
     couldNotSaveBeforeSending:
       "消息尚未保存到本机，暂时无法发送。请检查用户数据目录。",
     pleaseReadAndAnalyzeTheAttachmentsIUploaded: "请阅读并分析我上传的附件。",

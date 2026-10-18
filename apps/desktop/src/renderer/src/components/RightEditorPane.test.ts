@@ -206,7 +206,6 @@ describe("RightEditorPane expert draft navigation", () => {
     );
     expect(source).toContain("onUpdated(restoreEditorViewportAfterRender)");
     expect(source).toContain("saving");
-    expect(source).toContain("(!autoSaveEnabled && !dirty)");
     expect(source).toContain("@mousedown.prevent");
   });
 

@@ -24,6 +24,7 @@ import {
 } from "../workspace";
 import { UserPromptAttachmentsSchema } from "./attachments";
 import { ProposalSettlementsSchema } from "./proposal-settlements";
+import { SESSION_PROMPT_MAX_MESSAGE_LENGTH } from "./prompt-limits";
 import {
   ContextCompactionRequestSchema,
   ContextCompactionRunSettingsSchema,
@@ -83,7 +84,7 @@ export const SessionConversationHistorySchema = z
 export const SessionPromptCommandPayloadSchema = z
   .object({
     sessionId: z.string().min(1),
-    message: z.string().trim().min(1).max(20_000),
+    message: z.string().trim().min(1).max(SESSION_PROMPT_MAX_MESSAGE_LENGTH),
     conversationHistory: SessionConversationHistorySchema.optional(),
     conversationHistoryMode: z.literal("replace").optional(),
     /** Summary of turns older than `conversationHistory`, if any. */

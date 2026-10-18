@@ -1,7 +1,7 @@
 import { ErrorPayloadSchema } from "@deepwrite/contracts/renderer";
 import type { ErrorPayload } from "@deepwrite/contracts";
 import type { TranslationKey } from "./messages";
-import { t } from "./index";
+import { locale, t } from "./index";
 
 const errorKeys: Readonly<Record<string, TranslationKey>> = {
   "catalog.conflict": "foundation.catalogConflict",
@@ -47,6 +47,24 @@ export function getErrorDetail(error: unknown): string | undefined {
 export function formatError(error: unknown, fallback: string): string {
   const payload = getErrorPayload(error);
   if (payload) {
+    if (payload.code === "session.prompt_budget_exceeded") {
+      const { inputTokens, maxInputTokens, budgetTokens } =
+        payload.details ?? {};
+      if (
+        typeof inputTokens === "number" &&
+        typeof maxInputTokens === "number" &&
+        typeof budgetTokens === "number" &&
+        [inputTokens, maxInputTokens, budgetTokens].every(
+          (value) => Number.isSafeInteger(value) && value >= 0
+        )
+      )
+        return t("workspace.sendMessage.messageExceedsContextBudget", {
+          used: inputTokens.toLocaleString(locale.value),
+          limit: maxInputTokens.toLocaleString(locale.value),
+          budget: budgetTokens.toLocaleString(locale.value)
+        });
+      return fallback;
+    }
     if (payload.code === "renderer_state.command_failed") {
       const details = payload.details ?? {};
       const code =

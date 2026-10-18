@@ -1,4 +1,5 @@
 import type { AgentConversationPersistenceSnapshot } from "./useAgentConversation.test-support";
+import { SESSION_PROMPT_MAX_MESSAGE_LENGTH } from "@deepwrite/contracts/renderer";
 import {
   createDeferredApi,
   createEditProposal,
@@ -109,11 +110,12 @@ describe("agent conversation controller: history rewrite", () => {
       ...document,
       content: "这是当前编辑器和磁盘上的最新作品内容。"
     };
+    const revisedContent = `修改后的问题\n${"完整保留长问题。".repeat(5_000)}`;
 
     const sending = controller.resendMessage(
       {
         messageId: "user-target",
-        content: "  修改后的问题  "
+        content: `  ${revisedContent}  `
       },
       currentDocument
     );
@@ -121,7 +123,7 @@ describe("agent conversation controller: history rewrite", () => {
     expect(deferred.prompts).toHaveLength(1);
     expect(deferred.prompts[0]).toMatchObject({
       sessionId: sourceSessionId,
-      message: "修改后的问题",
+      message: revisedContent,
       conversationHistoryMode: "replace",
       conversationHistory: [
         {
@@ -146,7 +148,7 @@ describe("agent conversation controller: history rewrite", () => {
     });
     expect(controller.draft.value).toBe("主输入框里尚未发送的草稿");
     expect(controller.messages.value.map((message) => message.content)).toEqual(
-      ["第一条问题", "第一条回答", "修改后的问题", ""]
+      ["第一条问题", "第一条回答", revisedContent, ""]
     );
     expect(controller.messages.value.at(-1)).toMatchObject({
       role: "assistant",
@@ -157,7 +159,7 @@ describe("agent conversation controller: history rewrite", () => {
     expect(persisted).toHaveLength(1);
     expect(
       persisted[0]?.conversations[0]?.messages.map((message) => message.content)
-    ).toEqual(["第一条问题", "第一条回答", "修改后的问题"]);
+    ).toEqual(["第一条问题", "第一条回答", revisedContent]);
 
     const rewrittenSnapshot = controller.capturePersistenceSnapshot();
     expect(rewrittenSnapshot.activeSessionId).toBe(sourceSessionId);
@@ -166,12 +168,12 @@ describe("agent conversation controller: history rewrite", () => {
       rewrittenSnapshot.conversations[0]?.messages.map(
         (message) => message.content
       )
-    ).toEqual(["第一条问题", "第一条回答", "修改后的问题"]);
+    ).toEqual(["第一条问题", "第一条回答", revisedContent]);
 
     deferred.rejectPrompt(0, new Error("模拟运行启动失败"));
     await expect(sending).resolves.toBe(true);
     expect(controller.messages.value.map((message) => message.content)).toEqual(
-      ["第一条问题", "第一条回答", "修改后的问题"]
+      ["第一条问题", "第一条回答", revisedContent]
     );
     expect(controller.conversationError.value).toBe("模拟运行启动失败");
 
@@ -183,7 +185,7 @@ describe("agent conversation controller: history rewrite", () => {
       conversationHistory: [
         expect.objectContaining({ content: "第一条问题" }),
         expect.objectContaining({ content: "第一条回答" }),
-        expect.objectContaining({ content: "修改后的问题" })
+        expect.objectContaining({ content: revisedContent })
       ]
     });
     deferred.resolveAccepted(1, {
@@ -292,7 +294,10 @@ describe("agent conversation controller: history rewrite", () => {
     ).resolves.toBe(false);
     await expect(
       controller.resendMessage(
-        { messageId: "user-target", content: "长".repeat(20_001) },
+        {
+          messageId: "user-target",
+          content: "长".repeat(SESSION_PROMPT_MAX_MESSAGE_LENGTH + 1)
+        },
         document
       )
     ).resolves.toBe(false);

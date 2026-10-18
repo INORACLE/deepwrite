@@ -41,6 +41,8 @@ const activeItem = computed(
   >
     <div
       class="section-tabs-scroll"
+      data-long-reorder-group="worldbuilding"
+      data-long-reorder-axis="horizontal"
       role="tablist"
       @wheel="handleHorizontalOverflowWheel"
     >
@@ -72,6 +74,7 @@ const activeItem = computed(
         :aria-selected="activeItemId === item.id"
         :aria-busy="pendingItemId === item.id"
         :title="item.title"
+        :data-long-reorder-item="item.id"
         @click="emit('selectItem', item.id)"
       >
         {{ item.title }}
@@ -139,7 +142,11 @@ const activeItem = computed(
         </button>
       </div>
     </header>
-    <div class="long-story-plot-list" role="list">
+    <div
+      class="long-story-plot-list"
+      role="list"
+      data-long-reorder-group="worldbuilding"
+    >
       <article
         class="long-story-plot-card"
         :class="{
@@ -175,6 +182,7 @@ const activeItem = computed(
           :aria-pressed="activeItemId === item.id"
           :aria-busy="pendingItemId === item.id"
           :title="item.title"
+          :data-long-reorder-item="item.id"
           @click="emit('selectItem', item.id)"
         >
           <span class="long-story-plot-card-order">{{ index + 1 }}</span>

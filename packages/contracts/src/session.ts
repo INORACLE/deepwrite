@@ -7,6 +7,8 @@
 export { AgentUsageSchema, type AgentUsage } from "./agent-usage";
 export * from "./session/runtime";
 export * from "./session/attachments";
+export * from "./session/prompt-limits";
+export * from "./session/prompt-budget";
 export * from "./session/user-input";
 export * from "./session/agent-events";
 export * from "./session/context-compaction";

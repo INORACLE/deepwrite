@@ -282,7 +282,7 @@ describe("long-form renderer vertical slice: navigation-and-characters", () => {
     expect(editorSource).toContain("selection.plotPointTabs");
     expect(editorSource).toContain("emit('selectPlotPoint', plotPoint.id)");
     expect(editorSource).toContain("currentIsChapterCardWorkspace");
-    expect(editorSource).toContain("selection.chapterCardTabs");
+    expect(editorSource).toContain("props.selection?.chapterCardTabs");
     expect(manuscriptNavigationSource).toContain(
       "emit('selectChapter', chapter.id)"
     );

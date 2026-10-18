@@ -3,6 +3,7 @@ import { bookSynopsisDesignAgent } from "./agents/book-identity/synopsis-design"
 import { bookCoverDesignAgent } from "./agents/book-identity/cover-design";
 import {
   assertExtrasAgentBudget,
+  assertConversationPromptBudget,
   type ExtrasAgentResolvedTask,
   type ExtrasAgentRunSpec
 } from "@deepwrite/contracts";
@@ -159,8 +160,16 @@ export function planExtrasRun(input: ExtrasAgentRunInput): AgentRunPlan {
   const shared = {
     eventSource: identity,
     portableToolSchemaProfile: "default" as const,
-    assertModelBudget: (model: Parameters<typeof assertExtrasAgentBudget>[1]) =>
-      assertExtrasAgentBudget(spec.task, model),
+    assertModelBudget: (
+      model: Parameters<typeof assertExtrasAgentBudget>[1]
+    ) => {
+      assertExtrasAgentBudget(spec.task, model);
+      if (spec.conversation)
+        assertConversationPromptBudget(
+          spec.conversation,
+          spec.contextCompactionSettings?.budgetTokens
+        );
+    },
     build: (context: AgentRunBuildContext) => {
       const localFaux = context.runtime.mode === "local-faux";
       const runServices = {

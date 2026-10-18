@@ -506,6 +506,12 @@ export {
   SESSION_CONVERSATION_HISTORY_MAX_MESSAGE_LENGTH,
   SESSION_CONVERSATION_HISTORY_MAX_CONTENT_LENGTH
 } from "./session/history-limits";
+export { SESSION_PROMPT_MAX_MESSAGE_LENGTH } from "./session/prompt-limits";
+export {
+  conversationPromptTokenLimit,
+  conversationPromptBudgetError,
+  estimateConversationPromptTokens
+} from "./session/prompt-budget";
 export {
   PROPOSAL_SETTLEMENT_MAX_ITEMS,
   PROPOSAL_SETTLEMENT_TEXT_MAX_LENGTH,

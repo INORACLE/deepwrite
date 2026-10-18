@@ -32,6 +32,7 @@ import { RevisionAnalysisRuntimeContextSchema } from "../revision-analysis";
 import { UserPromptAttachmentsSchema } from "../session/attachments";
 import { WebSearchRuntimeConfigSchema } from "../web-search/settings";
 import { SessionConversationHistorySchema } from "../session/commands";
+import { SESSION_PROMPT_MAX_MESSAGE_LENGTH } from "../session/prompt-limits";
 import {
   ContextCompactionRequestSchema,
   ContextCompactionRunSettingsSchema,
@@ -205,7 +206,7 @@ export type ExtrasAgentResolvedTaskOf<
 
 /** The turn a conversation agent answers, with the history before it. */
 export const ExtrasAgentConversationSchema = z.object({
-  message: z.string().trim().min(1).max(20_000),
+  message: z.string().trim().min(1).max(SESSION_PROMPT_MAX_MESSAGE_LENGTH),
   history: SessionConversationHistorySchema.optional(),
   /** Discards the cached conversation and rebuilds it from `history`. */
   historyMode: z.literal("replace").optional(),

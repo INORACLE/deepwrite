@@ -37,6 +37,8 @@ const emit = defineEmits<{
   >
     <div
       class="section-tabs-scroll"
+      data-long-reorder-group="character"
+      data-long-reorder-axis="horizontal"
       role="tablist"
       @wheel="handleHorizontalOverflowWheel"
     >
@@ -53,6 +55,7 @@ const emit = defineEmits<{
         :aria-selected="activeCharacterId === character.id"
         :aria-busy="pendingCharacterId === character.id"
         :title="character.label"
+        :data-long-reorder-item="character.id"
         @click="emit('selectCharacter', character.id)"
       >
         {{ character.label }}
@@ -111,7 +114,11 @@ const emit = defineEmits<{
         </button>
       </div>
     </header>
-    <div class="long-story-plot-list" role="list">
+    <div
+      class="long-story-plot-list"
+      role="list"
+      data-long-reorder-group="character"
+    >
       <article
         v-for="(character, index) in items"
         :key="character.id"
@@ -128,6 +135,7 @@ const emit = defineEmits<{
           :aria-pressed="activeCharacterId === character.id"
           :aria-busy="pendingCharacterId === character.id"
           :title="character.label"
+          :data-long-reorder-item="character.id"
           @click="emit('selectCharacter', character.id)"
         >
           <span class="long-story-plot-card-order">{{ index + 1 }}</span>

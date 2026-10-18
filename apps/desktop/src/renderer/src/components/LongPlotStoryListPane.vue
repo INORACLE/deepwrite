@@ -33,7 +33,12 @@ const emit = defineEmits<{
         <span>{{ plots.length }}</span>
       </div>
     </header>
-    <div v-if="plots.length" class="long-story-plot-list" role="list">
+    <div
+      v-if="plots.length"
+      class="long-story-plot-list"
+      role="list"
+      data-long-reorder-group="storyPlot"
+    >
       <article
         v-for="(plot, index) in plots"
         :key="plot.id"
@@ -49,6 +54,7 @@ const emit = defineEmits<{
           class="long-story-plot-card-main"
           type="button"
           :aria-pressed="plot.id === activeStoryPlotId"
+          :data-long-reorder-item="plot.id"
           @click="emit('select', plot.id)"
         >
           <span class="long-story-plot-card-order">{{ index + 1 }}</span>

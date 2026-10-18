@@ -115,6 +115,8 @@ onBeforeUnmount(() => {
   >
     <div
       class="section-tabs-scroll"
+      data-long-reorder-group="chapter"
+      data-long-reorder-axis="horizontal"
       role="tablist"
       @wheel="handleHorizontalOverflowWheel"
     >
@@ -127,6 +129,7 @@ onBeforeUnmount(() => {
         role="tab"
         :aria-selected="activeChapterId === chapter.id"
         :title="chapter.label"
+        :data-long-reorder-item="chapter.id"
         @click="emit('selectChapter', chapter.id)"
       >
         {{ chapter.label }}
@@ -190,7 +193,11 @@ onBeforeUnmount(() => {
         </button>
       </div>
     </header>
-    <div class="long-story-plot-list" role="list">
+    <div
+      class="long-story-plot-list"
+      role="list"
+      data-long-reorder-group="chapter"
+    >
       <article
         v-for="(chapter, index) in orderedItems"
         :key="chapter.id"
@@ -206,6 +213,7 @@ onBeforeUnmount(() => {
           type="button"
           :aria-pressed="activeChapterId === chapter.id"
           :title="chapter.label"
+          :data-long-reorder-item="chapter.id"
           @click="emit('selectChapter', chapter.id)"
         >
           <span class="long-story-plot-card-order">{{ index + 1 }}</span>

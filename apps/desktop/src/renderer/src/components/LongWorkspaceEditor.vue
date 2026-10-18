@@ -80,6 +80,9 @@ import {
   type LongStructureTitleTarget
 } from "../composables/useLongEditorStructureSelection";
 import { useTextViewMode } from "../composables/useTextViewMode";
+import { useLongEntryReorder } from "../composables/useLongEntryReorder";
+import { vLongPressReorder } from "../directives/longPressReorder";
+import { orderLongChapterNavigationItems } from "../utils/orderLongChapterNavigationItems";
 
 const t = createScopedTranslator("components.longWorkspaceEditor");
 
@@ -1040,6 +1043,38 @@ const {
   stateKey
 });
 
+const { binding: entryReorder, preview: previewEntryOrder } =
+  useLongEntryReorder({
+    props,
+    readOnly: currentReadOnly,
+    worldbuildingItems: currentWorldbuildingItems,
+    volumes: orderedBookLineVolumes,
+    storyPlots: currentStoryPlots,
+    mutate: (batch, completion) => emit("mutation", batch, completion)
+  });
+const entryNavigation = computed(() => ({
+  worldbuilding: previewEntryOrder(
+    "worldbuilding",
+    currentWorldbuildingItems.value
+  ),
+  character: previewEntryOrder(
+    "character",
+    currentCharacterNavigationItems.value
+  ),
+  volume: previewEntryOrder("volume", orderedBookLineVolumes.value).map(
+    (volume, index) => ({ ...volume, order: index + 1 })
+  ),
+  plotPoint: previewEntryOrder(
+    "plotPoint",
+    props.selection?.plotPointTabs ?? []
+  ),
+  chapter: previewEntryOrder(
+    "chapter",
+    orderLongChapterNavigationItems(props.selection?.chapterCardTabs ?? [])
+  ).map((chapter, index) => ({ ...chapter, narrativeOrder: index + 1 })),
+  storyPlot: previewEntryOrder("storyPlot", currentStoryPlots.value)
+}));
+
 const {
   workspaceSavePending,
   manualSaving,
@@ -1509,6 +1544,7 @@ onBeforeUnmount(() => {
 
 <template>
   <section
+    v-long-press-reorder="entryReorder"
     class="long-workspace-editor"
     :class="{
       'has-chapter-binding': showChapterPlotBinding,
@@ -1529,7 +1565,7 @@ onBeforeUnmount(() => {
           })
         "
         :title="selection.title"
-        :items="currentCharacterNavigationItems"
+        :items="entryNavigation.character"
         :active-character-id="selection.characterId ?? null"
         :pending-character-id="pendingCharacterId"
         :locked="locked"
@@ -1546,6 +1582,8 @@ onBeforeUnmount(() => {
       >
         <div
           class="section-tabs-scroll"
+          data-long-reorder-group="volume"
+          data-long-reorder-axis="horizontal"
           role="tablist"
           @wheel="handleHorizontalOverflowWheel"
         >
@@ -1561,7 +1599,7 @@ onBeforeUnmount(() => {
             {{ t("overallOutline") }}
           </button>
           <button
-            v-for="volume in orderedBookLineVolumes"
+            v-for="volume in entryNavigation.volume"
             :key="volume.id"
             class="section-tab"
             :class="{ 'is-active': activeBookLineVolumeId === volume.id }"
@@ -1569,6 +1607,7 @@ onBeforeUnmount(() => {
             role="tab"
             :aria-selected="activeBookLineVolumeId === volume.id"
             :title="volume.title"
+            :data-long-reorder-item="volume.id"
             @click="selectBookLineVolume(volume.id)"
           >
             {{ volume.title }}
@@ -1612,11 +1651,13 @@ onBeforeUnmount(() => {
       >
         <div
           class="section-tabs-scroll"
+          data-long-reorder-group="plotPoint"
+          data-long-reorder-axis="horizontal"
           role="tablist"
           @wheel="handleHorizontalOverflowWheel"
         >
           <button
-            v-for="plotPoint in selection.plotPointTabs"
+            v-for="plotPoint in entryNavigation.plotPoint"
             :key="plotPoint.id"
             class="section-tab"
             :class="{ 'is-active': selection.plotPointId === plotPoint.id }"
@@ -1624,6 +1665,7 @@ onBeforeUnmount(() => {
             role="tab"
             :aria-selected="selection.plotPointId === plotPoint.id"
             :title="plotPoint.label"
+            :data-long-reorder-item="plotPoint.id"
             @click="emit('selectPlotPoint', plotPoint.id)"
           >
             {{ plotPoint.label }}
@@ -1661,7 +1703,7 @@ onBeforeUnmount(() => {
             arg0: selection.breadcrumbs[3] ?? t('currentVolume')
           })
         "
-        :items="selection.chapterCardTabs ?? []"
+        :items="entryNavigation.chapter"
         :active-chapter-id="selection.chapterCardId ?? null"
         :locked="locked"
         :committed="currentChapterCardCommitted"
@@ -1674,7 +1716,7 @@ onBeforeUnmount(() => {
       <LongWorldbuildingNavigation
         v-if="currentUsesTopWorldbuildingTabs"
         mode="top-tabs"
-        :items="currentWorldbuildingItems"
+        :items="entryNavigation.worldbuilding"
         :active-item-id="activeWorldbuildingItemId"
         :pending-item-id="pendingWorldbuildingItemId"
         :pending-overview="pendingWorldbuildingOverview"
@@ -1978,7 +2020,7 @@ onBeforeUnmount(() => {
             :style="storyPlotListGridStyle"
           >
             <LongPlotStoryListPane
-              :plots="currentStoryPlots"
+              :plots="entryNavigation.storyPlot"
               :active-story-plot-id="activeStoryPlotId"
               :pending-story-plot-id="pendingStoryPlotId"
               :action-menu-id="storyPlotActionMenuId"
@@ -2436,7 +2478,7 @@ onBeforeUnmount(() => {
         <LongWorldbuildingNavigation
           v-if="currentUsesRightWorldbuildingList"
           mode="right-list"
-          :items="currentWorldbuildingItems"
+          :items="entryNavigation.worldbuilding"
           :active-item-id="activeWorldbuildingItemId"
           :pending-item-id="pendingWorldbuildingItemId"
           :pending-overview="pendingWorldbuildingOverview"
@@ -2456,7 +2498,7 @@ onBeforeUnmount(() => {
             })
           "
           :title="selection.title"
-          :items="currentCharacterNavigationItems"
+          :items="entryNavigation.character"
           :active-character-id="selection.characterId ?? null"
           :pending-character-id="pendingCharacterId"
           :locked="locked"
@@ -2494,7 +2536,11 @@ onBeforeUnmount(() => {
               </button>
             </div>
           </header>
-          <div class="long-story-plot-list" role="list">
+          <div
+            class="long-story-plot-list"
+            role="list"
+            data-long-reorder-group="volume"
+          >
             <article
               class="long-story-plot-card"
               :class="{ 'is-active': activeBookLineVolumeId === null }"
@@ -2513,7 +2559,7 @@ onBeforeUnmount(() => {
               </button>
             </article>
             <article
-              v-for="volume in orderedBookLineVolumes"
+              v-for="volume in entryNavigation.volume"
               :key="volume.id"
               class="long-story-plot-card"
               :class="{ 'is-active': activeBookLineVolumeId === volume.id }"
@@ -2524,6 +2570,7 @@ onBeforeUnmount(() => {
                 type="button"
                 :aria-pressed="activeBookLineVolumeId === volume.id"
                 :title="volume.title"
+                :data-long-reorder-item="volume.id"
                 @click="selectBookLineVolume(volume.id)"
               >
                 <span class="long-story-plot-card-order">{{
@@ -2566,9 +2613,13 @@ onBeforeUnmount(() => {
               </button>
             </div>
           </header>
-          <div class="long-story-plot-list" role="list">
+          <div
+            class="long-story-plot-list"
+            role="list"
+            data-long-reorder-group="plotPoint"
+          >
             <article
-              v-for="(plotPoint, index) in selection.plotPointTabs"
+              v-for="(plotPoint, index) in entryNavigation.plotPoint"
               :key="plotPoint.id"
               class="long-story-plot-card"
               :class="{ 'is-active': selection.plotPointId === plotPoint.id }"
@@ -2579,6 +2630,7 @@ onBeforeUnmount(() => {
                 type="button"
                 :aria-pressed="selection.plotPointId === plotPoint.id"
                 :title="plotPoint.label"
+                :data-long-reorder-item="plotPoint.id"
                 @click="emit('selectPlotPoint', plotPoint.id)"
               >
                 <span class="long-story-plot-card-order">{{ index + 1 }}</span>
@@ -2593,7 +2645,7 @@ onBeforeUnmount(() => {
           v-if="currentUsesRightChapterCardList"
           mode="right-list"
           :label="t('chapterCards')"
-          :items="selection.chapterCardTabs ?? []"
+          :items="entryNavigation.chapter"
           :active-chapter-id="selection.chapterCardId ?? null"
           :locked="locked"
           :committed="currentChapterCardCommitted"

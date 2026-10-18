@@ -107,6 +107,33 @@ it("serializes conversation extras prompts with workspace prompts through draina
   releaseConversationRun(f.activeRuns, "session", f.owner());
 });
 
+it("rechecks the saved chat budget before dispatch and releases a rejected prompt", async () => {
+  const f = fixture();
+  let budgetTokens = 64_000;
+  f.deps.resolveContextCompaction = async () => ({
+    contextCompactionSettings: { enabled: true, budgetTokens }
+  });
+  const command = f.command("budget");
+  command.payload.conversation!.message = "字".repeat(60_000);
+  expect(await runExtrasAgent(f.deps, command)).toMatchObject({
+    status: "rejected",
+    error: { code: "session.prompt_budget_exceeded" }
+  });
+  expect(f.requestAgent).not.toHaveBeenCalled();
+  budgetTokens = 128_000;
+  expect(await runExtrasAgent(f.deps, command)).toMatchObject({
+    status: "accepted"
+  });
+  expect(f.requestAgent).toHaveBeenCalledOnce();
+  expect(f.requestAgent.mock.lastCall?.[0]).toMatchObject({
+    payload: {
+      conversation: { message: command.payload.conversation!.message },
+      contextCompactionSettings: { budgetTokens: 128_000 }
+    }
+  });
+  releaseConversationRun(f.activeRuns, "session", f.owner());
+});
+
 it("releases a preparation rejection and retains uncertain Agent acceptance", async () => {
   const f = fixture();
   f.resolve.mockRejectedValueOnce(new Error("Fixture preparation failed"));

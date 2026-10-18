@@ -9,6 +9,7 @@ import {
   SessionUserInputResponseAcceptedPayloadSchema,
   SessionPromptAcceptedPayloadSchema,
   createEnvelope,
+  conversationPromptBudgetError,
   subagentsNeedWebSearch,
   type CommandEnvelope,
   type CommandResult
@@ -230,6 +231,16 @@ export async function handleSessionCommands(
         (modelId) => ctx.requireModelConfigStore().resolve(modelId),
         runtimeConfig?.id
       );
+      const promptError = conversationPromptBudgetError(
+        command.payload,
+        compaction.contextCompactionSettings.budgetTokens
+      );
+      if (promptError)
+        return {
+          status: "rejected",
+          requestId: command.id,
+          error: promptError
+        };
       const usageContext = createUsageRunContext(
         usageModuleForPrompt(command.payload),
         runtimeConfig,

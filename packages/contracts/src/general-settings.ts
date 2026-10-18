@@ -6,6 +6,7 @@ import {
 import { EnvelopeBaseSchema } from "./envelope";
 import { ContextCompactionSettingsSchema } from "./session/context-compaction-state";
 import { createDefaultContextCompactionSettings } from "./session/context-compaction-defaults";
+import { conversationPromptTokenLimit } from "./session/prompt-budget";
 import {
   createDefaultMoreFeaturesSettings,
   MoreFeaturesSettingsSchema
@@ -22,7 +23,7 @@ export function maxTextAttachmentCharactersForBudget(
 ): number {
   return Math.min(
     PROMPT_TEXT_ATTACHMENTS_MAX_CONTENT_LENGTH,
-    Math.floor(budgetTokens * 0.9)
+    conversationPromptTokenLimit(budgetTokens)
   );
 }
 

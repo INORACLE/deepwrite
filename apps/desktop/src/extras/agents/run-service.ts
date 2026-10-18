@@ -9,6 +9,7 @@ import {
   EXTRAS_AGENT_USAGE_MODULES,
   SessionPromptAcceptedPayloadSchema,
   assertExtrasAgentBudget,
+  conversationPromptBudgetError,
   createEnvelope,
   extrasAgentUsesWebSearch,
   type AgentProviderRuntimeConfig,
@@ -243,6 +244,18 @@ export async function runExtrasAgent(
         : undefined;
     if (compaction && task.agentId === "long-book-decomposition")
       compaction.contextCompactionSettings.enabled = true;
+    if (conversation) {
+      const promptError = conversationPromptBudgetError(
+        conversation,
+        compaction?.contextCompactionSettings.budgetTokens
+      );
+      if (promptError)
+        return {
+          status: "rejected",
+          requestId: command.id,
+          error: promptError
+        };
+    }
     // Only agents that may search, and only when the user switched it on for
     // this turn; the search settings still decide whether it can be given.
     const webSearch =

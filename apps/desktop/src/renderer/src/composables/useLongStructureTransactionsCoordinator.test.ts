@@ -289,6 +289,48 @@ function completion() {
 }
 
 describe("useLongStructureTransactionsCoordinator", () => {
+  it("saves reordering without disabling unrelated controls and still serializes mutations", async () => {
+    const pendingApply = deferred<never>();
+    const harness = createHarness({
+      applyOperations: vi.fn(() => pendingApply.promise)
+    });
+    const batch = {
+      updatedAt: "2026-07-26T13:00:00.000Z",
+      operations: [
+        {
+          type: "volume.reorder" as const,
+          orderedIds: harness.workspaceIndex.value!.plot.volumes.map(
+            ({ id }) => id
+          )
+        }
+      ],
+      documentWrites: []
+    };
+    const result = completion();
+    const request = harness.coordinator.handleActiveLongStructureMutation(
+      batch,
+      result
+    );
+    await vi.waitFor(() =>
+      expect(harness.applyOperations).toHaveBeenCalledOnce()
+    );
+    expect(harness.mutationPending.value).toBe(false);
+    const duplicate = completion();
+    await harness.coordinator.handleActiveLongStructureMutation(
+      batch,
+      duplicate
+    );
+    expect(duplicate.fail).toHaveBeenCalledOnce();
+    pendingApply.resolve({
+      bookId: BOOK_ID,
+      summary: bookSummary(BOOK_ID),
+      operationResult: {}
+    } as never);
+    await request;
+    expect(result.succeed).toHaveBeenCalledOnce();
+    expect(harness.mutationPending.value).toBe(false);
+  });
+
   it("single-flights duplicate submissions", async () => {
     const pendingApply = deferred<never>();
     const harness = createHarness({

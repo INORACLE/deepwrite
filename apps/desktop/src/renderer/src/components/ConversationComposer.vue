@@ -172,6 +172,8 @@ const {
   textAttachmentMaxCharacters: () =>
     settingsStore.generalSettings.textAttachmentMaxCharacters,
   textAttachmentsTotalMaxCharacters,
+  contextCompactionBudgetTokens: () =>
+    settingsStore.generalSettings.contextCompaction.budgetTokens,
   pendingAttachments,
   readingAttachments,
   emitDraft: (value) => emit("update:draft", value),

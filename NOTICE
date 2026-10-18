@@ -1,0 +1,36 @@
+DeepWrite
+
+License scope
+-------------
+The root LICENSE contains the unmodified PolyForm Perimeter License 1.0.1.
+It is the license offered for new DeepWrite material that its copyright
+holders make available under those terms. It does not relicense previously
+Apache-licensed contributions without the relevant copyright holders'
+permission.
+
+Previously Apache-licensed material
+----------------------------------
+DeepWrite source code and releases already made available under Apache
+License 2.0 retain the permissions granted under that license. Pre-existing
+third-party contributions remain under their original license unless their
+copyright holders separately authorize relicensing. These existing rights
+are not revoked by the root LICENSE or the README summaries.
+
+The previously distributed Apache License 2.0 text is preserved in
+LICENSES/Apache-2.0.txt. Recorded contributors to Apache-licensed versions
+include:
+
+  CarS
+  HXSLtim
+  Tricker
+  carswj
+  jiangyuer018
+  shenwenjia
+  zhiwu
+  文佳
+
+Third-party components
+----------------------
+Third-party components retain their respective licenses, copyright notices,
+and attribution requirements. This project's license change does not
+replace or restrict those grants.
