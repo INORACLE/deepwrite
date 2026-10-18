@@ -13,7 +13,7 @@ import {
 import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_LONG_AGENTS_MD,
   LONG_AGENTS_MD_PATH,
@@ -50,6 +50,10 @@ import {
   deriveLongForeshadowingStatus,
   LongProjectStore
 } from "./long-project-store";
+
+// This fixture creates real long projects and durable multi-file transactions.
+// Give its integration suites a disk budget on slower concurrent CI runners.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
 const FIXED_NOW = "2026-07-26T12:00:00.000Z";
 const MAX_MARKDOWN_BYTES = 32 * 1024 * 1024;
@@ -98,9 +102,14 @@ function firstChapterFiles(
 
 afterEach(async () => {
   await Promise.all(
-    temporaryRoots
-      .splice(0)
-      .map((root) => rm(root, { recursive: true, force: true }))
+    temporaryRoots.splice(0).map((root) =>
+      rm(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 100
+      })
+    )
   );
 });
 

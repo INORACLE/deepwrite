@@ -142,6 +142,7 @@ jobs:
             apps/desktop/src/utilities/book-identity/commands.test.ts \
             apps/desktop/src/utilities/long-workspace-service.chapter-binding.test.ts \
             apps/desktop/src/utilities/long-continuation-import.test.ts \
+            apps/desktop/src/utilities/long-project-store.*.test.ts \
             apps/desktop/src/utilities/folder-catalog-store.migration-and-projects.test.ts \
             apps/desktop/src/utilities/conversation-exit.test.mjs \
             apps/desktop/src/utilities/conversation-storage/capacity.test.ts
