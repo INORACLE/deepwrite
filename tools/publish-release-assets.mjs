@@ -3,15 +3,28 @@ import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { inspectReleaseFile } from "./release-files.mjs";
 
-export async function getPublishedRelease({ github, repo, tag, releaseId }) {
-  const { data } = await github.rest.repos.getReleaseByTag({ ...repo, tag });
+export async function getReleaseForUpload({
+  github,
+  repo,
+  tag,
+  releaseId,
+  draftOwner
+}) {
+  const { data } = await (draftOwner
+    ? github.rest.repos.getRelease({ ...repo, release_id: releaseId })
+    : github.rest.repos.getReleaseByTag({ ...repo, tag }));
   if (
     data.tag_name !== tag ||
     (releaseId !== undefined && String(data.id) !== String(releaseId))
   ) {
     throw new Error("Release 已改变，无法向本轮发布追加安装包。");
   }
-  if (data.draft) throw new Error("请先发布 Release，再运行自动打包。");
+  if (draftOwner) {
+    if (!data.draft || !data.body?.includes(draftOwner))
+      throw new Error("Release 草稿不属于本轮工作流，拒绝修改。");
+  } else if (data.draft) {
+    throw new Error("请先发布 Release，再运行自动打包。");
+  }
   if (data.immutable) {
     throw new Error(
       "Release 已锁定，无法追加安装包；此流程需要关闭 Release immutability。"
@@ -33,9 +46,16 @@ export async function uploadReleaseAssets({
   repo,
   tag,
   releaseId,
-  directory
+  directory,
+  draftOwner
 }) {
-  const release = await getPublishedRelease({ github, repo, tag, releaseId });
+  const release = await getReleaseForUpload({
+    github,
+    repo,
+    tag,
+    releaseId,
+    draftOwner
+  });
   const names = (await readdir(directory)).sort((left, right) => {
     // Update manifests are visible only after all download files are present.
     const priority = (name) => (name.endsWith(".yml") ? 1 : 0);
@@ -56,6 +76,12 @@ export async function uploadReleaseAssets({
   const existing = new Map(
     (await listAssets()).map((file) => [file.name, file])
   );
+  if (
+    draftOwner &&
+    [...existing.keys()].some((name) => !names.includes(name))
+  ) {
+    throw new Error("Release 草稿包含本轮产物以外的附件，拒绝公开。");
+  }
   // Check all collisions before uploading anything; public downloads are preserved.
   for (const local of localFiles) {
     const remote = existing.get(local.name);
@@ -85,6 +111,9 @@ export async function uploadReleaseAssets({
   const uploaded = new Map(
     (await listAssets()).map((file) => [file.name, file])
   );
+  if (draftOwner && uploaded.size !== localFiles.length) {
+    throw new Error("Release 草稿附件数量与本轮产物不一致，拒绝公开。");
+  }
   for (const local of localFiles) {
     if (!matchesAsset(uploaded.get(local.name), local)) {
       throw new Error(
@@ -93,4 +122,68 @@ export async function uploadReleaseAssets({
     }
   }
   return release.html_url;
+}
+
+/** A rerun keeps its run ID, so only that run may resume its upload draft. */
+export async function publishTagRelease({
+  github,
+  repo,
+  tag,
+  commit,
+  runId,
+  directory
+}) {
+  if (
+    !/^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u.test(tag ?? "") ||
+    !/^[a-f\d]{40}$/u.test(commit ?? "") ||
+    !/^\d+$/u.test(String(runId ?? ""))
+  ) {
+    throw new Error("Release 标签、源提交或工作流编号无效。");
+  }
+  const draftOwner = `<!-- deepwrite-tag-build:${runId}:${commit} -->`;
+  const releases = await github.paginate(github.rest.repos.listReleases, {
+    ...repo,
+    per_page: 100
+  });
+  const matches = releases.filter((release) => release.tag_name === tag);
+  if (
+    matches.length > 1 ||
+    (matches[0] &&
+      (!matches[0].draft || !matches[0].body?.includes(draftOwner)))
+  ) {
+    throw new Error("该标签已有公开 Release 或其他运行的草稿，拒绝覆盖。");
+  }
+  const release =
+    matches[0] ??
+    (
+      await github.rest.repos.createRelease({
+        ...repo,
+        tag_name: tag,
+        target_commitish: commit,
+        name: `DeepWrite ${tag.slice(1)}`,
+        body: draftOwner,
+        generate_release_notes: true,
+        draft: true,
+        prerelease: false
+      })
+    ).data;
+  await uploadReleaseAssets({
+    github,
+    repo,
+    tag,
+    releaseId: release.id,
+    directory,
+    draftOwner
+  });
+  const { data } = await github.rest.repos.updateRelease({
+    ...repo,
+    release_id: release.id,
+    draft: false,
+    prerelease: false,
+    make_latest: "true"
+  });
+  if (data.draft || data.prerelease || data.tag_name !== tag) {
+    throw new Error("Release 未成功公开。");
+  }
+  return data.html_url;
 }

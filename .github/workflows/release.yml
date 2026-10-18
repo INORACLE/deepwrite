@@ -1,12 +1,13 @@
-name: Build release installers
+name: Build and publish tagged release
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       tag:
-        description: Published release tag (vMAJOR.MINOR.PATCH)
+        description: Existing release tag (vMAJOR.MINOR.PATCH)
         required: true
         type: string
 
@@ -14,20 +15,20 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-${{ inputs.tag || github.event.release.tag_name }}
+  group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 env:
-  RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name }}
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
   prepare:
-    name: Validate release and source version
+    name: Validate tag and source version
+    if: ${{ !github.event.deleted }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
       commit: ${{ steps.source.outputs.commit }}
-      release-id: ${{ steps.release.outputs.release-id }}
     steps:
       - name: Check out released source
         id: source
@@ -44,20 +45,6 @@ jobs:
 
       - name: Validate release tag and both package versions
         run: node tools/release-version.mjs
-
-      - name: Check release accepts installer uploads
-        id: release
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const { pathToFileURL } = require('node:url');
-            const path = require('node:path');
-            const { getPublishedRelease } = await import(pathToFileURL(path.resolve('tools/publish-release-assets.mjs')).href);
-            const release = await getPublishedRelease({
-              github, repo: context.repo, tag: process.env.RELEASE_TAG,
-              releaseId: context.payload.release?.id
-            });
-            core.setOutput('release-id', String(release.id));
 
   package:
     name: Package ${{ matrix.id }}
@@ -164,14 +151,14 @@ jobs:
           overwrite: true
 
   upload:
-    name: Attach verified installers to release
+    name: Publish verified release installers
     needs: [prepare, package]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: write
     env:
-      RELEASE_ID: ${{ needs.prepare.outputs.release-id }}
+      RELEASE_COMMIT: ${{ needs.prepare.outputs.commit }}
     steps:
       - name: Check out validated release commit
         uses: actions/checkout@v6
@@ -207,17 +194,18 @@ jobs:
       - name: Verify checksums and merge macOS update manifests
         run: node tools/prepare-release-assets.mjs release-input release-upload
 
-      - name: Upload installers and update manifests
+      - name: Upload to draft and publish verified installers
         uses: actions/github-script@v8
         with:
           retries: 3
           script: |
             const path = require('node:path');
             const { pathToFileURL } = require('node:url');
-            const { uploadReleaseAssets } = await import(pathToFileURL(path.resolve('tools/publish-release-assets.mjs')).href);
-            const url = await uploadReleaseAssets({
+            const { publishTagRelease } = await import(pathToFileURL(path.resolve('tools/publish-release-assets.mjs')).href);
+            const url = await publishTagRelease({
               github, repo: context.repo, tag: process.env.RELEASE_TAG,
-              releaseId: process.env.RELEASE_ID,
+              commit: process.env.RELEASE_COMMIT,
+              runId: context.runId,
               directory: path.resolve('release-upload')
             });
             await core.summary.addLink('Download release installers', url).write();

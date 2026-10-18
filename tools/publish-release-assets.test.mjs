@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  getPublishedRelease,
+  getReleaseForUpload,
+  publishTagRelease,
   uploadReleaseAssets
 } from "./publish-release-assets.mjs";
 
@@ -36,10 +37,22 @@ async function fixture() {
   };
   const assets = [];
   const uploads = [];
+  const releases = [];
   const github = {
     rest: {
       repos: {
         getReleaseByTag: vi.fn(async () => ({ data: release })),
+        getRelease: vi.fn(async () => ({ data: release })),
+        listReleases: vi.fn(),
+        createRelease: vi.fn(async (options) => {
+          Object.assign(release, options);
+          releases.push(release);
+          return { data: release };
+        }),
+        updateRelease: vi.fn(async (options) => {
+          Object.assign(release, options);
+          return { data: release };
+        }),
         listReleaseAssets: vi.fn(),
         uploadReleaseAsset: vi.fn(async ({ name, data }) => {
           uploads.push(name);
@@ -54,10 +67,14 @@ async function fixture() {
         })
       }
     },
-    paginate: vi.fn(async () => assets.map((asset) => ({ ...asset })))
+    paginate: vi.fn(async (method) =>
+      method === github.rest.repos.listReleases
+        ? releases.map((item) => ({ ...item }))
+        : assets.map((asset) => ({ ...asset }))
+    )
   };
   const args = { github, repo, tag, releaseId: 42, directory };
-  return { args, github, release, assets, uploads };
+  return { args, github, release, releases, assets, uploads };
 }
 
 describe("published release asset uploads", () => {
@@ -144,7 +161,7 @@ describe("published release asset uploads", () => {
   it("rejects a changed release tag", async () => {
     const { args, release } = await fixture();
     release.tag_name = "v9.8.8";
-    await expect(getPublishedRelease(args)).rejects.toThrow("Release 已改变");
+    await expect(getReleaseForUpload(args)).rejects.toThrow("Release 已改变");
   });
 
   it("does not treat a missing release as permission to create one", async () => {
@@ -172,5 +189,115 @@ describe("published release asset uploads", () => {
     await writeFile(join(args.directory, "latest.yml"), "");
     await expect(uploadReleaseAssets(args)).rejects.toThrow("非空");
     expect(uploads).toEqual([]);
+  });
+});
+
+const commit = "a".repeat(40);
+const runId = 123;
+const owner = `<!-- deepwrite-tag-build:${runId}:${commit} -->`;
+
+async function tagFixture() {
+  const result = await fixture();
+  return { ...result, args: { ...result.args, commit, runId } };
+}
+
+describe("tag-triggered release publication", () => {
+  it("creates a draft and publishes only after all assets are verified", async () => {
+    const { args, github, release, uploads } = await tagFixture();
+    const update = github.rest.repos.updateRelease.getMockImplementation();
+    github.rest.repos.updateRelease.mockImplementation(async (options) => {
+      expect(release.draft).toBe(true);
+      expect(uploads).toHaveLength(3);
+      return update(options);
+    });
+    await expect(publishTagRelease(args)).resolves.toBe(release.html_url);
+    expect(github.rest.repos.createRelease).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tag_name: tag,
+        target_commitish: commit,
+        draft: true,
+        prerelease: false,
+        generate_release_notes: true,
+        body: owner
+      })
+    );
+    expect(github.rest.repos.updateRelease).toHaveBeenCalledWith(
+      expect.objectContaining({ release_id: 42, draft: false })
+    );
+    expect(release.draft).toBe(false);
+  });
+
+  it("keeps interrupted uploads private and resumes the same run's draft", async () => {
+    const { args, github, release, uploads } = await tagFixture();
+    const upload = github.rest.repos.uploadReleaseAsset.getMockImplementation();
+    github.rest.repos.uploadReleaseAsset
+      .mockImplementationOnce(upload)
+      .mockRejectedValueOnce(new Error("temporary upload failure"));
+    await expect(publishTagRelease(args)).rejects.toThrow(
+      "temporary upload failure"
+    );
+    expect(release.draft).toBe(true);
+    expect(github.rest.repos.updateRelease).not.toHaveBeenCalled();
+    await expect(publishTagRelease(args)).resolves.toBe(release.html_url);
+    expect(github.rest.repos.createRelease).toHaveBeenCalledTimes(1);
+    expect(uploads).toHaveLength(3);
+  });
+
+  it.each(["public release", "another draft", "changed source"])(
+    "preserves an existing %s",
+    async (kind) => {
+      const { args, github, release, releases, uploads } = await tagFixture();
+      release.draft = kind !== "public release";
+      release.body =
+        kind === "changed source"
+          ? owner.replace(commit, "b".repeat(40))
+          : "user release notes";
+      releases.push(release);
+      await expect(publishTagRelease(args)).rejects.toThrow("拒绝覆盖");
+      expect(uploads).toEqual([]);
+      expect(github.rest.repos.createRelease).not.toHaveBeenCalled();
+      expect(github.rest.repos.updateRelease).not.toHaveBeenCalled();
+    }
+  );
+
+  it("does not publish a draft with unexpected attachments", async () => {
+    const { args, github, release, releases, assets } = await tagFixture();
+    Object.assign(release, { draft: true, body: owner });
+    releases.push(release);
+    assets.push({ name: "unrelated-file.txt" });
+    await expect(publishTagRelease(args)).rejects.toThrow("产物以外");
+    expect(github.rest.repos.updateRelease).not.toHaveBeenCalled();
+  });
+
+  it("does not publish when the uploaded digest fails verification", async () => {
+    const { args, github, release, assets } = await tagFixture();
+    const paginate = github.paginate.getMockImplementation();
+    let assetReads = 0;
+    github.paginate.mockImplementation(async (method, params) => {
+      if (method === github.rest.repos.listReleaseAssets && ++assetReads === 2)
+        assets[0].digest = "sha256:invalid";
+      return paginate(method, params);
+    });
+    await expect(publishTagRelease(args)).rejects.toThrow("SHA-256 校验失败");
+    expect(release.draft).toBe(true);
+    expect(github.rest.repos.updateRelease).not.toHaveBeenCalled();
+  });
+
+  it.each([{ tag: "v9.8.7-beta" }, { commit: "main" }, { runId: undefined }])(
+    "rejects invalid publication identity %j",
+    async (invalid) => {
+      const { args, github } = await tagFixture();
+      await expect(publishTagRelease({ ...args, ...invalid })).rejects.toThrow(
+        "无效"
+      );
+      expect(github.paginate).not.toHaveBeenCalled();
+    }
+  );
+
+  it("propagates listing failures instead of creating an unrelated release", async () => {
+    const { args, github } = await tagFixture();
+    github.paginate.mockRejectedValueOnce(new Error("permission denied"));
+    await expect(publishTagRelease(args)).rejects.toThrow("permission denied");
+    expect(github.rest.repos.createRelease).not.toHaveBeenCalled();
   });
 });

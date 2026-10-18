@@ -134,22 +134,22 @@ pnpm pack:test:mac         # Both macOS architectures
 
 Artifacts are written to `apps/desktop/release/`. The packaging flow runs the full verification suite and a production build before generating and validating installers.
 
-### Build Installers When a Release Is Published
+### Automatic Releases from Tags
 
-The `Build release installers` workflow runs when a GitHub Release is **published**: push the code → publish a Release → build installers → attach them to that Release. Pushing code or tags and saving a draft do not start packaging.
+The `Build and publish tagged release` workflow runs when a `v*` tag is pushed: push the tag → build and verify every platform → upload assets to a draft → publish the complete GitHub Release. The tag must use `vMAJOR.MINOR.PATCH` and match both package versions. Ordinary branch pushes and publishing a Release do not trigger packaging.
 
-1. First push `.github/workflows/release.yml` and its supporting scripts to `main`. The source selected for each release must also contain these files.
+1. First push `.github/workflows/release.yml` and its supporting scripts to `main`. The tagged source must also contain these files.
 2. Set the root and `apps/desktop/package.json` versions to the same target version, then commit and push. For example, version `1.6.6` in both files requires tag `v1.6.6`.
-3. Open **Releases → Draft a new release**, select the intended source, create the matching tag, write the notes, and click **Publish release**.
-4. Follow **Actions → Build release installers**. Once every platform passes, installers, blockmaps, update manifests, and `SHA256SUMS.txt` are attached to the published Release.
+3. Create and push that tag with `git tag v1.6.6` followed by `git push origin v1.6.6`. There is no need to create a Release manually.
+4. Follow **Actions → Build and publish tagged release**. Once every platform passes, installers, blockmaps, update manifests, and `SHA256SUMS.txt` are uploaded to a draft and verified before the Release becomes public.
 
-Native runners build Windows x64 EXE, macOS Apple Silicon and Intel DMG / ZIP, and Linux x64 AppImage / deb packages. Each runs the existing `pnpm pack:test:*` flow, including full verification, production builds, and packaged first-launch and reopen checks. macOS also verifies DMGs, ad-hoc signatures, and ZIP integrity. The upload job checks sizes and SHA-512 hashes and merges both architectures into `latest-mac.yml`. Actions artifacts are retained for 14 days.
+Native runners build Windows x64 EXE, macOS Apple Silicon and Intel DMG / ZIP, and Linux x64 AppImage / deb packages. Each runs the existing `pnpm pack:test:*` flow, including full verification, production builds, and packaged first-launch and reopen checks. macOS also verifies DMGs, ad-hoc signatures, and ZIP integrity. The publish job checks sizes and SHA-512 hashes and merges both architectures into `latest-mac.yml`. Actions artifacts are retained for 14 days.
 
-The upload job uses `contents: write` with the repository-provided `GITHUB_TOKEN`; no personal access token is required. Enable Actions and allow the actions used by this workflow. Keep **Settings → Releases → Release immutability** disabled, since this flow adds assets after publication. Windows packages remain unsigned; macOS uses ad-hoc signing without Apple notarization.
+Only the publish job receives `contents: write` through the repository-provided `GITHUB_TOKEN`; builds remain read-only. Enable Actions and allow the actions used by this workflow. Windows packages remain unsigned; macOS uses ad-hoc signing without Apple notarization.
 
-Use **Re-run failed jobs** on the original run to reuse successful platform artifacts. Upload retries skip existing assets with matching sizes and SHA-256 digests and refuse to overwrite conflicting files. To build a published tag that has no run, choose `main` in **Run workflow** and enter that tag; all builds use the tagged commit. Until packaging finishes, the Release page temporarily contains only source downloads.
+Use **Re-run failed jobs** on the original run to reuse successful platform artifacts and resume its upload draft. Existing matching assets are skipped; conflicting files, public releases, and drafts belonging to another run are preserved. Failed uploads keep the draft private. If a tag has no run, choose `main` in **Run workflow** and enter the existing tag; all builds use its tagged commit. Release notes are generated automatically.
 
-In-app updates still use the root `update.json`. Update it through the existing release-manifest process after every installer is uploaded successfully; this workflow does not advance it early.
+In-app updates still use the root `update.json`. Update it through the existing release-manifest process after the Release is public and every installer has been uploaded successfully; this workflow does not advance it early.
 
 ## Project Structure
 
