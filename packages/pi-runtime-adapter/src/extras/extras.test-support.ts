@@ -1,8 +1,10 @@
 import type { AgentTool, AgentToolResult } from "@earendil-works/pi-agent-core";
 import type {
   ExtrasAgentConversation,
-  ExtrasAgentResolvedTask
+  ExtrasAgentResolvedTask,
+  WebSearchRuntimeConfig
 } from "@deepwrite/contracts";
+import type { AgentRunBuildContext } from "../kernel/run-plan";
 import { PiAgentRuntimeAdapter } from "../adapter";
 import type { AgentRuntimeEvent } from "../runtime-types";
 import type {
@@ -10,7 +12,7 @@ import type {
   BoundExtrasTaskAgent,
   ExtrasAgentRunServices
 } from "./definition";
-import { resolveExtrasAgent } from "./run-plan";
+import { planExtrasRun, resolveExtrasAgent } from "./run-plan";
 
 const TEST_SERVICES: ExtrasAgentRunServices = {
   runId: "run-test",
@@ -46,6 +48,28 @@ export function resolveConversationAgent(
     ...agent,
     tools: (services = TEST_SERVICES) => agent.tools(services)
   };
+}
+
+/**
+ * What a conversation turn is assembled from: the system prompt and the tools,
+ * with or without the search settings Main may attach to a run.
+ */
+export function buildConversationRun(
+  task: ExtrasAgentResolvedTask,
+  options: { webSearch?: WebSearchRuntimeConfig } = {}
+) {
+  return planExtrasRun({
+    runId: "run-test",
+    spec: {
+      sessionId: "session-test",
+      task,
+      conversation: { message: "你好" },
+      ...(options.webSearch ? { webSearch: options.webSearch } : {})
+    }
+  }).build({
+    runtime: { provider: "deepwrite", model: "faux", mode: "local-faux" },
+    parentSignal: new AbortController().signal
+  } as unknown as AgentRunBuildContext);
 }
 
 export function toolNamed(tools: AgentTool[], name: string): AgentTool {

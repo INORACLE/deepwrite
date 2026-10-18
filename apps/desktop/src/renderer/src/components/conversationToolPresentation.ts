@@ -35,6 +35,7 @@ export {
 } from "./conversationActivityLabel";
 export {
   workspaceToolLabel,
+  isWebSearchTool,
   isWriteTool,
   writeToolAction,
   writeActionLabel,

@@ -5,6 +5,7 @@ import type { LongWorkspaceIndexSnapshot } from "@deepwrite/contracts";
 import type { ProcessingDisplayItem } from "./conversationToolPresentation";
 import {
   formatToolPayload,
+  isWebSearchTool,
   isWriteTool,
   toolDetail,
   toolGroupIsRunning,
@@ -22,6 +23,7 @@ import ConversationStatusIcon from "./ConversationStatusIcon.vue";
 import AgentEditProposalCard from "./AgentEditProposalCard.vue";
 import LongProposalReview from "./LongProposalReview.vue";
 import StreamedContent from "./StreamedContent.vue";
+import WebSearchSources from "./WebSearchSources.vue";
 
 const t = createScopedTranslator("components.conversationProcessingItem");
 
@@ -159,7 +161,11 @@ function detailId(id: string): string {
       </div>
       <div v-if="item.tool.resultSummary">
         <span>{{ t("result") }}</span>
-        <p>{{ item.tool.resultSummary }}</p>
+        <WebSearchSources
+          v-if="isWebSearchTool(item.tool) && item.tool.status === 'completed'"
+          :summary="item.tool.resultSummary"
+        />
+        <p v-else>{{ item.tool.resultSummary }}</p>
       </div>
     </div>
   </ConversationDetails>
@@ -230,7 +236,11 @@ function detailId(id: string): string {
           </div>
           <div v-if="tool.resultSummary">
             <span>{{ t("result") }}</span>
-            <p>{{ tool.resultSummary }}</p>
+            <WebSearchSources
+              v-if="isWebSearchTool(tool) && tool.status === 'completed'"
+              :summary="tool.resultSummary"
+            />
+            <p v-else>{{ tool.resultSummary }}</p>
           </div>
         </div>
       </ConversationDetails>

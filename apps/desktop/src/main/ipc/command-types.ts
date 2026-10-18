@@ -3,7 +3,8 @@ import type {
   AgentRuntimeRef,
   AppearanceSettings,
   GeneralSettings,
-  SystemEventEnvelope
+  SystemEventEnvelope,
+  WebSearchRuntimeConfig
 } from "@deepwrite/contracts";
 import type { AgentTeamConfigStore } from "../agent-team-config-store";
 import type { AppearanceService } from "../appearance-service";
@@ -61,6 +62,8 @@ export interface IpcCommandContext {
   requireWorkspaceDirectoryStore: () => WorkspaceDirectoryStore;
   requireAppearanceService: () => AppearanceService;
   requireGeneralSettingsStore: () => GeneralSettingsStore;
+  /** Search settings for one run; absent or undefined means no search tool. */
+  resolveWebSearch?: () => Promise<WebSearchRuntimeConfig | undefined>;
   exportShortManuscript: typeof exportShortManuscript;
   exportLongManuscript: typeof exportLongManuscript;
   listRemoteModels: typeof listRemoteModels;

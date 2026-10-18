@@ -13,5 +13,8 @@ export default {
   maximum: "最高",
   agentModeStandard: "常规",
   agentModePureRead: "纯净·只读",
-  agentModePureBare: "纯净·无工具"
+  agentModePureBare: "纯净·无工具",
+  webSearchInherit: "跟随主智能体",
+  webSearchOn: "一直开启",
+  webSearchOff: "一直关闭"
 };

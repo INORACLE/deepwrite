@@ -26,6 +26,7 @@ import LoadSubagentFromSkillDialog from "./LoadSubagentFromSkillDialog.vue";
 import {
   agentTeamDraftSignature,
   createCopiedSubagent,
+  savedWebSearchField,
   validateAgentTeamDraft
 } from "./agentTeamSettingsEditorHelpers";
 import { clonedDrawField, savedDrawField } from "./agentTeamDrawDraft";
@@ -299,6 +300,7 @@ function saveSettings(): void {
           systemPrompt: definition.systemPrompt.trim(),
           enabled: definition.enabled,
           agentMode: definition.agentMode ?? "standard",
+          ...savedWebSearchField(definition.webSearchMode),
           ...savedDrawField(definition.draw),
           modelMode: definition.modelMode ?? "inherit",
           ...(definition.modelMode === "custom" && definition.modelId

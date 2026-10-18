@@ -4,6 +4,7 @@ import {
   fauxThinking
 } from "@earendil-works/pi-ai";
 import type { AgentTurnRetryPolicyOptions } from "./agent-turn-retry";
+import { assertConversationPromptBudget } from "@deepwrite/contracts";
 import { conversationAgentKey } from "./conversation-agent-rebuild";
 import { buildLocalThinking, buildLocalWritingResponse } from "./faux-local";
 import type { AgentRunPlan } from "./kernel/run-plan";
@@ -48,6 +49,11 @@ export function planWorkspaceRun(
     eventSource: input,
     agentKey: conversationAgentKey(input),
     portableToolSchemaProfile,
+    assertModelBudget: () =>
+      assertConversationPromptBudget(
+        { message: input.prompt, attachments: input.attachments },
+        input.contextCompactionSettings?.budgetTokens
+      ),
     fauxResponses: (thinkingLevel) => [
       fauxAssistantMessage(
         thinkingLevel === "off"

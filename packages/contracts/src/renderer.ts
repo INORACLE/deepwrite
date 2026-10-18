@@ -364,8 +364,7 @@ export {
   MODEL_CONTEXT_WINDOW_MAX,
   MODEL_CONTEXT_WINDOW_MIN,
   MODEL_MAX_TOKENS_MAX,
-  MODEL_MAX_TOKENS_MIN,
-  isDeepSeekWebSearchCompatible
+  MODEL_MAX_TOKENS_MIN
 } from "./models";
 export {
   DEFAULT_SCRIPT_AGENT_WELCOME_SHORTCUTS,
@@ -507,6 +506,12 @@ export {
   SESSION_CONVERSATION_HISTORY_MAX_MESSAGE_LENGTH,
   SESSION_CONVERSATION_HISTORY_MAX_CONTENT_LENGTH
 } from "./session/history-limits";
+export { SESSION_PROMPT_MAX_MESSAGE_LENGTH } from "./session/prompt-limits";
+export {
+  conversationPromptTokenLimit,
+  conversationPromptBudgetError,
+  estimateConversationPromptTokens
+} from "./session/prompt-budget";
 export {
   PROPOSAL_SETTLEMENT_MAX_ITEMS,
   PROPOSAL_SETTLEMENT_TEXT_MAX_LENGTH,
@@ -515,6 +520,7 @@ export {
 
 export * from "./book-identity";
 export * from "./image-models";
+export * from "./web-search";
 export * from "./https-base-url";
 export { ChatAssistantProjectRefSchema } from "./chat-assistant-base";
 export { ExtrasAgentTaskSchema } from "./extras-agent/tasks";

@@ -189,14 +189,13 @@ describe("chat task resolution", () => {
       {
         agentId: "chat-normal",
         profileId: "default",
-        input: { webSearchEnabled: true }
+        input: {}
       }
     );
     expect(task).toMatchObject({
       agentId: "chat-normal",
       profile: { systemPrompt: DEFAULT_CHAT_ASSISTANT_NORMAL_PROMPT },
       input: {
-        webSearchEnabled: true,
         runtime: {
           software: { version: "1.2.3" },
           longBooks: [{ id: "longbook_a" }]

@@ -471,6 +471,8 @@ const conversationRuntimeRegistry = useConversationRuntimeRegistryCoordinator({
       api: () => window.deepwrite,
       autoApproveCrossStageOperations: () =>
         generalSettings.value.autoApproveCrossStageOperations,
+      contextCompactionBudgetTokens: () =>
+        generalSettings.value.contextCompaction.budgetTokens,
       onContextWarning: (message) => uiMessage.warning(message),
       ...hooks
     }),

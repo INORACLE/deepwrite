@@ -32,7 +32,7 @@ const TOOL_ACTIVITY: Readonly<Record<string, string>> = {
     return t("commitContinuity");
   },
   get web_search() {
-    return t("smartSearch");
+    return t("webSearch");
   },
   get switch_storyline_stage() {
     return t("switchStage");

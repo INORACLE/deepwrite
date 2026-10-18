@@ -1,5 +1,6 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import type { FauxResponseStep } from "@earendil-works/pi-ai";
+import type { WebSearchSession } from "../web-search/session";
 import type {
   ExtrasAgentId,
   ExtrasAgentOutput,
@@ -28,6 +29,11 @@ export interface ExtrasAgentRunServices {
   runId: string;
   sessionId: string;
   localFaux?: boolean;
+  /**
+   * This run's search budget, present when Main attached search settings. A
+   * definition mounts it with `withWebSearchTool`; nothing mounts it for it.
+   */
+  webSearch?: WebSearchSession;
   /** Agent Utility -> Core query bridge, authorized by Main per run. */
   longCommandExecutor?: LongCommandExecutor;
   decompositionQuery?(
@@ -104,7 +110,6 @@ export interface ExtrasConversationAgentDefinition<
   interaction: "conversation";
   /** Distinguishes cached conversations of one session, e.g. per project. */
   conversationKey(task: ExtrasAgentResolvedTaskOf<A>): string;
-  webSearch?(task: ExtrasAgentResolvedTaskOf<A>): boolean;
   faux(
     task: ExtrasAgentResolvedTaskOf<A>,
     turn: { message: string; thinking: boolean }
@@ -134,7 +139,6 @@ export interface BoundExtrasTaskAgent extends BoundExtrasAgentBase {
 export interface BoundExtrasConversationAgent extends BoundExtrasAgentBase {
   interaction: "conversation";
   conversationKey: string;
-  webSearchEnabled: boolean;
   faux(turn: { message: string; thinking: boolean }): FauxResponseStep[];
 }
 
@@ -213,7 +217,6 @@ export function bindExtrasConversationAgent<
     ),
     tools: (services) => definition.tools(task, services),
     conversationKey: `${definition.id}:${definition.conversationKey(task)}`,
-    webSearchEnabled: definition.webSearch?.(task) === true,
     faux: (turn) => definition.faux(task, turn)
   };
 }

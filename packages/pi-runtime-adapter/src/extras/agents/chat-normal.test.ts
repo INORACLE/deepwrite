@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_CHAT_ASSISTANT_NORMAL_PROMPT } from "@deepwrite/contracts";
 import { PiAgentRuntimeAdapter } from "../../adapter";
-import { planExtrasRun } from "../run-plan";
 import {
+  buildConversationRun,
   resolveConversationAgent,
   runFauxExtras
 } from "../extras.test-support";
+import { WEB_SEARCH_PROMPT } from "../../web-search/prompt";
+import { runtimeConfig } from "../../web-search/test-support";
 import { cachedAgents, chatNormalTask } from "./chat.test-support";
 
 function resultText(result: {
@@ -17,8 +19,7 @@ function resultText(result: {
 
 describe("normal chat agent", () => {
   it("puts the persona profile above the non-editable boundary and app facts", () => {
-    const { systemPrompt, webSearchEnabled } =
-      resolveConversationAgent(chatNormalTask());
+    const { systemPrompt } = resolveConversationAgent(chatNormalTask());
     expect(systemPrompt.startsWith(DEFAULT_CHAT_ASSISTANT_NORMAL_PROMPT)).toBe(
       true
     );
@@ -27,25 +28,27 @@ describe("normal chat agent", () => {
     expect(systemPrompt.indexOf("DeepWrite 软件基础情况")).toBeGreaterThan(
       boundary
     );
-    expect(systemPrompt).toContain("Shell、网络、浏览器");
-    expect(systemPrompt).not.toContain("本轮已启用 DeepSeek 服务端智能搜索");
-    expect(webSearchEnabled).toBe(false);
+    expect(systemPrompt).toContain("网络能力仅限本轮实际列出的联网搜索工具");
+    expect(systemPrompt).not.toContain("DeepSeek 服务端");
+    expect(systemPrompt).not.toContain("【联网搜索】");
   });
 
-  it("describes DeepSeek server-side search only when the task enables it", () => {
-    const task = chatNormalTask(true);
-    const { systemPrompt, webSearchEnabled } = resolveConversationAgent(task);
-    expect(webSearchEnabled).toBe(true);
-    expect(systemPrompt).toContain("本轮已启用 DeepSeek 服务端智能搜索");
-    expect(systemPrompt).toContain(
-      "网络能力仅限本轮列出的 DeepSeek 服务端 web_search"
-    );
-    expect(systemPrompt).not.toContain("Shell、网络、浏览器");
-    const plan = planExtrasRun({
-      runId: "run",
-      spec: { sessionId: "session", task, conversation: { message: "热点" } }
+  it("mounts web search and its rules only when Main attached search settings", () => {
+    const without = buildConversationRun(chatNormalTask());
+    expect(without.tools.map(({ name }) => name)).not.toContain("web_search");
+    expect(without.systemPrompt).not.toContain("【联网搜索】");
+
+    const run = buildConversationRun(chatNormalTask(), {
+      webSearch: runtimeConfig()
     });
-    expect(plan.target.webSearchEnabled).toBe(true);
+    expect(run.tools.map(({ name }) => name)).toContain("web_search");
+    expect(run.systemPrompt).toContain(WEB_SEARCH_PROMPT);
+    expect(run.systemPrompt.indexOf("【普通聊天运行边界】")).toBeLessThan(
+      run.systemPrompt.indexOf("【联网搜索】")
+    );
+    expect(run.tools.map(({ name }) => name)).toContain(
+      "list_creation_projects"
+    );
   });
 
   it("exposes summaries and redacted model and usage queries only", async () => {

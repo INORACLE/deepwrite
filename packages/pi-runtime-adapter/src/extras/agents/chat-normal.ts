@@ -1,4 +1,5 @@
 import type { ExtrasConversationAgentDefinition } from "../definition";
+import { withWebSearchTool } from "../../web-search/mount";
 import { buildNormalTools } from "../tools/chat-normal-tools";
 import {
   chatFauxResponse,
@@ -14,12 +15,12 @@ export const chatNormalAgent: ExtrasConversationAgentDefinition<"chat-normal"> =
     boundaryTitle: "普通聊天",
     boundary: ({ input }) => [
       "普通模式只能查看目录与摘要，不能读取任何书籍、技能或素材正文。",
-      ...chatReadOnlyBoundary(input.webSearchEnabled === true),
-      ...chatSoftwareContext(input.runtime, input.webSearchEnabled === true)
+      ...chatReadOnlyBoundary(),
+      ...chatSoftwareContext(input.runtime)
     ],
-    tools: ({ input }) => buildNormalTools(input.runtime),
+    tools: ({ input }, services) =>
+      withWebSearchTool(buildNormalTools(input.runtime), services.webSearch),
     conversationKey: () => "normal",
-    webSearch: ({ input }) => input.webSearchEnabled === true,
     faux: (_task, turn) =>
       chatFauxResponse(
         "普通",

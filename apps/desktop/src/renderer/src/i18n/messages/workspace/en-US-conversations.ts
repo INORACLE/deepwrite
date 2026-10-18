@@ -276,10 +276,8 @@ export default {
       "The conversation was switched or closed before tool calls returned their final state."
   },
   webSearch: {
-    onlyDeepseekModelsUsingTheOpenaiResponsesOrAnthropic:
-      "Only DeepSeek models using the OpenAI Responses or Anthropic Messages API are supported.",
-    webAccessIsOffOnlyDeepseekModelsUsingThe:
-      "Web access is off. Only DeepSeek models using the Responses or Anthropic API support this feature."
+    setUpInSettings:
+      "Web search is off or has no key. Turn it on under Settings > Personal > Web search"
   },
   history: {
     historicalAttachmentNoteOnlyAttachmentNamesWereRestoredOriginal:
@@ -319,6 +317,10 @@ export default {
       "The agent stopped before tool calls returned their final state."
   },
   sendMessage: {
+    messageExceedsContextBudget:
+      "The message and attachments need about {used} tokens, above the available {limit} tokens. A 10% reserve is kept within your {budget}-token compaction budget. Shorten the content or adjust the setting.",
+    messageTooLong:
+      "Each message can contain up to {limit} characters; this message has {length}. Split the content into multiple messages.",
     couldNotSaveBeforeSending:
       "The message has not been saved locally and cannot be sent yet. Check the user data folder.",
     pleaseReadAndAnalyzeTheAttachmentsIUploaded:

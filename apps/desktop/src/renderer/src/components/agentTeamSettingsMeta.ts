@@ -2,6 +2,7 @@ import { createScopedTranslator } from "../i18n";
 import type {
   BuiltInReasoningLevel,
   SubagentAgentMode,
+  SubagentWebSearchMode,
   WorkspaceAgentId
 } from "@deepwrite/contracts";
 
@@ -55,6 +56,19 @@ export const BUILT_IN_THINKING_LABELS: Record<BuiltInReasoningLevel, string> = {
     return t("maximum");
   }
 };
+
+export const SUBAGENT_WEB_SEARCH_LABELS: Record<SubagentWebSearchMode, string> =
+  {
+    get inherit() {
+      return t("webSearchInherit");
+    },
+    get on() {
+      return t("webSearchOn");
+    },
+    get off() {
+      return t("webSearchOff");
+    }
+  };
 
 export const SUBAGENT_AGENT_MODE_LABELS: Record<SubagentAgentMode, string> = {
   get standard() {

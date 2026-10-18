@@ -13,5 +13,8 @@ export default {
   maximum: "Maximum",
   agentModeStandard: "Standard",
   agentModePureRead: "Pure · read-only",
-  agentModePureBare: "Pure · no tools"
+  agentModePureBare: "Pure · no tools",
+  webSearchInherit: "Follow main agent",
+  webSearchOn: "Always on",
+  webSearchOff: "Always off"
 };

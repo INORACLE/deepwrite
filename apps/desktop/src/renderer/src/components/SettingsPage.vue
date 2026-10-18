@@ -40,6 +40,7 @@ import ShortAgentSettingsPanel from "./ShortAgentSettingsPanel.vue";
 import SiteOfficialModelsPanel from "./SiteOfficialModelsPanel.vue";
 import ImageModelSettingsPanel from "./ImageModelSettingsPanel.vue";
 import VoiceSettingsPanel from "./VoiceSettingsPanel.vue";
+import WebSearchSettingsPanel from "./WebSearchSettingsPanel.vue";
 import MoreFeaturesSettingsPanel from "./MoreFeaturesSettingsPanel.vue";
 import { settingsSections as sections } from "./settingsCategories";
 
@@ -394,6 +395,8 @@ async function selectCategory(id: string): Promise<void> {
           v-else-if="activeCategory === 'voice'"
           :runtime-available="runtimeAvailable"
         />
+
+        <WebSearchSettingsPanel v-else-if="activeCategory === 'web-search'" />
 
         <section v-else class="settings-group">
           <div class="settings-card">

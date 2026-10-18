@@ -105,7 +105,14 @@ export function useLongStructureTransactionsCoordinator(
           completion,
           {},
           mutationLease.target.index
+        ),
+      {
+        blockUi: !(
+          batch.documentWrites.length === 0 &&
+          batch.operations.length > 0 &&
+          batch.operations.every(({ type }) => type.endsWith(".reorder"))
         )
+      }
     );
   }
 

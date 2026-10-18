@@ -1,6 +1,7 @@
 import { createScopedTranslator } from "../i18n";
 
 const imageT = createScopedTranslator("components.imageModelSettings");
+const webSearchT = createScopedTranslator("components.webSearchSettings");
 const t = createScopedTranslator("components.settingsPage");
 
 export interface SettingsCategory {
@@ -70,6 +71,16 @@ export const settingsSections: SettingsSection[] = [
           return t("contextSettings");
         },
         icon: "model"
+      },
+      {
+        id: "web-search",
+        get label() {
+          return webSearchT("title");
+        },
+        get keywords() {
+          return webSearchT("keywords");
+        },
+        icon: "globe"
       }
     ]
   },

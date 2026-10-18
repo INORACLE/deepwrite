@@ -259,10 +259,8 @@ export default {
       "会话已切换或关闭，工具调用未返回完整终态。"
   },
   webSearch: {
-    onlyDeepseekModelsUsingTheOpenaiResponsesOrAnthropic:
-      "仅支持 Provider 为 DeepSeek，且 API 类型为 OpenAI Responses 或 Anthropic Messages 的模型",
-    webAccessIsOffOnlyDeepseekModelsUsingThe:
-      "联网已关闭：仅 DeepSeek 的 Responses 或 Anthropic API 模型支持此功能"
+    setUpInSettings:
+      "联网搜索未启用或未配置密钥，请先在设置 → 个人 → 联网搜索中开启"
   },
   history: {
     historicalAttachmentNoteOnlyAttachmentNamesWereRestoredOriginal:
@@ -301,6 +299,10 @@ export default {
       "智能体运行已停止，工具调用未返回完整终态。"
   },
   sendMessage: {
+    messageExceedsContextBudget:
+      "消息和附件约 {used} token，超过当前可用的 {limit} token。已按压缩上下文上限 {budget} token 预留 10% 余量，请缩短内容或调整设置。",
+    messageTooLong:
+      "单条消息最多 {limit} 个字符，当前为 {length} 个字符。请将内容分段发送。",
     couldNotSaveBeforeSending:
       "消息尚未保存到本机，暂时无法发送。请检查用户数据目录。",
     pleaseReadAndAnalyzeTheAttachmentsIUploaded: "请阅读并分析我上传的附件。",

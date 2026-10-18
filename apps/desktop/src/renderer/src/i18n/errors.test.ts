@@ -5,6 +5,29 @@ import { setAppLanguage } from "./index";
 afterEach(() => setAppLanguage("zh-CN", "zh-CN"));
 
 describe("structured application errors", () => {
+  it("localizes the authoritative prompt budget without exposing diagnostic text", () => {
+    const error = {
+      code: "session.prompt_budget_exceeded",
+      message: "fixture diagnostic",
+      details: {
+        inputTokens: 60_000,
+        maxInputTokens: 57_600,
+        budgetTokens: 64_000
+      }
+    };
+    expect(formatError(error, "fallback")).toContain("预留 10% 余量");
+    setAppLanguage("en-US", "zh-CN");
+    expect(formatError(error, "fallback")).toContain("10% reserve");
+    expect(formatError(error, "fallback")).toContain("64,000-token");
+    expect(formatError(error, "fallback")).not.toContain(error.message);
+    expect(
+      formatError(
+        { ...error, details: { ...error.details, inputTokens: Infinity } },
+        "fallback"
+      )
+    ).toBe("fallback");
+  });
+
   it("shows actionable local storage causes without revealing raw diagnostic content", () => {
     const error = {
       code: "renderer_state.command_failed",

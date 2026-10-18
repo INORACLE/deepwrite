@@ -25,6 +25,11 @@ import { buildSpawnSubagentTool } from "./subagent-runtime";
 import { workspaceContextPolicy } from "./workspace-context-policy";
 import { writeApprovalBoundary } from "./write-approval";
 import { buildProviderRuntime, toPiThinkingLevel } from "./provider-runtime";
+import { mainWebSearchSession, withWebSearchTool } from "./web-search/mount";
+import {
+  createWebSearchSession,
+  type WebSearchSession
+} from "./web-search/session";
 import {
   scriptReadOnlyRuntimeSystemRequirements,
   scriptRuntimeSystemRequirements,
@@ -71,6 +76,17 @@ export function buildRunTools(
     libraryWorkspace,
     subagentAuthoring
   } = input.workspaceContext ?? {};
+  // One search budget for the main agent and every subagent of this run. The
+  // session exists whenever Main supplied settings; the main agent only mounts
+  // it while its switch is on, and each member follows its own web search mode.
+  const runSignal = options.parentSignal ?? input.signal;
+  const webSearch = input.webSearch
+    ? createWebSearchSession(input.webSearch, {
+        ...(runSignal ? { signal: runSignal } : {}),
+        localFaux: runtime.mode === "local-faux"
+      })
+    : undefined;
+  const mainWebSearch = mainWebSearchSession(webSearch, input);
   const writingToolSharedState =
     scriptWorkspace && input.scriptAgentProfile
       ? createScriptWorkspaceToolSharedState(scriptWorkspace)
@@ -81,7 +97,7 @@ export function buildRunTools(
     longWorkspace && input.longAgentProfile
       ? createLongWorkspaceToolSharedState()
       : undefined;
-  const buildWritingTools = (
+  const buildWritingToolSet = (
     onContextCompacted = options.onContextCompacted
   ): AgentTool[] => {
     if (scriptWorkspace && input.scriptAgentProfile) {
@@ -119,7 +135,13 @@ export function buildRunTools(
         })
       : [];
   };
-  const buildLongTools = (
+  // `search` is explicit: a default would turn "no search" into the full session.
+  const buildWritingTools = (
+    onContextCompacted: Parameters<typeof buildWritingToolSet>[0],
+    search: WebSearchSession | undefined
+  ): AgentTool[] =>
+    withWebSearchTool(buildWritingToolSet(onContextCompacted), search);
+  const buildLongToolSet = (
     includeAskUserQuestion = true,
     onContextCompacted = options.onContextCompacted
   ): AgentTool[] =>
@@ -144,21 +166,39 @@ export function buildRunTools(
           ...(longToolSharedState ? { sharedState: longToolSharedState } : {})
         })
       : [];
-  const management = createLibraryManagementRuntime(input);
+  const buildLongTools = (
+    includeAskUserQuestion: boolean,
+    onContextCompacted: Parameters<typeof buildLongToolSet>[1],
+    search: WebSearchSession | undefined
+  ): AgentTool[] =>
+    withWebSearchTool(
+      buildLongToolSet(includeAskUserQuestion, onContextCompacted),
+      search
+    );
+  const management = createLibraryManagementRuntime(
+    input,
+    mainWebSearch ? { webSearch: mainWebSearch } : {}
+  );
   let tools: AgentTool[] = subagentAuthoring
-    ? buildSubagentAuthoringTools(subagentAuthoring)
+    ? withWebSearchTool(
+        buildSubagentAuthoringTools(subagentAuthoring),
+        mainWebSearch
+      )
     : libraryWorkspace && input.libraryAgentProfile
-      ? buildLibraryAgentTools({
-          workspace: libraryWorkspace,
-          profile: input.libraryAgentProfile,
-          writeApprovalMode: input.writeApprovalMode ?? "request-approval",
-          attachedSkills: input.workspaceContext?.attachedSkills
-        })
+      ? withWebSearchTool(
+          buildLibraryAgentTools({
+            workspace: libraryWorkspace,
+            profile: input.libraryAgentProfile,
+            writeApprovalMode: input.writeApprovalMode ?? "request-approval",
+            attachedSkills: input.workspaceContext?.attachedSkills
+          }),
+          mainWebSearch
+        )
       : longWorkspace && input.longAgentProfile
-        ? buildLongTools()
+        ? buildLongTools(true, options.onContextCompacted, mainWebSearch)
         : (scriptWorkspace && input.scriptAgentProfile) ||
             (shortWorkspace && input.agentProfile)
-          ? buildWritingTools()
+          ? buildWritingTools(options.onContextCompacted, mainWebSearch)
           : [];
   if (
     ((scriptWorkspace && input.scriptAgentProfile) ||
@@ -215,8 +255,9 @@ export function buildRunTools(
       },
       buildChildTools:
         longWorkspace && input.longAgentProfile
-          ? (listener) => buildLongTools(false, listener)
-          : buildWritingTools,
+          ? (listener) => buildLongTools(false, listener, webSearch)
+          : (listener) => buildWritingTools(listener, webSearch),
+      mainWebSearch: input.webSearchEnabled === true,
       ...(scriptWorkspace
         ? {
             systemPromptRequirements: scriptRuntimeSystemRequirements(input),
@@ -235,8 +276,11 @@ export function buildRunTools(
                   "这是长篇主智能体委派的单层子任务。只能使用继承的长篇查询/提案工具和当前 bookId。交回结果时列出已提交的修改。",
                   writeApprovalBoundary(input.writeApprovalMode)
                 ].join("\n"),
-                pureReadSystemPromptRequirements:
-                  "这是长篇主智能体委派的单层只读子任务。只能使用 read、list 读取当前 bookId 的作品，以及 query_linked_material_entries 读取素材；没有任何写入工具，不能修改作品，也不得声称已修改或已提交连续性账本。"
+                pureReadSystemPromptRequirements: `这是长篇主智能体委派的单层只读子任务。只能使用 read、list 读取当前 bookId 的作品，以及 query_linked_material_entries 读取素材${
+                  webSearch
+                    ? "；工具清单列有 web_search 时，也可用它查证公开资料"
+                    : ""
+                }；没有任何写入工具，不能修改作品，也不得声称已修改或已提交连续性账本。`
               }
             : {}),
       toolExecutionHooks: options.toolExecutionHooks,

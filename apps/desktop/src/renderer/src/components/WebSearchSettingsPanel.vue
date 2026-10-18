@@ -1,0 +1,207 @@
+<script setup lang="ts">
+import { computed, onMounted } from "vue";
+import { WEB_SEARCH_PROVIDER_IDS } from "@deepwrite/contracts/renderer";
+import AgentTeamSwitch from "./AgentTeamSwitch.vue";
+import PopupSelect from "./PopupSelect.vue";
+import WebSearchKeyImportDialog from "./WebSearchKeyImportDialog.vue";
+import {
+  useWebSearchSettings,
+  webSearchProviderLabel
+} from "../composables/useWebSearchSettings";
+import { createScopedTranslator } from "../i18n";
+
+const t = createScopedTranslator("components.webSearchSettings");
+const c = useWebSearchSettings();
+const { settings, draft, loaded, importRequest } = c;
+
+const providerOptions = computed(() =>
+  WEB_SEARCH_PROVIDER_IDS.map((id) => ({
+    value: id,
+    label: webSearchProviderLabel(id)
+  }))
+);
+const keyPlaceholder = computed(() =>
+  c.profile.value?.hasApiKey
+    ? t("keyPlaceholderSaved")
+    : t("keyPlaceholderEmpty")
+);
+const keyNote = computed(() =>
+  draft.clearKey ? t("keyWillClear") : c.keySourceText.value
+);
+
+onMounted(() => void c.load());
+</script>
+
+<template>
+  <section
+    class="settings-group web-search-panel"
+    :class="{ 'is-pending': c.loading.value && !loaded }"
+  >
+    <p class="web-search-intro">{{ t("intro") }}</p>
+
+    <h2 class="settings-group-title">{{ t("serviceTitle") }}</h2>
+    <div class="settings-card">
+      <div class="settings-item web-search-row">
+        <span class="settings-item-text">
+          <strong>{{ t("enable") }}</strong>
+          <small aria-live="polite">{{ c.statusText.value }}</small>
+        </span>
+        <AgentTeamSwitch
+          :model-value="settings?.enabled ?? false"
+          :disabled="!loaded"
+          :label="t('enable')"
+          @update:model-value="c.setEnabled($event)"
+        />
+      </div>
+
+      <div class="settings-item web-search-row">
+        <span class="settings-item-text">
+          <strong>{{ t("provider") }}</strong>
+        </span>
+        <PopupSelect
+          class="general-select-control"
+          :model-value="draft.activeProviderId"
+          :options="providerOptions"
+          :accessible-label="t('provider')"
+          :disabled="!loaded"
+          @update:model-value="
+            c.selectProvider(
+              WEB_SEARCH_PROVIDER_IDS.find((id) => id === $event) ??
+                draft.activeProviderId
+            )
+          "
+        />
+      </div>
+
+      <div class="settings-item web-search-row">
+        <span class="settings-item-text">
+          <strong>{{ t("apiKey") }}</strong>
+          <small>{{ keyNote }}</small>
+        </span>
+        <div class="web-search-key-control">
+          <input
+            v-model="draft.apiKey"
+            class="voice-input"
+            type="password"
+            autocomplete="off"
+            :aria-label="t('apiKey')"
+            :placeholder="keyPlaceholder"
+            :disabled="!loaded"
+            @input="draft.clearKey = false"
+          />
+          <button
+            v-if="c.profile.value?.hasApiKey"
+            class="voice-button"
+            :class="{ 'is-active': draft.clearKey }"
+            type="button"
+            :aria-pressed="draft.clearKey"
+            :disabled="!loaded"
+            @click="c.toggleClearKey"
+          >
+            {{ t("clearKey") }}
+          </button>
+        </div>
+      </div>
+
+      <div class="settings-item web-search-row">
+        <div class="web-search-actions">
+          <button
+            v-if="c.canImport.value"
+            class="voice-button"
+            type="button"
+            :disabled="!loaded || c.importing.value"
+            @click="c.startImport"
+          >
+            {{
+              c.importing.value
+                ? t("importing")
+                : t("importFrom", { provider: c.provider.value })
+            }}
+          </button>
+          <button
+            class="voice-button"
+            type="button"
+            :disabled="!loaded || c.testing.value"
+            @click="c.test"
+          >
+            {{ c.testing.value ? t("testing") : t("testSearch") }}
+          </button>
+          <button
+            v-if="!loaded && !c.loading.value"
+            class="voice-button"
+            type="button"
+            @click="c.load"
+          >
+            {{ t("reload") }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="settings-group-title">{{ t("parametersTitle") }}</h2>
+    <div class="settings-card">
+      <label class="settings-item web-search-row">
+        <span class="settings-item-text">
+          <strong>{{ t("maxResults") }}</strong>
+          <small>{{
+            t("maxResultsHint", { min: 1, max: c.limits.value.maxResults })
+          }}</small>
+        </span>
+        <input
+          v-model.number="draft.maxResults"
+          class="voice-input web-search-number"
+          type="number"
+          inputmode="numeric"
+          step="1"
+          :min="1"
+          :max="c.limits.value.maxResults"
+          :disabled="!loaded"
+        />
+      </label>
+      <label class="settings-item web-search-row">
+        <span class="settings-item-text">
+          <strong>{{ t("perRunCallLimit") }}</strong>
+          <small>{{
+            t("perRunCallLimitHint", {
+              min: c.limits.value.minCalls,
+              max: c.limits.value.maxCalls
+            })
+          }}</small>
+        </span>
+        <input
+          v-model.number="draft.perRunCallLimit"
+          class="voice-input web-search-number"
+          type="number"
+          inputmode="numeric"
+          step="1"
+          :min="c.limits.value.minCalls"
+          :max="c.limits.value.maxCalls"
+          :disabled="!loaded"
+        />
+      </label>
+    </div>
+
+    <div class="web-search-save-bar">
+      <button
+        class="voice-button is-primary"
+        type="button"
+        :disabled="!loaded || !c.dirty.value || c.saving.value"
+        @click="c.save"
+      >
+        {{ c.saving.value ? t("saving") : t("save") }}
+      </button>
+    </div>
+
+    <WebSearchKeyImportDialog
+      :request="importRequest"
+      :provider-label="c.provider.value"
+      :busy="c.importConfirming.value"
+      @close="c.cancelImport"
+      @confirm="c.confirmImport"
+    />
+  </section>
+</template>
+
+<style scoped src="./settings-page.css"></style>
+<style scoped src="./voice-settings.css"></style>
+<style scoped src="./web-search-settings.css"></style>

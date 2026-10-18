@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SESSION_CONVERSATION_HISTORY_MAX_MESSAGE_LENGTH } from "@deepwrite/contracts/renderer";
 import type { ChatMessage } from "../../types/conversation";
 import {
   applyContextCompactionEvent,
@@ -163,7 +164,13 @@ describe("persisted context checkpoints", () => {
 
   it("fails explicitly rather than truncate an oversized restored payload", () => {
     expect(() =>
-      buildConversationRestore([message("user", "one", "字".repeat(1_000_001))])
+      buildConversationRestore([
+        message(
+          "user",
+          "one",
+          "字".repeat(SESSION_CONVERSATION_HISTORY_MAX_MESSAGE_LENGTH + 1)
+        )
+      ])
     ).toThrow("未截断或发送");
   });
 });

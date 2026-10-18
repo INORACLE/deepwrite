@@ -16,6 +16,124 @@ function textAttachment(id: string, length: number): UserPromptAttachment {
 }
 
 describe("conversation composer attachment budget", () => {
+  it("checks the combined message and attachments against the configured budget", () => {
+    const scope = effectScope();
+    const draft = ref("字".repeat(40_000));
+    const pendingAttachments = ref<UserPromptAttachment[]>([
+      textAttachment("source", 30_000)
+    ]);
+    const emitSend = vi.fn();
+    const warning = vi.spyOn(uiMessage, "warning").mockReturnValue(-1);
+    const composer = scope.run(() =>
+      useConversationComposer({
+        draft: () => draft.value,
+        canSend: () => true,
+        canSendAttachments: () => true,
+        runtimeAvailable: () => true,
+        libraryDomain: () => "skill",
+        availableSkills: () => [],
+        availableMaterials: () => [],
+        availableTeamMembers: () => null,
+        editorReferences: () => [],
+        textAttachmentMaxCharacters: () => 50_000,
+        textAttachmentsTotalMaxCharacters: () => 57_600,
+        contextCompactionBudgetTokens: () => 64_000,
+        pendingAttachments,
+        readingAttachments: ref(false),
+        emitDraft: vi.fn(),
+        emitSend,
+        emitClearEditorReferences: vi.fn()
+      })
+    )!;
+    try {
+      composer.submitMessage();
+      expect(emitSend).not.toHaveBeenCalled();
+      expect(warning).toHaveBeenCalledWith(
+        expect.stringContaining("超过当前可用的 57,600 token")
+      );
+      expect(pendingAttachments.value).toHaveLength(1);
+      draft.value = "请阅读附件";
+      composer.submitMessage();
+      expect(emitSend).toHaveBeenCalledOnce();
+    } finally {
+      scope.stop();
+      warning.mockRestore();
+    }
+  });
+
+  it("warns before clearing attachments and editor references for an overlong message", () => {
+    const scope = effectScope();
+    const draft = ref("字".repeat(57_601));
+    const budgetTokens = ref(64_000);
+    const pendingAttachments = ref<UserPromptAttachment[]>([
+      textAttachment("reference", 12)
+    ]);
+    const emitSend = vi.fn();
+    const emitDraft = vi.fn();
+    const emitClearEditorReferences = vi.fn();
+    const warning = vi.spyOn(uiMessage, "warning").mockReturnValue(-1);
+    const composer = scope.run(() =>
+      useConversationComposer({
+        draft: () => draft.value,
+        canSend: () => true,
+        canSendAttachments: () => true,
+        runtimeAvailable: () => true,
+        libraryDomain: () => "skill",
+        availableSkills: () => [],
+        availableMaterials: () => [],
+        availableTeamMembers: () => null,
+        editorReferences: () => [
+          {
+            id: "selection",
+            resourceId: "skill-library",
+            documentId: "skill-1",
+            documentTitle: "写作方法",
+            documentPath: ["技能库", "写作方法"],
+            text: "选中的技能正文",
+            start: 0,
+            end: 8,
+            startLine: 1,
+            endLine: 1,
+            label: "写作方法 (1-1)"
+          }
+        ],
+        textAttachmentMaxCharacters: () => 50_000,
+        textAttachmentsTotalMaxCharacters: () => 57_600,
+        contextCompactionBudgetTokens: () => budgetTokens.value,
+        pendingAttachments,
+        readingAttachments: ref(false),
+        emitDraft,
+        emitSend,
+        emitClearEditorReferences
+      })
+    )!;
+    try {
+      composer.submitMessage();
+      expect(warning).toHaveBeenCalledWith(
+        expect.stringContaining("超过当前可用的 57,600 token")
+      );
+      expect(emitSend).not.toHaveBeenCalled();
+      expect(emitDraft).not.toHaveBeenCalled();
+      expect(emitClearEditorReferences).not.toHaveBeenCalled();
+      expect(pendingAttachments.value).toEqual([
+        textAttachment("reference", 12)
+      ]);
+
+      budgetTokens.value = 128_000;
+      composer.submitMessage();
+      expect(warning).toHaveBeenCalledOnce();
+      expect(emitSend).toHaveBeenCalledWith([
+        textAttachment("reference", 12),
+        expect.objectContaining({ content: "选中的技能正文" })
+      ]);
+      expect(emitClearEditorReferences).toHaveBeenCalledOnce();
+      expect(pendingAttachments.value).toEqual([]);
+    } finally {
+      scope.stop();
+      warning.mockRestore();
+    }
+  });
+
   it("blocks combined attachments above the working budget cap and sends a smaller set", () => {
     const scope = effectScope();
     const pendingAttachments = ref<UserPromptAttachment[]>([

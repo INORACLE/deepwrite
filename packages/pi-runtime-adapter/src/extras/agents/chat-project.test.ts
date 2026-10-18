@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { resolveConversationAgent } from "../extras.test-support";
 import {
-  chatProjectTask,
-  longProjectRuntime,
-  shortProjectRuntime
-} from "./chat.test-support";
+  buildConversationRun,
+  resolveConversationAgent
+} from "../extras.test-support";
+import { runtimeConfig } from "../../web-search/test-support";
+import { chatProjectTask, longProjectRuntime } from "./chat.test-support";
 
 function resultText(result: {
   content: Array<{ type: string; text?: string }>;
@@ -27,15 +27,20 @@ describe("project chat agent", () => {
     expect(conversationKey).toBe("chat-project:short:short-a");
   });
 
-  it("keeps read-only boundaries while enabling server-side search", () => {
-    const { systemPrompt, webSearchEnabled } = resolveConversationAgent(
-      chatProjectTask(shortProjectRuntime(), true)
+  it("keeps the read-only boundaries and the project tools when search is attached", () => {
+    const run = buildConversationRun(chatProjectTask(), {
+      webSearch: runtimeConfig()
+    });
+    const names = run.tools.map(({ name }) => name);
+    expect(names).toEqual(
+      expect.arrayContaining(["web_search", "read_workspace_content"])
     );
-    expect(webSearchEnabled).toBe(true);
-    expect(systemPrompt).toContain("本轮已启用 DeepSeek 服务端智能搜索");
-    expect(systemPrompt).toContain(
+    expect(run.systemPrompt).toContain("【联网搜索】");
+    expect(run.systemPrompt).toContain(
       "不能创建、保存、编辑、删除、审批或覆盖书籍"
     );
+    const without = buildConversationRun(chatProjectTask());
+    expect(without.tools.map(({ name }) => name)).not.toContain("web_search");
   });
 
   it("locks short-project tools to the selected book and pages content", async () => {

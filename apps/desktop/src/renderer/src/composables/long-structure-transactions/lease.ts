@@ -69,7 +69,8 @@ export function createLongStructureLease(
     }
   }
   function acquireMutation(
-    expectedBookId: string | null | undefined
+    expectedBookId: string | null | undefined,
+    blockUi: boolean
   ): { lease: LongStructureMutationLease } | { message: string } | null {
     if (disposed) return null;
     const target = captureLongStructureMutationTarget(expectedBookId);
@@ -90,7 +91,7 @@ export function createLongStructureLease(
       applied: false
     };
     activeMutation = lease;
-    longBookActionPending.value = true;
+    if (blockUi) longBookActionPending.value = true;
     return { lease };
   }
   async function runWithMutationLease(
@@ -112,9 +113,10 @@ export function createLongStructureLease(
   async function withMutation(
     expectedBookId: string | null | undefined,
     onRejected: (message: string) => void,
-    task: (lease: LongStructureMutationLease) => Promise<void>
+    task: (lease: LongStructureMutationLease) => Promise<void>,
+    options: { blockUi?: boolean } = {}
   ): Promise<void> {
-    const acquired = acquireMutation(expectedBookId);
+    const acquired = acquireMutation(expectedBookId, options.blockUi !== false);
     if (!acquired) return;
     if ("message" in acquired) {
       onRejected(acquired.message);

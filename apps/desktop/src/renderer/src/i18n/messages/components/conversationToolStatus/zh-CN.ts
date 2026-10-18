@@ -50,7 +50,7 @@ export default {
   renameCharacter: "修改人物名称",
   moveCharacterEntry: "移动人物条目",
   deleteCharacterFile: "删除人物文件",
-  smartSearch: "智能搜索",
+  webSearch: "联网搜索",
   write: "写入",
   edit: "修改",
   couldNotGenerateManuscriptReview: "正文审核生成失败",
@@ -83,5 +83,9 @@ export default {
   generatingArguments: "参数生成中",
   submittingValueContent: "正在提交{arg0}内容",
   manuscriptAwaitingReview: "待审阅正文",
-  contentToWrite: "写入内容"
+  contentToWrite: "写入内容",
+  searchingWeb: "正在联网搜索",
+  webSearched: "已联网搜索",
+  webSearchResultCount: "「{query}」· {count} 条结果",
+  webSearchNoResults: "「{query}」· 没有找到结果"
 };

@@ -1,9 +1,11 @@
+import { SESSION_PROMPT_MAX_MESSAGE_LENGTH } from "@deepwrite/contracts/renderer";
 import type {
   ChatMessage,
   ConversationMessageRewriteRequest
 } from "../../types/conversation";
 
-export const CONVERSATION_MESSAGE_MAX_LENGTH = 20_000;
+export const CONVERSATION_MESSAGE_MAX_LENGTH =
+  SESSION_PROMPT_MAX_MESSAGE_LENGTH;
 
 export interface PreparedConversationMessageRewrite {
   content: string;

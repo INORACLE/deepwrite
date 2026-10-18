@@ -219,6 +219,8 @@ export interface BuildSpawnSubagentToolInput {
   buildChildTools: (
     onContextCompacted?: (listener: () => void) => void
   ) => AgentTool[];
+  /** Whether the main agent has search; members in `inherit` mode follow it. */
+  mainWebSearch?: boolean;
   prepareChild?: (
     definition: RuntimeSubagentDefinition,
     libraryId: string | undefined,
