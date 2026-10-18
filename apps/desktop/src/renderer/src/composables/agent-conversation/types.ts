@@ -67,6 +67,7 @@ export interface AgentRunSettings {
   temperature: number;
   approvalMode: AgentApprovalMode;
   agentTeamMode?: AgentTeamRunMode;
+  webSearchEnabled?: boolean;
 }
 export interface AgentConversationPersistenceRecord {
   sessionId: string;
@@ -154,6 +155,7 @@ export interface AgentConversationController {
   agentTeamMode: Ref<AgentTeamRunMode>;
   thinkingLevel: Ref<ThinkingLevel>;
   temperature: Ref<number>;
+  webSearchEnabled: Ref<boolean>;
   configuredModels: Ref<ModelConfig[]>;
   selectedModelId: Ref<string>;
   runtime: Ref<AgentRuntimeRef | null>;
@@ -234,6 +236,7 @@ export interface AgentConversationController {
   applyRunSettings(settings: AgentRunSettings): void;
   selectModel(modelId: string): void;
   selectThinkingLevel(level: ThinkingLevel): void;
+  selectWebSearchEnabled(enabled: boolean): void;
   selectTemperature(temperature: number): void;
   selectApprovalMode(mode: AgentApprovalMode): void;
   selectAgentTeamMode(mode: AgentTeamRunMode): void;

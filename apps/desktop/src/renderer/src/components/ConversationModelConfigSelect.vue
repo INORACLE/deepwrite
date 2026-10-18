@@ -37,6 +37,9 @@ const props = defineProps<{
   temperature: number;
   temperatureOptions: Array<{ value: number; label: string }>;
   showsTemperature: boolean;
+  webSearchEnabled: boolean;
+  webSearchAvailable: boolean;
+  webSearchDisabledReason: string;
   responding: boolean;
 }>();
 
@@ -44,6 +47,7 @@ const emit = defineEmits<{
   selectModel: [modelId: string];
   selectThinking: [level: ThinkingLevel];
   selectTemperature: [temperature: number];
+  toggleWebSearch: [enabled: boolean];
 }>();
 
 const trigger = ref<HTMLButtonElement | null>(null);
@@ -112,6 +116,13 @@ const selectedSubmenuValue = computed<ConfigValue>(() => {
   if (page.value === "thinking") return props.thinkingLevel;
   return props.temperature;
 });
+const webSearchTitle = computed(() => {
+  if (props.responding)
+    return t("changeWebAccessAfterTheCurrentReplyFinishesOr");
+  if (!props.webSearchAvailable) return props.webSearchDisabledReason;
+  return props.webSearchEnabled ? t("disableWebAccess") : t("enableWebAccess");
+});
+
 function positionMenu(): void {
   if (!open.value || !trigger.value) return;
   const rect = trigger.value.getBoundingClientRect();
@@ -293,6 +304,12 @@ onBeforeUnmount(() => {
     >
       <span class="conversation-model-config-icons">
         <AppIcon name="model" :size="14" />
+        <AppIcon
+          v-if="webSearchEnabled"
+          class="conversation-model-config-network-indicator"
+          name="globe"
+          :size="11"
+        />
       </span>
       <span class="conversation-model-config-label">{{
         selectedModelLabel
@@ -377,6 +394,23 @@ onBeforeUnmount(() => {
                   temperatureLabel
                 }}</span>
                 <AppIcon name="chevron" :size="16" />
+              </button>
+              <button
+                class="conversation-model-config-network"
+                type="button"
+                :disabled="responding || !webSearchAvailable"
+                :title="webSearchTitle"
+                :aria-label="t('webAccess')"
+                :aria-pressed="webSearchEnabled"
+                @click="emit('toggleWebSearch', !webSearchEnabled)"
+              >
+                <span>{{ t("webAccess") }}</span>
+                <span
+                  class="conversation-model-config-switch"
+                  :class="{ 'is-active': webSearchEnabled }"
+                >
+                  <span />
+                </span>
               </button>
             </div>
           </div>

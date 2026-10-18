@@ -49,7 +49,8 @@ describe("roleplay chat selection", () => {
       "chat-assistant:roleplay:a",
       "assistant-chat:roleplay:a"
     );
-    await mode.sendAssistantMessage();
+    // Roleplay never searches the web, even when the toggle is on.
+    await mode.sendAssistantMessage(true);
     expect(send).toHaveBeenLastCalledWith({
       agentId: "chat-roleplay",
       profileId: "a",
@@ -76,11 +77,11 @@ describe("roleplay chat selection", () => {
       "chat-assistant:normal",
       "assistant-chat:normal"
     );
-    await restored.sendAssistantMessage();
+    await restored.sendAssistantMessage(true);
     expect(send).toHaveBeenLastCalledWith({
       agentId: "chat-normal",
       profileId: "default",
-      input: {}
+      input: { webSearchEnabled: true }
     });
   });
 });

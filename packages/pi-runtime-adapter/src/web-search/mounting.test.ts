@@ -14,13 +14,15 @@ import {
   DEFAULT_LIBRARY_AGENT_PROFILES,
   createShortWorkspaceContentRevision,
   type LibraryAgentWorkspaceSnapshot,
-  type SubagentAgentMode
+  type SubagentAgentMode,
+  type SubagentWebSearchMode
 } from "@deepwrite/contracts";
 import { scriptAgentProfile, screenplayWorkspace } from "../index.test-support";
 import {
   profile as longProfile,
   workspace as longWorkspace
 } from "../long-agent-tools.test-support";
+import { buildEffectiveSystemPrompt } from "../prompts-system";
 import { buildRunTools } from "../run-tools";
 import type { AgentRunInput } from "../runtime-types";
 import {
@@ -32,7 +34,12 @@ import { WEB_SEARCH_PROMPT } from "./prompt";
 import { runtimeConfig } from "./test-support";
 
 const contextOf = (searching: boolean) =>
-  searching ? { webSearch: runtimeConfig({ perRunCallLimit: 2 }) } : {};
+  searching
+    ? {
+        webSearch: runtimeConfig({ perRunCallLimit: 2 }),
+        webSearchEnabled: true
+      }
+    : {};
 
 const libraryWorkspace: LibraryAgentWorkspaceSnapshot = {
   domain: "material",
@@ -48,7 +55,10 @@ const libraryWorkspace: LibraryAgentWorkspaceSnapshot = {
   entries: []
 };
 
-function member(agentMode: SubagentAgentMode) {
+function member(
+  agentMode: SubagentAgentMode,
+  webSearchMode?: SubagentWebSearchMode
+) {
   return {
     id: `member_${agentMode.replace("-", "_")}`,
     name: `成员-${agentMode}`,
@@ -56,6 +66,7 @@ function member(agentMode: SubagentAgentMode) {
     systemPrompt: "完成委派。",
     enabled: true,
     agentMode,
+    ...(webSearchMode ? { webSearchMode } : {}),
     modelMode: "inherit" as const
   };
 }
@@ -184,13 +195,111 @@ describe("web_search in the main agent's tools", () => {
   }
 });
 
+describe("the main agent's switch", () => {
+  it.each(Object.keys(mainInputs(true)))(
+    "不给%s主智能体挂载：设置可用但本轮开关关闭",
+    (kind) => {
+      const { webSearchEnabled: _off, ...input } = mainInputs(true)[kind]!;
+      const tools = buildRunTools(input, options(harness()));
+      expect(names(tools)).not.toContain(SEARCH);
+    }
+  );
+
+  it("keeps the search rules out of a main prompt whose switch is off", () => {
+    const { webSearchEnabled: _off, ...input } = mainInputs(true).短篇!;
+    const prompt = buildEffectiveSystemPrompt("基础提示。", input);
+    expect(prompt).not.toContain("【联网搜索】");
+    expect(
+      buildEffectiveSystemPrompt("基础提示。", mainInputs(true).短篇!)
+    ).toContain("【联网搜索】");
+  });
+});
+
+describe("web_search follows each member's web search mode", () => {
+  function run(options: {
+    config: boolean;
+    main: boolean;
+    mode?: SubagentWebSearchMode;
+  }): AgentRunInput {
+    const { webSearchEnabled: _flag, ...base } = mainInputs(
+      options.config
+    ).短篇!;
+    return {
+      ...base,
+      ...(options.main ? { webSearchEnabled: true } : {}),
+      subagentDefinitions: [member("standard", options.mode)]
+    };
+  }
+
+  async function childTools(input: AgentRunInput) {
+    const runtime = harness();
+    const spawn = buildRunTools(input, options(runtime)).find(
+      (tool) => tool.name === "spawn_subagent"
+    )!;
+    await spawn.execute("call", {
+      tasks: [{ subagent_id: member("standard").id, task: "处理这一段" }]
+    } as never);
+    return runtime.contexts[0]!;
+  }
+
+  it.each([
+    ["inherit", true, true],
+    ["inherit", false, false],
+    [undefined, true, true],
+    [undefined, false, false],
+    ["on", true, true],
+    ["on", false, true],
+    ["off", true, false],
+    ["off", false, false]
+  ] as const)(
+    "mode %s with the main switch %s: child searches %s",
+    async (mode, main, expected) => {
+      const context = await childTools(
+        run({ config: true, main, ...(mode ? { mode } : {}) })
+      );
+      expect(names(context.tools ?? []).includes(SEARCH)).toBe(expected);
+      expect(context.systemPrompt?.includes(WEB_SEARCH_PROMPT)).toBe(expected);
+    }
+  );
+
+  it("lets an always-on member search while the main agent cannot", () => {
+    const tools = buildRunTools(
+      run({ config: true, main: false, mode: "on" }),
+      options(harness())
+    );
+    expect(names(tools)).not.toContain(SEARCH);
+    expect(names(tools)).toContain("spawn_subagent");
+  });
+
+  it("gives nobody search while the settings are missing", async () => {
+    const context = await childTools(
+      run({ config: false, main: true, mode: "on" })
+    );
+    expect(names(context.tools ?? [])).not.toContain(SEARCH);
+  });
+
+  it("keeps a bare member toolless whatever its mode says", async () => {
+    const input = run({ config: true, main: true, mode: "on" });
+    const bare = member("pure-bare", "on");
+    const runtime = harness();
+    const spawn = buildRunTools(
+      { ...input, subagentDefinitions: [bare] },
+      options(runtime)
+    ).find((tool) => tool.name === "spawn_subagent")!;
+    await spawn.execute("call", {
+      tasks: [{ subagent_id: bare.id, task: "只用文字回答" }]
+    } as never);
+    expect(runtime.contexts[0]!.tools ?? []).toEqual([]);
+  });
+});
+
 describe("web_search in subagents", () => {
   function shortRun(searching: boolean): AgentRunInput {
     return {
       ...mainInputs(searching).短篇!,
       subagentDefinitions: (
         ["standard", "pure-read", "pure-bare"] as SubagentAgentMode[]
-      ).map(member)
+      ).map((mode) => member(mode))
     };
   }
 
@@ -231,7 +340,7 @@ describe("web_search in subagents", () => {
 
   it("tells a pure-read child it may look things up when it can", async () => {
     const context = await runChild(shortRun(true), "pure-read");
-    expect(context.systemPrompt).toContain("web_search 查证公开资料");
+    expect(context.systemPrompt).toContain("工具清单列有 web_search 时");
     const plain = await runChild(shortRun(false), "pure-read");
     expect(plain.systemPrompt).not.toContain("web_search");
   });

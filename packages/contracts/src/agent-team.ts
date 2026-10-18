@@ -14,6 +14,7 @@ import {
   SHORT_AGENT_SUBAGENT_MODEL_ID_MAX_LENGTH,
   ShortAgentSubagentModelModeSchema,
   SubagentAgentModeSchema,
+  SubagentWebSearchModeSchema,
   SubagentDrawSettingsSchema,
   validateSubagentCustomModel,
   type ShortAgentSubagentModelMode
@@ -69,6 +70,8 @@ export const ShortAgentSubagentDefinitionSchema = z
     enabled: z.boolean(),
     /** Older settings and packages omit it and run as `standard`. */
     agentMode: SubagentAgentModeSchema.default("standard"),
+    /** Older settings and packages omit it and follow the main agent. */
+    webSearchMode: SubagentWebSearchModeSchema.optional(),
     modelMode: ShortAgentSubagentModelModeSchema.default("inherit"),
     modelId: z
       .string()

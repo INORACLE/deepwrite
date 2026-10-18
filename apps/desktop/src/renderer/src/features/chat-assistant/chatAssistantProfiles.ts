@@ -7,7 +7,8 @@ import type {
   ChatAssistantProjectRef,
   ChatProjectProfile,
   ChatRoleplayProfile,
-  ExtrasAgentApi
+  ExtrasAgentApi,
+  ExtrasChatTask
 } from "@deepwrite/contracts";
 
 const t = createScopedTranslator("extras.chatAssistant");
@@ -113,4 +114,17 @@ export async function saveChatRole(
   const stored = saved.profiles.find((profile) => profile.id === role.id);
   if (!stored) throw new Error(t("saveCharacterFailed"));
   return stored;
+}
+
+/** The task a chat turn runs as; web search only for tool-using chats. */
+export function chatTaskWithWebSearch(
+  task: ExtrasChatTask,
+  webSearchEnabled: boolean
+): ExtrasChatTask {
+  if (!webSearchEnabled) return task;
+  if (task.agentId === "chat-normal")
+    return { ...task, input: { ...task.input, webSearchEnabled: true } };
+  if (task.agentId === "chat-project")
+    return { ...task, input: { ...task.input, webSearchEnabled: true } };
+  return task;
 }

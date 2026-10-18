@@ -46,7 +46,11 @@ describe("agent run preferences", () => {
           webSearchEnabled: true
         })
       )
-    ).toEqual({ selectedModelId: "writer", thinkingLevel: "high" });
+    ).toEqual({
+      selectedModelId: "writer",
+      thinkingLevel: "high",
+      webSearchEnabled: true
+    });
     expect(
       parseAgentModelSelection(
         JSON.stringify({

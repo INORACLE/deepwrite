@@ -206,7 +206,7 @@ describe("DeepWrite desktop contracts: commands-models-and-prompts", () => {
     expect(parsed.payload).not.toHaveProperty("mode");
     expect(parsed.payload).not.toHaveProperty("chatAssistant");
 
-    // Neither the old switch nor settings with a key can come from the Renderer.
+    // The Renderer sends only its switch; settings with a key never come from it.
     const workspaceSearch = createEnvelope(
       "session.prompt",
       {
@@ -230,7 +230,7 @@ describe("DeepWrite desktop contracts: commands-models-and-prompts", () => {
     const workspace = CommandEnvelopeSchema.parse(workspaceSearch) as {
       payload: Record<string, unknown>;
     };
-    expect(workspace.payload).not.toHaveProperty("webSearchEnabled");
+    expect(workspace.payload.webSearchEnabled).toBe(true);
     expect(workspace.payload).not.toHaveProperty("webSearch");
   });
 

@@ -258,6 +258,10 @@ export default {
     theConversationWasSwitchedOrClosedBeforeToolCalls:
       "会话已切换或关闭，工具调用未返回完整终态。"
   },
+  webSearch: {
+    setUpInSettings:
+      "联网搜索未启用或未配置密钥，请先在设置 → 个人 → 联网搜索中开启"
+  },
   history: {
     historicalAttachmentNoteOnlyAttachmentNamesWereRestoredOriginal:
       "{content}\n\n【历史附件说明】{map}。本条只恢复了附件名称，原始附件未在会话记录中保存；需要核对或引用原文、图片时，请用户重新上传。",

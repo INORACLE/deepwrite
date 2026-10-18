@@ -7,6 +7,7 @@ export default {
     "说明擅长处理什么任务，供主智能体选择调用。",
   advancedSettings: "高级配置",
   drawSummary: "抽卡 {arg0} 次",
+  webSearchSummary: "联网：{arg0}",
   primaryAgentModel: "跟随主智能体",
   customModel: "单独配置模型",
   systemPrompt: "系统提示词",

@@ -9,6 +9,7 @@ import {
   SessionUserInputResponseAcceptedPayloadSchema,
   SessionPromptAcceptedPayloadSchema,
   createEnvelope,
+  subagentsNeedWebSearch,
   type CommandEnvelope,
   type CommandResult
 } from "@deepwrite/contracts";
@@ -158,8 +159,6 @@ export async function handleSessionCommands(
       const runtimeConfig = await ctx
         .requireModelConfigStore()
         .resolve(command.payload.modelId);
-      // Search is a tool for every model; only the settings decide whether it exists.
-      const webSearch = await ctx.resolveWebSearch?.();
       const shortWorkspace = command.payload.workspaceContext?.shortWorkspace;
       const scriptWorkspace = command.payload.workspaceContext?.scriptWorkspace;
       const longWorkspace = command.payload.workspaceContext?.longWorkspace;
@@ -201,6 +200,13 @@ export async function handleSessionCommands(
                 .parallelSubagentsEnabled(workspaceType)
           }
         );
+      // Search exists for the run when the user switched it on or a member asks
+      // for it; the search settings still decide whether it can be given.
+      const webSearch =
+        command.payload.webSearchEnabled === true ||
+        subagentsNeedWebSearch(subagentDefinitions)
+          ? await ctx.resolveWebSearch?.()
+          : undefined;
       const libraryAgentProfile = libraryWorkspace
         ? await ctx
             .requireLibraryAgentConfigStore()

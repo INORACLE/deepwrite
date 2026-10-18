@@ -28,6 +28,7 @@ import type {
 import { uiMessage } from "../ui-feedback";
 import { useConversationScrollFollow } from "../composables/useConversationScrollFollow";
 import { useConversationModelOptions } from "../composables/useConversationModelOptions";
+import { useWebSearchStatusStore } from "../stores/webSearchStatus";
 import { useConversationTurnNavigator } from "../composables/useConversationTurnNavigator";
 import AppIcon from "./AppIcon.vue";
 import ConversationHistoryMenu from "./ConversationHistoryMenu.vue";
@@ -38,6 +39,7 @@ import ConversationComposer from "./ConversationComposer.vue";
 import ConversationMessageList from "./ConversationMessageList.vue";
 import ConversationTurnNavigator from "./ConversationTurnNavigator.vue";
 import { AGENT_ACTIVITY_CONTEXT_KEY } from "../composables/agentActivityContext";
+import { workspaceWebSearchDisabledReason } from "../composables/agent-conversation/web-search";
 
 const t = createScopedTranslator("components.agentConversation");
 
@@ -60,6 +62,7 @@ const props = withDefaults(
     models: ModelConfig[];
     selectedModelId: string;
     thinkingLevel: ThinkingLevel;
+    webSearchEnabled: boolean;
     temperature: number;
     approvalMode: AgentApprovalMode;
     agentTeamMode: AgentTeamRunMode;
@@ -135,6 +138,7 @@ const emit = defineEmits<{
   toggleRight: [];
   selectModel: [modelId: string];
   selectThinking: [level: ThinkingLevel];
+  toggleWebSearch: [enabled: boolean];
   selectTemperature: [temperature: number];
   selectApproval: [mode: AgentApprovalMode];
   selectAgentTeamMode: [mode: AgentTeamRunMode];
@@ -225,6 +229,11 @@ function applySuggestion(value: string): void {
   emit("suggestion", value);
   composer.value?.focusInput();
 }
+
+// Search can be switched on only while the settings let a run search.
+const webSearchStatus = useWebSearchStatusStore();
+void webSearchStatus.ensureLoaded();
+const webSearchAvailable = computed(() => webSearchStatus.usable);
 
 const {
   selectedModel,
@@ -415,6 +424,9 @@ const {
         :selected-model-id="selectedModelId"
         :selected-model="selectedModel"
         :thinking-level="thinkingLevel"
+        :web-search-enabled="webSearchEnabled"
+        :web-search-available="webSearchAvailable"
+        :web-search-disabled-reason="workspaceWebSearchDisabledReason()"
         :temperature="temperature"
         :approval-mode="approvalMode"
         :agent-team-mode="agentTeamMode"
@@ -438,6 +450,7 @@ const {
         @locate-editor-reference="locateComposerReference"
         @select-model="emit('selectModel', $event)"
         @select-thinking="emit('selectThinking', $event)"
+        @toggle-web-search="emit('toggleWebSearch', $event)"
         @select-temperature="emit('selectTemperature', $event)"
         @select-approval="emit('selectApproval', $event)"
         @select-agent-team-mode="emit('selectAgentTeamMode', $event)"

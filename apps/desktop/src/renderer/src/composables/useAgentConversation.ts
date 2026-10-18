@@ -109,7 +109,8 @@ export function useAgentConversation(
       ctx.approvalMode,
       ctx.selectedModelId,
       ctx.thinkingLevel,
-      ctx.temperature
+      ctx.temperature,
+      ctx.webSearchEnabled
     ],
     (mutation) => {
       if (
@@ -149,6 +150,7 @@ export function useAgentConversation(
     agentTeamMode: ctx.agentTeamMode,
     thinkingLevel: ctx.thinkingLevel,
     temperature: ctx.temperature,
+    webSearchEnabled: ctx.webSearchEnabled,
     configuredModels: ctx.configuredModels,
     selectedModelId: ctx.selectedModelId,
     runtime: ctx.runtime,
@@ -187,6 +189,7 @@ export function useAgentConversation(
     applyRunSettings: ctx.applyRunSettings,
     selectModel: ctx.selectModel,
     selectThinkingLevel: ctx.selectThinkingLevel,
+    selectWebSearchEnabled: ctx.selectWebSearchEnabled,
     selectTemperature: ctx.selectTemperature,
     selectApprovalMode: ctx.selectApprovalMode,
     selectAgentTeamMode: ctx.selectAgentTeamMode,

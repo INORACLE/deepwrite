@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { effectScope, watch } from "vue";
+import { effectScope, nextTick, watch } from "vue";
+import { createPinia, setActivePinia } from "pinia";
 import type {
   WebSearchKeyImportCandidate,
   WebSearchSettings,
   WebSearchSettingsInput
 } from "@deepwrite/contracts/renderer";
 import { createScopedTranslator } from "../i18n";
+import { useWebSearchStatusStore } from "../stores/webSearchStatus";
 import { dismissUiMessage, uiMessageItems } from "../ui-feedback";
 import { useWebSearchSettings } from "./useWebSearchSettings";
 
@@ -76,6 +78,7 @@ async function setup(api = makeApi()) {
 }
 
 beforeEach(() => {
+  setActivePinia(createPinia());
   uiMessageItems.value.forEach(({ id }) => dismissUiMessage(id));
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -161,6 +164,37 @@ describe("useWebSearchSettings switch", () => {
     await controller.setEnabled(false);
     expect(controller.settings.value?.enabled).toBe(true);
     expect(messages()).toEqual([{ kind: "error", content: "保存失败" }]);
+  });
+});
+
+describe("useWebSearchSettings session switch status", () => {
+  it("tells the session switches whether search can be given", async () => {
+    const status = useWebSearchStatusStore;
+    await setup(makeApi(settings({}, true)));
+    await nextTick();
+    expect(status().usable).toBe(true);
+  });
+
+  it("is unusable while no key is saved", async () => {
+    await setup(makeApi(settings({}, false)));
+    await nextTick();
+    expect(useWebSearchStatusStore().usable).toBe(false);
+  });
+
+  it("follows the switch at once, before Main answers", async () => {
+    const reply = deferred<WebSearchSettings>();
+    const api = makeApi();
+    api.setEnabled.mockReturnValue(reply.promise);
+    const { controller } = await setup(api);
+    await nextTick();
+    expect(useWebSearchStatusStore().usable).toBe(true);
+    const pending = controller.setEnabled(false);
+    await nextTick();
+    expect(useWebSearchStatusStore().usable).toBe(false);
+    reply.resolve(settings({ enabled: false }));
+    await pending;
+    await nextTick();
+    expect(useWebSearchStatusStore().usable).toBe(false);
   });
 });
 

@@ -27,12 +27,14 @@ function controller(name: string) {
     "request-approval"
   );
   const agentTeamMode = ref<"normal" | "team">("normal");
+  const webSearchEnabled = ref(false);
   const applyRunSettings = vi.fn((settings) => {
     selectedModelId.value = settings.selectedModelId;
     thinkingLevel.value = settings.thinkingLevel as "medium" | "high";
     temperature.value = settings.temperature;
     approvalMode.value = settings.approvalMode;
     agentTeamMode.value = settings.agentTeamMode ?? "normal";
+    webSearchEnabled.value = settings.webSearchEnabled === true;
   });
   const dispose = vi.fn();
   return {
@@ -44,6 +46,7 @@ function controller(name: string) {
     temperature,
     approvalMode,
     agentTeamMode,
+    webSearchEnabled,
     applyRunSettings,
     dispose
   } as unknown as AgentConversationController & {
@@ -97,12 +100,15 @@ describe("conversation store", () => {
     store.setSessionAgentModelSelection(
       {
         selectedModelId: "global-model",
-        thinkingLevel: "high"
+        thinkingLevel: "high",
+        webSearchEnabled: true
       },
       { persist: false }
     );
     expect(first.selectedModelId.value).toBe("global-model");
     expect(second.selectedModelId.value).toBe("global-model");
+    expect(first.webSearchEnabled.value).toBe(true);
+    expect(second.webSearchEnabled.value).toBe(true);
 
     store.setAgentRunPreferences(
       "book:one",

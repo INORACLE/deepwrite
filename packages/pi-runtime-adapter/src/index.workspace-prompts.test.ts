@@ -120,7 +120,7 @@ describe("DeepWrite Pi runtime adapter: workspace-prompts", () => {
     expect(JSON.stringify(chatUserMessages)).not.toContain("工作区文稿");
   });
 
-  it("describes DeepSeek server-side search for workspace agents only when enabled", () => {
+  it("describes web search for workspace agents only when switched on and configured", () => {
     const shortProfile = DEFAULT_SHORT_WORKSPACE_AGENT_PROFILES[0]!;
     const workspaceContext = {
       shortWorkspace: {
@@ -144,8 +144,20 @@ describe("DeepWrite Pi runtime adapter: workspace-prompts", () => {
       prompt: "查一下同类题材",
       agentProfile: shortProfile,
       webSearch: runtimeConfig(),
+      webSearchEnabled: true,
       workspaceContext
     });
+    // The settings alone do not give the main agent search; the switch does.
+    const switchedOffPrompt = buildEffectiveSystemPrompt("DeepWrite base", {
+      runId: "run_short_search_switch_off",
+      sessionId: "session_short_search_switch_off",
+      prompt: "继续写第一节",
+      agentProfile: shortProfile,
+      webSearch: runtimeConfig(),
+      workspaceContext
+    });
+    expect(switchedOffPrompt).not.toContain("【联网搜索】");
+    expect(switchedOffPrompt).not.toContain("web_search");
     expect(enabledPrompt).toContain("【联网搜索】");
     expect(enabledPrompt).toContain("联网查证公开资料使用 web_search");
     expect(enabledPrompt).toContain("网络能力仅限 web_search");

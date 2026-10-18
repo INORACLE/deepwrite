@@ -55,6 +55,7 @@ function controllerFixture() {
     }
   ]);
   const conversationError = ref<string | null>(null);
+  const webSearchEnabled = ref(false);
   const sendMessage = vi.fn(async () => undefined);
   const resendMessage = vi.fn(async (request: { messageId: string }) => {
     const index = messages.value.findIndex(
@@ -81,6 +82,7 @@ function controllerFixture() {
     isBusy,
     canRewriteHistory,
     conversationError,
+    webSearchEnabled,
     sendMessage,
     resendMessage,
     newConversation,
@@ -91,6 +93,9 @@ function controllerFixture() {
     }),
     selectModel: vi.fn(),
     selectThinkingLevel: vi.fn(),
+    selectWebSearchEnabled: vi.fn((enabled: boolean) => {
+      webSearchEnabled.value = enabled;
+    }),
     selectTemperature: vi.fn(),
     selectApprovalMode: vi.fn()
   } as unknown as AgentConversationController;
@@ -421,5 +426,13 @@ describe("useShortConversationCoordinator", () => {
     expect(test.conversation.stopGeneration).toHaveBeenCalledOnce();
     expect(otherConversation.stopGeneration).not.toHaveBeenCalled();
     expect(test.coordinator.sendPreflightPending.value).toBe(false);
+  });
+
+  it("persists a composer web-search toggle through the session model selection", () => {
+    const test = createHarness();
+    test.conversation.controller.webSearchEnabled.value = true;
+    expect(
+      test.options.runtime.synchronizeSessionModelSelection
+    ).toHaveBeenCalledWith(test.conversation.controller);
   });
 });

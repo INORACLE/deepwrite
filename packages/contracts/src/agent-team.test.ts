@@ -15,6 +15,9 @@ import {
   SubagentPlannedPayloadSchema,
   SubagentStartedPayloadSchema,
   SUBAGENT_TASK_BATCH_MAX_COUNT,
+  ShortAgentSubagentDefinitionSchema,
+  subagentWebSearchAllowed,
+  subagentsNeedWebSearch,
   createEnvelope,
   createDefaultCreativePlotStages,
   createShortWorkspaceContentRevision,
@@ -403,5 +406,50 @@ describe("agent-team contracts", () => {
     expect(SubagentActivityEventEnvelopeSchema.safeParse(event).success).toBe(
       false
     );
+  });
+});
+
+describe("subagent web search mode", () => {
+  const parse = (extra: Record<string, unknown>) =>
+    ShortAgentSubagentDefinitionSchema.safeParse({ ...definition, ...extra });
+
+  it("accepts the three modes and treats a missing one as following the main agent", () => {
+    for (const webSearchMode of ["inherit", "on", "off"])
+      expect(parse({ webSearchMode })).toMatchObject({
+        success: true,
+        data: { webSearchMode }
+      });
+    const older = parse({});
+    expect(older.success).toBe(true);
+    expect(older.data).not.toHaveProperty("webSearchMode");
+    expect(parse({ webSearchMode: "always" }).success).toBe(false);
+  });
+
+  it("allows search by mode: inherit follows the main agent, on and off do not", () => {
+    for (const main of [true, false]) {
+      expect(subagentWebSearchAllowed(undefined, main)).toBe(main);
+      expect(subagentWebSearchAllowed("inherit", main)).toBe(main);
+      expect(subagentWebSearchAllowed("on", main)).toBe(true);
+      expect(subagentWebSearchAllowed("off", main)).toBe(false);
+    }
+  });
+
+  it("asks for search on its own only for an always-on member with tools", () => {
+    expect(subagentsNeedWebSearch(undefined)).toBe(false);
+    expect(subagentsNeedWebSearch([])).toBe(false);
+    expect(
+      subagentsNeedWebSearch([
+        { webSearchMode: "inherit" },
+        { webSearchMode: "off" },
+        {}
+      ])
+    ).toBe(false);
+    expect(subagentsNeedWebSearch([{}, { webSearchMode: "on" }])).toBe(true);
+    expect(
+      subagentsNeedWebSearch([{ webSearchMode: "on", agentMode: "pure-read" }])
+    ).toBe(true);
+    expect(
+      subagentsNeedWebSearch([{ webSearchMode: "on", agentMode: "pure-bare" }])
+    ).toBe(false);
   });
 });

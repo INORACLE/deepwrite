@@ -54,6 +54,8 @@ export interface AgentRunInput {
   attachments?: UserPromptAttachment[];
   /** Main-resolved web search settings; present only when search is on and configured. */
   webSearch?: WebSearchRuntimeConfig;
+  /** The user's switch for this run: whether the main agent itself may search. */
+  webSearchEnabled?: boolean;
   writeApprovalMode?: AgentWriteApprovalMode;
   /** Outcomes of earlier proposals, rendered into this turn's user message. */
   proposalSettlements?: ProposalSettlements;

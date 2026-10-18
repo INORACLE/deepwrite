@@ -1,4 +1,4 @@
-import { computed, reactive, ref } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import {
   WEB_SEARCH_PER_RUN_CALL_LIMIT_MAX,
   WEB_SEARCH_PER_RUN_CALL_LIMIT_MIN,
@@ -9,6 +9,7 @@ import {
 } from "@deepwrite/contracts/renderer";
 import { locale } from "../i18n";
 import { getErrorDetail } from "../i18n/errors";
+import { useWebSearchStatusStore } from "../stores/webSearchStatus";
 import { uiMessage } from "../ui-feedback";
 import {
   webSearchApi,
@@ -28,6 +29,11 @@ export { webSearchProviderLabel };
  */
 export function useWebSearchSettings() {
   const settings = ref<WebSearchSettings | null>(null);
+  // Session switches follow the settings as they change, saved or not yet.
+  const status = useWebSearchStatusStore();
+  watch(settings, (value) => {
+    if (value) status.apply(value);
+  });
   const draft = reactive<WebSearchDraft>({
     activeProviderId: "deepseek",
     maxResults: 8,

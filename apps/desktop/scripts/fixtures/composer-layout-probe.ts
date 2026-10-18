@@ -11,6 +11,7 @@ import {
 
 const responding = ref(false);
 const thinkingLevel = ref<ThinkingLevel>("off");
+const webSearchEnabled = ref(true);
 const selectedModelId = ref("test-model");
 const approvalMode = ref<AgentApprovalMode>("request-approval");
 let sent = 0;
@@ -70,6 +71,9 @@ const app = createApp({
           { value: "medium", label: "标准" },
           { value: "high", label: "深度" }
         ],
+        webSearchEnabled: webSearchEnabled.value,
+        webSearchAvailable: true,
+        webSearchDisabledReason: "",
         showsTemperature: false,
         temperatureSelectOptions: [{ value: 0.7, label: "0.7" }],
         approvalOptions: [
@@ -90,6 +94,9 @@ const app = createApp({
         },
         onSelectThinking: (value) => {
           thinkingLevel.value = value;
+        },
+        onToggleWebSearch: (value) => {
+          webSearchEnabled.value = value;
         },
         onSelectApproval: (mode) => {
           approvalMode.value = mode;
@@ -264,17 +271,18 @@ async function runComposerProbe() {
   thinkingOptions[3]!.click();
   await frames();
   check(thinkingLevel.value === "high", "Thinking update not relayed");
-  check(
-    document.querySelector('[aria-label="联网"]') === null,
-    "A per-chat web search switch is back"
-  );
+  await click('[aria-label="联网"]');
+  check(!webSearchEnabled.value, "Web search update not relayed");
   const models = element(
     ".conversation-model-config-models"
   ).querySelectorAll<HTMLButtonElement>('[role="option"]');
   models[1]!.click();
   await frames();
   check(selectedModelId.value === "second-model", "Model update not relayed");
-  check(thinkingLevel.value === "high", "Model selection changed settings");
+  check(
+    thinkingLevel.value === "high" && !webSearchEnabled.value,
+    "Model selection changed settings"
+  );
   check(
     visible(".conversation-model-config-footer"),
     "Selecting a model hid fixed settings"

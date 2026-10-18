@@ -8,7 +8,10 @@ import type {
   LongBookSummary
 } from "@deepwrite/contracts";
 import { chatAssistantProjectKey as projectKey } from "@deepwrite/contracts/renderer";
-import { listChatProjects } from "./chatAssistantProfiles";
+import {
+  chatTaskWithWebSearch,
+  listChatProjects
+} from "./chatAssistantProfiles";
 import { computed, ref, shallowRef, type Ref } from "vue";
 import type { AgentConversationController } from "../../composables/useAgentConversation";
 
@@ -220,10 +223,12 @@ export function useChatAssistantMode(options: ChatAssistantModeOptions) {
     }
   }
 
-  async function sendAssistantMessage(): Promise<void> {
+  async function sendAssistantMessage(webSearchEnabled = false): Promise<void> {
     const task = chatTask.value;
     if (!task || !controller.value) return;
-    await controller.value.sendAssistantMessage(task);
+    await controller.value.sendAssistantMessage(
+      chatTaskWithWebSearch(task, webSearchEnabled)
+    );
   }
 
   activateController();

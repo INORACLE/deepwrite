@@ -12,6 +12,7 @@ import type {
   ConversationMessageRewriteRequest
 } from "../../types/conversation";
 import type { WorkspaceDocument } from "../../types/workspace";
+import { workspaceWebSearchPromptFields } from "./web-search";
 import { buildConversationRestore } from "./history";
 import {
   cancelContextCompaction,
@@ -59,6 +60,7 @@ type SendMessageContext = Pick<
   | "selectedModelId"
   | "thinkingLevel"
   | "temperature"
+  | "webSearchEnabled"
   | "observedRunByAttempt"
   | "failProtocol"
   | "messageMutations"
@@ -275,6 +277,7 @@ export async function sendMessage(
                 : {}),
               autoApproveCrossStageOperations:
                 ctx.options.autoApproveCrossStageOperations?.() === true,
+              ...workspaceWebSearchPromptFields(ctx.webSearchEnabled.value),
               ...(contextSnapshot ? { workspaceContext: contextSnapshot } : {})
             }
           }

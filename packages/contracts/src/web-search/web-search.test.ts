@@ -7,6 +7,7 @@ import {
   WebSearchRuntimeConfigSchema,
   WebSearchSettingsInputSchema,
   WebSearchSettingsSchema,
+  isWebSearchUsable,
   matchesWebSearchKeyImport,
   type WebSearchKeyImportModel
 } from "./index";
@@ -67,6 +68,28 @@ describe("matchesWebSearchKeyImport", () => {
         rule
       )
     ).toBe(false);
+  });
+});
+
+describe("isWebSearchUsable", () => {
+  const profile = (hasApiKey: boolean) => ({
+    providerId: "deepseek" as const,
+    maxResults: 8,
+    hasApiKey
+  });
+  const settings = (enabled: boolean, hasApiKey: boolean) => ({
+    enabled,
+    activeProviderId: "deepseek" as const,
+    profiles: [profile(hasApiKey)]
+  });
+
+  it("needs search on and a key for the active provider", () => {
+    expect(isWebSearchUsable(settings(true, true))).toBe(true);
+    expect(isWebSearchUsable(settings(false, true))).toBe(false);
+    expect(isWebSearchUsable(settings(true, false))).toBe(false);
+    expect(isWebSearchUsable({ ...settings(true, true), profiles: [] })).toBe(
+      false
+    );
   });
 });
 

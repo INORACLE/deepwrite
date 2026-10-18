@@ -172,13 +172,19 @@ describe("agent conversation controller: snapshot-persistence", () => {
     controller.dispose();
   });
 
-  it("sends normal chat requests without any search choice of the Renderer", async () => {
+  it("preserves enabled web search in normal chat requests", async () => {
     const deferred = createDeferredApi();
     const controller = useAgentConversation({ api: () => deferred.api });
     controller.draft.value = "搜索今天的热点";
 
-    const sending = controller.sendAssistantMessage({ ...normalChat });
-    expect(deferred.chatRuns[0]?.task).toEqual({ ...normalChat, input: {} });
+    const sending = controller.sendAssistantMessage({
+      ...normalChat,
+      input: { webSearchEnabled: true }
+    });
+    expect(deferred.chatRuns[0]?.task).toEqual({
+      ...normalChat,
+      input: { webSearchEnabled: true }
+    });
 
     deferred.resolveAccepted(0, {
       sessionId: controller.sessionId.value,
@@ -202,13 +208,14 @@ describe("agent conversation controller: snapshot-persistence", () => {
     const sending = controller.sendAssistantMessage({
       agentId: "chat-project",
       profileId: "short:book-1",
-      input: { project }
+      input: { project, webSearchEnabled: true }
     });
     expect(deferred.chatRuns[0]?.task).toEqual({
       agentId: "chat-project",
       profileId: "short:book-1",
       input: {
-        project: { projectType: "short", projectId: "book-1" }
+        project: { projectType: "short", projectId: "book-1" },
+        webSearchEnabled: true
       }
     });
     expect(() => structuredClone(deferred.chatRuns[0]?.task)).not.toThrow();

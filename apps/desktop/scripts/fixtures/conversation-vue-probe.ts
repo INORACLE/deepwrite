@@ -64,6 +64,7 @@ globals.prepareVueProbe = async (turns: number, enabled: boolean) => {
     models: [],
     selectedModelId: "",
     thinkingLevel: "off" as const,
+    webSearchEnabled: false,
     temperature: 0.7,
     approvalMode: "request-approval" as const,
     agentTeamMode: "normal" as const,

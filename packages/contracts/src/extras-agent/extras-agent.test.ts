@@ -197,9 +197,15 @@ describe("extras chat agents", () => {
     expect(request(normal, turn)).toBe(true);
     expect(request(normal)).toBe(false);
     expect(request(shortTask(), turn)).toBe(false);
-    // Search is never the Renderer's choice; the field no longer exists.
+    // The user's switch rides in the input; the settings never do.
     expect(
       request({ ...normal, input: { webSearchEnabled: true } }, turn)
+    ).toBe(true);
+    expect(
+      request(
+        { ...normal, input: { webSearch: { apiKey: "invalid-forged-key" } } },
+        turn
+      )
     ).toBe(false);
   });
 

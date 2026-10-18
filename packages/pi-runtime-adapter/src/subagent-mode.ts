@@ -1,7 +1,9 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import {
   activeSubagentDraw,
+  subagentWebSearchAllowed,
   type SubagentAgentMode,
+  type SubagentWebSearchMode,
   type SubagentDrawSettings
 } from "@deepwrite/contracts";
 import type { ContextPolicy } from "./kernel/context";
@@ -42,6 +44,21 @@ export function subagentDrawSettings(
     agentMode: subagentAgentMode(definition),
     draw: definition.draw
   });
+}
+
+/**
+ * The child's own web search mode decides whether it keeps the tool the run's
+ * tool sets carry whenever Main supplied settings. A child without the tool
+ * cannot gain it here: the tool sets create it from the run's session.
+ */
+export function applySubagentWebSearch(
+  tools: AgentTool[],
+  mode: SubagentWebSearchMode | undefined,
+  mainEnabled: boolean
+): AgentTool[] {
+  return subagentWebSearchAllowed(mode, mainEnabled)
+    ? tools
+    : tools.filter((tool) => tool.name !== WEB_SEARCH_TOOL_NAME);
 }
 
 export function applySubagentAgentMode(

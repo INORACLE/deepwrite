@@ -5,6 +5,7 @@ import {
   type BuiltInReasoningLevel,
   type ModelConfig,
   type ShortAgentSubagentDefinition,
+  type SubagentWebSearchMode,
   type ThinkingLevel
 } from "@deepwrite/contracts";
 import { cloneSubagentDraw, savedSubagentDraw } from "./agentTeamDrawDraft";
@@ -15,6 +16,16 @@ const t = createScopedTranslator("components.agentTeamSettingsEditorHelpers");
 interface DraftTeamLike {
   parentAgentId: string;
   subagents: readonly ShortAgentSubagentDefinition[];
+}
+
+/**
+ * The persisted form of a member's web search mode: following the main agent
+ * is the default and is not stored, so choosing it again leaves no trace.
+ */
+export function savedWebSearchField(mode: SubagentWebSearchMode | undefined): {
+  webSearchMode?: SubagentWebSearchMode;
+} {
+  return mode === "on" || mode === "off" ? { webSearchMode: mode } : {};
 }
 
 export function agentTeamThinkingLabel(level: ThinkingLevel): string {
@@ -184,6 +195,7 @@ export function agentTeamDraftSignature(
           subagent.systemPrompt,
           subagent.enabled,
           subagent.agentMode ?? "standard",
+          savedWebSearchField(subagent.webSearchMode).webSearchMode ?? null,
           custom ? "custom" : "inherit",
           custom ? (subagent.modelId ?? null) : null,
           custom ? (subagent.thinkingLevel ?? null) : null,

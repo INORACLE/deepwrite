@@ -1,4 +1,5 @@
 import { MATERIAL_METADATA_AUTHORING_GUIDANCE } from "@deepwrite/contracts";
+import { mainAgentHasWebSearch } from "./web-search/mount";
 import { WEB_SEARCH_PROMPT } from "./web-search/prompt";
 import { buildWritingSystemPrompt } from "./prompts-writing";
 import type { AgentRunInput } from "./runtime-types";
@@ -82,6 +83,6 @@ export function buildEffectiveSystemPrompt(
 ): string {
   return appendWorkspaceWebSearchPrompt(
     buildWorkspaceAgentSystemPrompt(basePrompt, input),
-    input.webSearch !== undefined
+    mainAgentHasWebSearch(input)
   );
 }

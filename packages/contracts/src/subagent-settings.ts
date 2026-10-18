@@ -15,6 +15,39 @@ export const SubagentAgentModeSchema = z.enum([
 ]);
 export type SubagentAgentMode = z.infer<typeof SubagentAgentModeSchema>;
 
+/**
+ * Whether a member may search the web: `inherit` follows the main agent's
+ * switch for the run, `on` and `off` ignore it. A bare member has no tools,
+ * so it never searches whatever this says.
+ */
+export const SubagentWebSearchModeSchema = z.enum(["inherit", "on", "off"]);
+export type SubagentWebSearchMode = z.infer<typeof SubagentWebSearchModeSchema>;
+
+/** The member's search permission once the main agent's switch is known. */
+export function subagentWebSearchAllowed(
+  mode: SubagentWebSearchMode | undefined,
+  mainEnabled: boolean
+): boolean {
+  if (mode === "on") return true;
+  if (mode === "off") return false;
+  return mainEnabled;
+}
+
+/** True when a member that can use tools asks for search on its own. */
+export function subagentsNeedWebSearch(
+  definitions:
+    | readonly {
+        webSearchMode?: SubagentWebSearchMode | undefined;
+        agentMode?: SubagentAgentMode | undefined;
+      }[]
+    | undefined
+): boolean {
+  return (definitions ?? []).some(
+    (definition) =>
+      definition.webSearchMode === "on" && definition.agentMode !== "pure-bare"
+  );
+}
+
 export const ShortAgentSubagentModelModeSchema = z.enum(["inherit", "custom"]);
 export type ShortAgentSubagentModelMode = z.infer<
   typeof ShortAgentSubagentModelModeSchema

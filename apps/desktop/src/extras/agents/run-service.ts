@@ -243,10 +243,14 @@ export async function runExtrasAgent(
         : undefined;
     if (compaction && task.agentId === "long-book-decomposition")
       compaction.contextCompactionSettings.enabled = true;
-    // Only agents that may search are given the settings, and only while search is on.
-    const webSearch = extrasAgentUsesWebSearch(task.agentId)
-      ? await deps.resolveWebSearch?.()
-      : undefined;
+    // Only agents that may search, and only when the user switched it on for
+    // this turn; the search settings still decide whether it can be given.
+    const webSearch =
+      extrasAgentUsesWebSearch(task.agentId) &&
+      "webSearchEnabled" in task.input &&
+      task.input.webSearchEnabled === true
+        ? await deps.resolveWebSearch?.()
+        : undefined;
     const spec: ExtrasAgentRunSpec = {
       sessionId,
       ...(runtimeConfig ? { runtimeConfig } : {}),

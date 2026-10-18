@@ -552,15 +552,12 @@ describe("AgentConversation edit proposal placement", () => {
       'class="conversation-model-config-footer"'
     );
     expect(modelConfigSource).toContain("reasoningLevel");
-    // Web search is a tool every run gets from the global setting, not a per-chat switch.
-    for (const source of [
-      modelConfigSource,
-      composerSource,
-      conversationSource,
-      writingWorkspaceSource,
-      longWorkspaceSource
-    ])
-      expect(source).not.toMatch(/web-?search|webAccess/iu);
+    expect(modelConfigSource).toContain("webAccess");
+    expect(modelConfigSource).toContain(':aria-pressed="webSearchEnabled"');
+    expect(modelConfigSource).toContain(
+      ':disabled="responding || !webSearchAvailable"'
+    );
+    expect(modelConfigSource).toContain("emit('toggleWebSearch'");
     expect(modelConfigSource).toContain("function revealCurrentSelection");
     expect(modelConfigSource).toContain(
       "scrollSelectedIntoView(scroller, selected)"
@@ -572,6 +569,15 @@ describe("AgentConversation edit proposal placement", () => {
     );
     expect(modelConfigSource.slice(openMenuStart, openMenuEnd)).toContain(
       "revealCurrentSelection()"
+    );
+    expect(conversationSource).toContain(
+      "@toggle-web-search=\"emit('toggleWebSearch', $event)\""
+    );
+    expect(writingWorkspaceSource).toContain(
+      '@toggle-web-search="conversationController.selectWebSearchEnabled($event)"'
+    );
+    expect(longWorkspaceSource).toContain(
+      "conversationController.selectWebSearchEnabled($event)"
     );
   });
 });

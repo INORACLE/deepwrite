@@ -161,6 +161,7 @@ import subagentAuthoringGenerateControls from "./subagentAuthoringGenerateContro
 import subagentAuthoringOutputModeField from "./subagentAuthoringOutputModeField/en-US";
 import subagentDrawField from "./subagentDrawField/en-US";
 import subagentModeField from "./subagentModeField/en-US";
+import subagentWebSearchField from "./subagentWebSearchField/en-US";
 import subagentModelField from "./subagentModelField/en-US";
 import subagentRunList from "./subagentRunList/en-US";
 import subagentRunPresentation from "./subagentRunPresentation/en-US";
@@ -350,6 +351,7 @@ export default {
   subagentDrawGroup,
   subagentDrawPicker,
   subagentModeField,
+  subagentWebSearchField,
   subagentModelField,
   subagentRunList,
   subagentRunPresentation,

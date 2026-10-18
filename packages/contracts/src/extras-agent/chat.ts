@@ -79,9 +79,14 @@ export const ChatRoleplayProfileSchema = z.object({
 export type ChatRoleplayProfile = z.infer<typeof ChatRoleplayProfileSchema>;
 
 /** Chat task inputs sent by the Renderer. */
-export const ChatNormalTaskInputSchema = z.object({}).strict();
+export const ChatNormalTaskInputSchema = z
+  .object({ webSearchEnabled: z.boolean().optional() })
+  .strict();
 export const ChatProjectTaskInputSchema = z
-  .object({ project: ChatAssistantProjectRefSchema })
+  .object({
+    project: ChatAssistantProjectRefSchema,
+    webSearchEnabled: z.boolean().optional()
+  })
   .strict();
 export const ChatRoleplayTaskInputSchema = z.object({}).strict();
 

@@ -37,6 +37,7 @@ function setupController() {
     selectedModelId: ref("fixture-model"),
     thinkingLevel: ref("medium"),
     agentTeamMode: ref("single"),
+    webSearchEnabled: ref(false),
     capturePersistenceSnapshot: vi.fn(() => {
       throw new Error("Must not read all history");
     }),

@@ -125,6 +125,23 @@ export const WebSearchSettingsSchema = z
 export type WebSearchSettings = z.infer<typeof WebSearchSettingsSchema>;
 
 /**
+ * Whether a run can be given search: it is on and the active provider has a
+ * key. Main resolves the same condition, so a session switch is only offered
+ * while it could take effect.
+ */
+export function isWebSearchUsable(
+  settings: Pick<WebSearchSettings, "enabled" | "activeProviderId" | "profiles">
+): boolean {
+  return (
+    settings.enabled &&
+    settings.profiles.some(
+      (profile) =>
+        profile.providerId === settings.activeProviderId && profile.hasApiKey
+    )
+  );
+}
+
+/**
  * Providers left out of the input keep their saved profile, so a client that
  * only knows some providers never deletes another one's key.
  */

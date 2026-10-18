@@ -17,6 +17,7 @@ type RunSettingsContext = Pick<
   | "selectedModelId"
   | "thinkingLevel"
   | "temperature"
+  | "webSearchEnabled"
   | "defaultModelId"
   | "applyRunSettings"
 >;
@@ -32,10 +33,12 @@ export function applyRunSettings(
       ctx.selectedModelId.value = "";
       ctx.thinkingLevel.value = "medium";
       ctx.temperature.value = 0.7;
+      ctx.webSearchEnabled.value = false;
     } else {
       ctx.selectedModelId.value = settings.selectedModelId;
       ctx.thinkingLevel.value = settings.thinkingLevel;
       ctx.temperature.value = settings.temperature;
+      ctx.webSearchEnabled.value = settings.webSearchEnabled === true;
     }
     return;
   }
@@ -60,6 +63,8 @@ export function applyRunSettings(
     preferredModel && selected.temperatureOptions.includes(settings.temperature)
       ? settings.temperature
       : (selected.temperatureOptions[1] ?? 0.7);
+  ctx.webSearchEnabled.value =
+    settings.webSearchEnabled ?? ctx.webSearchEnabled.value;
 }
 export function applyModelSettings(
   ctx: RunSettingsContext,
@@ -70,7 +75,8 @@ export function applyModelSettings(
     thinkingLevel: ctx.thinkingLevel.value,
     temperature: ctx.temperature.value,
     approvalMode: ctx.approvalMode.value,
-    agentTeamMode: ctx.agentTeamMode.value
+    agentTeamMode: ctx.agentTeamMode.value,
+    webSearchEnabled: ctx.webSearchEnabled.value
   };
   ctx.configuredModels.value = settings.models;
   ctx.defaultModelId.value = settings.defaultModelId;
@@ -79,6 +85,7 @@ export function applyModelSettings(
     ctx.selectedModelId.value = "";
     ctx.thinkingLevel.value = "medium";
     ctx.temperature.value = 0.7;
+    ctx.webSearchEnabled.value = false;
     return;
   }
   if (ctx.hasRunSettingsPreference) {
@@ -91,6 +98,7 @@ export function applyModelSettings(
   ctx.selectedModelId.value = selected?.id ?? "";
   ctx.thinkingLevel.value = selected?.defaultThinkingLevel ?? "medium";
   ctx.temperature.value = selected?.temperatureOptions[1] ?? 0.7;
+  ctx.webSearchEnabled.value = false;
   ctx.hasRunSettingsPreference = true;
 }
 export function selectModel(ctx: RunSettingsContext, modelId: string): void {
@@ -119,6 +127,14 @@ export function selectThinkingLevel(
     return;
   }
   ctx.thinkingLevel.value = level;
+}
+export function selectWebSearchEnabled(
+  ctx: RunSettingsContext,
+  enabled: boolean
+): void {
+  // Whether search can be turned on is the settings' call; the switch only
+  // offers it while they allow it, and Main checks again when the run starts.
+  ctx.webSearchEnabled.value = enabled;
 }
 export function selectTemperature(
   ctx: RunSettingsContext,

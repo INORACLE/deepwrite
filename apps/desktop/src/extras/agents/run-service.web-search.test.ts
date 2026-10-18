@@ -91,8 +91,13 @@ function fixture(
     chatSources: {} as ExtrasAgentRunDependencies["chatSources"]
   };
   async function run(
-    agentId: "chat-normal" | "chat-project" | "chat-roleplay"
+    agentId: "chat-normal" | "chat-project" | "chat-roleplay",
+    switchedOn = true
   ) {
+    const switchField =
+      switchedOn && agentId !== "chat-roleplay"
+        ? { webSearchEnabled: true }
+        : {};
     const parsed = CommandEnvelopeSchema.parse(
       createEnvelope(
         "extrasAgent.run",
@@ -101,7 +106,10 @@ function fixture(
           task: {
             agentId,
             profileId: agentId === "chat-project" ? "short:short_a" : "p",
-            input: agentId === "chat-project" ? { project } : {}
+            input:
+              agentId === "chat-project"
+                ? { project, ...switchField }
+                : switchField
           },
           conversation: { message: "查一下近期同类题材" }
         },
@@ -124,12 +132,23 @@ function fixture(
 
 describe("extras runs and web search", () => {
   it.each(["chat-normal", "chat-project"] as const)(
-    "attaches the settings to %s",
+    "attaches the settings to %s when the user switched search on",
     async (agentId) => {
       const { run } = fixture(async () => searchSettings);
       const { result, spec } = await run(agentId);
       expect(result).toMatchObject({ status: "accepted" });
       expect(spec.webSearch).toEqual(searchSettings);
+    }
+  );
+
+  it.each(["chat-normal", "chat-project"] as const)(
+    "does not even read the settings for %s while the switch is off",
+    async (agentId) => {
+      const { run, resolve } = fixture(async () => searchSettings);
+      const { result, spec } = await run(agentId, false);
+      expect(result).toMatchObject({ status: "accepted" });
+      expect(resolve).not.toHaveBeenCalled();
+      expect(spec).not.toHaveProperty("webSearch");
     }
   );
 

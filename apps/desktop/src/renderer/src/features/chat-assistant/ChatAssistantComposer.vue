@@ -28,6 +28,10 @@ const props = defineProps<{
   modelOptions: PopupSelectOption[];
   thinkingLevel: ThinkingLevel;
   thinkingOptions: PopupSelectOption[];
+  webSearchVisible?: boolean;
+  webSearchEnabled: boolean;
+  webSearchAvailable: boolean;
+  webSearchDisabledReason: string;
 }>();
 
 const emit = defineEmits<{
@@ -36,6 +40,7 @@ const emit = defineEmits<{
   stop: [];
   selectModel: [modelId: string];
   selectThinking: [level: ThinkingLevel];
+  toggleWebSearch: [enabled: boolean];
 }>();
 
 const input = ref<HTMLTextAreaElement | null>(null);
@@ -65,6 +70,14 @@ function handleKeydown(event: KeyboardEvent): void {
 
 function handleThinking(value: PopupSelectValue): void {
   emit("selectThinking", value as ThinkingLevel);
+}
+
+function webSearchTitle(): string {
+  if (props.busy) return t("chatAssistant.waitBeforeSearchChange");
+  if (!props.webSearchAvailable) return props.webSearchDisabledReason;
+  return props.webSearchEnabled
+    ? t("chatAssistant.disableWebSearch")
+    : t("chatAssistant.enableWebSearch");
 }
 
 defineExpose({ focus });
@@ -116,6 +129,19 @@ defineExpose({ focus });
         :disabled="busy || !runtimeAvailable"
       />
       <span class="chat-assistant-toolbar-spacer" />
+      <button
+        v-if="webSearchVisible !== false"
+        class="chat-assistant-web-search"
+        :class="{ 'is-active': webSearchEnabled }"
+        type="button"
+        :disabled="busy || !webSearchAvailable"
+        :title="webSearchTitle()"
+        :aria-label="t('chatAssistant.webSearch')"
+        :aria-pressed="webSearchEnabled"
+        @click="emit('toggleWebSearch', !webSearchEnabled)"
+      >
+        <span>{{ t("chatAssistant.webSearch") }}</span>
+      </button>
       <PopupSelect
         :model-value="selectedModelId"
         :options="modelOptions"
@@ -208,7 +234,8 @@ defineExpose({ focus });
 .chat-assistant-toolbar-spacer {
   flex: 1;
 }
-.chat-assistant-placeholder-action {
+.chat-assistant-placeholder-action,
+.chat-assistant-web-search {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -226,7 +253,16 @@ defineExpose({ focus });
   width: 34px;
   padding: 0;
 }
-.chat-assistant-placeholder-action:disabled {
+.chat-assistant-web-search:not(:disabled):hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+.chat-assistant-web-search.is-active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.chat-assistant-placeholder-action:disabled,
+.chat-assistant-web-search:disabled {
   opacity: 0.42;
 }
 .chat-assistant-send {
