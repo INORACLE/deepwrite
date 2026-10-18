@@ -134,7 +134,7 @@ describe("project transaction", () => {
     await expect(
       readFile(join(root, "long", "bulk", "file-519.md"), "utf8")
     ).resolves.toBe("document-519");
-  }, 20_000);
+  }, 120_000);
 
   it("rejects a stale precondition without touching the target", async () => {
     const root = await temporaryProject();

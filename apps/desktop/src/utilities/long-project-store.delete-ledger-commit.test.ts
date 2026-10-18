@@ -347,7 +347,7 @@ describe("LongProjectStore: delete last ledger commit", () => {
     expect(await snapshotMarkdown(created.projectDirectory)).toEqual(
       beforeMarkdown
     );
-  }, 15_000);
+  });
 
   it("replays surviving typed records to restore facts, knowledge, loops and handoff", async () => {
     const { projectStore, created } = await createFixture(
@@ -414,7 +414,7 @@ describe("LongProjectStore: delete last ledger commit", () => {
         chapterCardId: firstChapterId
       })
     });
-  }, 15_000);
+  });
 
   it("returns every batch member to pending and leaves the checkpoint files unchanged", async () => {
     const { projectStore, created } = await createFixture(
@@ -503,5 +503,5 @@ describe("LongProjectStore: delete last ledger commit", () => {
         content: "重新提交后禁止直接修改"
       })
     ).rejects.toThrow("已提交的连续性文件为只读");
-  }, 15_000);
+  });
 });

@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 import vue from "@vitejs/plugin-vue";
 import { resolveRendererStyles } from "./tools/resolve-renderer-styles.mjs";
 
@@ -11,6 +11,18 @@ if (
 ) {
   throw new Error("DEEPWRITE_TEST_MAX_WORKERS must be a positive integer.");
 }
+
+const scaleTest =
+  "apps/desktop/src/utilities/long-book-decomposition/scale.test.ts";
+
+const testFiles = [
+  "packages/**/*.test.ts",
+  "tools/**/*.test.mjs",
+  "apps/desktop/src/main/**/*.test.ts",
+  "apps/desktop/src/utilities/**/*.test.{ts,mjs}",
+  "apps/desktop/src/extras/**/*.test.ts",
+  "apps/desktop/src/renderer/**/*.test.ts"
+];
 
 export default defineConfig({
   plugins: [
@@ -41,14 +53,28 @@ export default defineConfig({
     maxWorkers,
     globalSetup: ["./tools/setup-i18n-fixtures.ts"],
     setupFiles: ["./tools/setup-renderer-i18n.ts"],
-    include: [
-      "packages/**/*.test.ts",
-      "tools/**/*.test.mjs",
-      "apps/desktop/src/main/**/*.test.ts",
-      "apps/desktop/src/utilities/**/*.test.{ts,mjs}",
-      "apps/desktop/src/extras/**/*.test.ts",
-      "apps/desktop/src/renderer/**/*.test.ts"
-    ],
-    environment: "node"
+    environment: "node",
+    // Scale fixtures perform thousands of durable writes. Run them after other
+    // suites so they do not compete for the same disk, especially on Windows.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "regular",
+          include: testFiles,
+          exclude: [...configDefaults.exclude, scaleTest],
+          sequence: { groupOrder: 0 }
+        }
+      },
+      {
+        extends: true,
+        test: {
+          name: "scale",
+          include: [scaleTest],
+          maxWorkers: 1,
+          sequence: { groupOrder: 1 }
+        }
+      }
+    ]
   }
 });
