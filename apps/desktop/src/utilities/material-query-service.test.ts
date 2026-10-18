@@ -17,6 +17,10 @@ import {
   writeFile
 } from "./folder-catalog-store.test-support";
 
+// Real catalog migration and long-project transactions can exceed the default
+// five-second unit-test budget under concurrent Windows filesystem load.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
+
 const scope: MaterialReadScope = {
   bookId: "book-existing",
   bookType: "short",
