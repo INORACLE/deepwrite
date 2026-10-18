@@ -13,5 +13,6 @@ export default {
   duplicateValue: "复制{arg0}",
   delete: "删除",
   deleteValue: "删除{arg0}",
-  drawBadge: "抽卡×{arg0}"
+  drawBadge: "抽卡×{arg0}",
+  webSearchBadge: "联网"
 };

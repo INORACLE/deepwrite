@@ -76,8 +76,8 @@ function webSearchTitle(): string {
   if (props.busy) return t("chatAssistant.waitBeforeSearchChange");
   if (!props.webSearchAvailable) return props.webSearchDisabledReason;
   return props.webSearchEnabled
-    ? t("chatAssistant.disableSmartSearch")
-    : t("chatAssistant.enableSmartSearch");
+    ? t("chatAssistant.disableWebSearch")
+    : t("chatAssistant.enableWebSearch");
 }
 
 defineExpose({ focus });
@@ -136,11 +136,11 @@ defineExpose({ focus });
         type="button"
         :disabled="busy || !webSearchAvailable"
         :title="webSearchTitle()"
-        :aria-label="t('chatAssistant.smartSearch')"
+        :aria-label="t('chatAssistant.webSearch')"
         :aria-pressed="webSearchEnabled"
         @click="emit('toggleWebSearch', !webSearchEnabled)"
       >
-        <span>{{ t("chatAssistant.smartSearch") }}</span>
+        <span>{{ t("chatAssistant.webSearch") }}</span>
       </button>
       <PopupSelect
         :model-value="selectedModelId"

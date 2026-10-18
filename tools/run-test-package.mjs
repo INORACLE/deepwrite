@@ -5,16 +5,17 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { ensureElectronRuntime } from "./ensure-electron-runtime.mjs";
 import { assertElectronLaunchAllowed } from "./electron-launch-environment.mjs";
 import { resolveWindowsElectronArchive } from "./windows-electron-archive.mjs";
+import { pnpmInvocation } from "./pnpm-command.mjs";
 
 const toolsDirectory = dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = resolve(toolsDirectory, "..");
 const appDirectory = resolve(workspaceRoot, "apps/desktop");
-const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
-function run(command, args, cwd = workspaceRoot) {
-  console.log(`PACKAGE_STEP command=${command} ${args.join(" ")}`);
+function run(args, cwd = workspaceRoot) {
+  console.log(`PACKAGE_STEP command=pnpm ${args.join(" ")}`);
   return new Promise((resolvePromise, rejectPromise) => {
-    const child = spawn(command, args, {
+    const invocation = pnpmInvocation(args);
+    const child = spawn(invocation.command, invocation.args, {
       cwd,
       env: process.env,
       stdio: "inherit"
@@ -27,7 +28,7 @@ function run(command, args, cwd = workspaceRoot) {
       }
       rejectPromise(
         new Error(
-          `${command} ${args.join(" ")} 执行失败（exit=${String(code)}, signal=${String(signal)}）`
+          `pnpm ${args.join(" ")} 执行失败（exit=${String(code)}, signal=${String(signal)}）`
         )
       );
     });
@@ -81,7 +82,6 @@ async function buildMac(target, version) {
   ];
   if (!architectures.length) return;
   await run(
-    pnpmCommand,
     [
       "exec",
       "electron-builder",
@@ -99,14 +99,12 @@ async function buildMac(target, version) {
   );
   if (target.buildMacArm64) {
     await run(
-      pnpmCommand,
       ["exec", "node", "scripts/verify-test-package.mjs", "mac", "arm64"],
       appDirectory
     );
   }
   if (target.buildMacX64) {
     await run(
-      pnpmCommand,
       ["exec", "node", "scripts/verify-test-package.mjs", "mac", "x64"],
       appDirectory
     );
@@ -116,7 +114,6 @@ async function buildMac(target, version) {
 async function buildWindows(arch, version, archive) {
   if (!arch) return;
   await run(
-    pnpmCommand,
     [
       "exec",
       "electron-builder",
@@ -134,7 +131,6 @@ async function buildWindows(arch, version, archive) {
     appDirectory
   );
   await run(
-    pnpmCommand,
     ["exec", "node", "scripts/verify-test-package.mjs", "win", arch],
     appDirectory
   );
@@ -143,7 +139,6 @@ async function buildWindows(arch, version, archive) {
 async function buildLinux(target, version) {
   if (!target.buildLinuxX64) return;
   await run(
-    pnpmCommand,
     [
       "exec",
       "electron-builder",
@@ -160,7 +155,6 @@ async function buildLinux(target, version) {
     appDirectory
   );
   await run(
-    pnpmCommand,
     ["exec", "node", "scripts/verify-test-package.mjs", "linux", "x64"],
     appDirectory
   );
@@ -190,7 +184,7 @@ async function main() {
     const windowsArchive = windowsArch
       ? await resolveWindowsElectronArchive(version, { arch: windowsArch })
       : undefined;
-    await run(pnpmCommand, ["verify"]);
+    await run(["verify"]);
     await buildLinux(target, version);
     await buildMac(target, version);
     await buildWindows(windowsArch, version, windowsArchive);

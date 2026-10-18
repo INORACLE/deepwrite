@@ -24,6 +24,7 @@ import ChatAssistantComposer from "./ChatAssistantComposer.vue";
 import { useChatAssistantMode } from "./useChatAssistantMode";
 import { useChatAssistantHistoryActions } from "./useChatAssistantHistoryActions";
 import { useChatAssistantWebSearch } from "./useChatAssistantWebSearch";
+import { useWebSearchStatusStore } from "../../stores/webSearchStatus";
 
 const t = createScopedTranslator("extras");
 
@@ -73,14 +74,13 @@ const selectedModel = computed(() =>
     (model) => model.id === controller.value!.selectedModelId.value
   )
 );
+const webSearchStatus = useWebSearchStatusStore();
+void webSearchStatus.ensureLoaded();
 const webSearch = useChatAssistantWebSearch({
-  selectedModel,
-  onAutomaticallyDisabled: () => {
-    uiMessage.info(t("chatAssistant.smartSearchDisabled"));
-  }
+  available: computed(() => webSearchStatus.usable)
 });
 const webSearchDisabledReason = computed(() =>
-  t("chatAssistant.smartSearchSupport")
+  t("chatAssistant.webSearchUnavailable")
 );
 const modelOptions = computed(() =>
   controller.value!.configuredModels.value.map((model) => ({

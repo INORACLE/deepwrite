@@ -3,7 +3,8 @@ import type { ShortAgentSubagentDefinition } from "@deepwrite/contracts";
 import {
   agentTeamDraftSignature,
   createCopiedSubagent,
-  nextCopiedSubagentName
+  nextCopiedSubagentName,
+  savedWebSearchField
 } from "./agentTeamSettingsEditorHelpers";
 
 describe("nextCopiedSubagentName", () => {
@@ -118,6 +119,16 @@ describe("agentTeamDraftSignature", () => {
     expect(sign(subagent, true)).not.toBe(base);
   });
 
+  it("treats a missing web search mode and following the main agent alike", () => {
+    expect(sign({ ...subagent, webSearchMode: "inherit" })).toBe(
+      sign(subagent)
+    );
+    expect(sign({ ...subagent, webSearchMode: "on" })).not.toBe(sign(subagent));
+    expect(sign({ ...subagent, webSearchMode: "off" })).not.toBe(
+      sign({ ...subagent, webSearchMode: "on" })
+    );
+  });
+
   it("ignores model leftovers that are not persisted for inherited models", () => {
     expect(
       sign({ ...subagent, modelId: "model-a", thinkingLevel: "high" })
@@ -136,5 +147,32 @@ describe("agentTeamDraftSignature", () => {
     expect(sign({ ...custom, thinkingLevel: "off", temperature: 1 })).not.toBe(
       sign({ ...custom, thinkingLevel: "off", temperature: 0.7 })
     );
+  });
+});
+
+describe("savedWebSearchField", () => {
+  it("stores only an explicit choice, so following the main agent leaves no trace", () => {
+    expect(savedWebSearchField(undefined)).toEqual({});
+    expect(savedWebSearchField("inherit")).toEqual({});
+    expect(savedWebSearchField("on")).toEqual({ webSearchMode: "on" });
+    expect(savedWebSearchField("off")).toEqual({ webSearchMode: "off" });
+  });
+});
+
+describe("createCopiedSubagent web search mode", () => {
+  it("keeps the web search mode of the member it copies", () => {
+    const source: ShortAgentSubagentDefinition = {
+      id: "subagent_a",
+      name: "查证员",
+      description: "查证公开资料",
+      systemPrompt: "只做查证。",
+      enabled: true,
+      agentMode: "pure-read",
+      webSearchMode: "on",
+      modelMode: "inherit"
+    };
+    const copied = createCopiedSubagent(source, [source], "subagent_b", 80);
+    expect(copied.webSearchMode).toBe("on");
+    expect(copied.id).toBe("subagent_b");
   });
 });

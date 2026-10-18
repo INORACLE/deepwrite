@@ -1,0 +1,52 @@
+[data-long-reorder-item] {
+  position: relative;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.is-entry-sorting,
+.is-entry-sorting * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+[data-long-reorder-item].is-reorder-dragging {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+  background: var(--accent-soft);
+}
+
+[data-long-reorder-item].is-reorder-before::after,
+[data-long-reorder-item].is-reorder-after::after {
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  pointer-events: none;
+  content: "";
+}
+
+.is-reorder-before::after {
+  top: 0;
+}
+.is-reorder-after::after {
+  bottom: 0;
+}
+
+[data-long-reorder-axis="horizontal"] .is-reorder-before::after,
+[data-long-reorder-axis="horizontal"] .is-reorder-after::after {
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  height: auto;
+}
+
+[data-long-reorder-axis="horizontal"] .is-reorder-before::after {
+  right: auto;
+}
+[data-long-reorder-axis="horizontal"] .is-reorder-after::after {
+  left: auto;
+}

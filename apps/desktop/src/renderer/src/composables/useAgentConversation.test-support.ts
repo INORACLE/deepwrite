@@ -342,6 +342,26 @@ function createDeferredApi(): {
       }),
       cancel: vi.fn(async () => {})
     },
+    webSearch: {
+      getSettings: vi.fn(async () => {
+        throw new Error("Web search is not used by conversation tests.");
+      }),
+      saveSettings: vi.fn(async () => {
+        throw new Error("Web search is not used by conversation tests.");
+      }),
+      setEnabled: vi.fn(async () => {
+        throw new Error("Web search is not used by conversation tests.");
+      }),
+      test: vi.fn(async () => {
+        throw new Error("Web search is not used by conversation tests.");
+      }),
+      listKeyImportCandidates: vi.fn(async () => {
+        throw new Error("Web search is not used by conversation tests.");
+      }),
+      importKey: vi.fn(async () => {
+        throw new Error("Web search is not used by conversation tests.");
+      })
+    },
     voice: {
       getSettings: vi.fn(async () => {
         throw new Error("not used");

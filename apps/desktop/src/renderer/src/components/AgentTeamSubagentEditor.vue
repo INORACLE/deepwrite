@@ -6,7 +6,8 @@ import {
   type ShortAgentSubagentDefinition,
   type ShortAgentSubagentModelMode,
   type SubagentAgentMode,
-  type SubagentDrawSettings
+  type SubagentDrawSettings,
+  type SubagentWebSearchMode
 } from "@deepwrite/contracts/renderer";
 import { computed, ref, useId } from "vue";
 import { createScopedTranslator } from "../i18n";
@@ -15,7 +16,11 @@ import type { PopupSelectOption } from "./PopupSelect.vue";
 import SubagentDrawField from "./SubagentDrawField.vue";
 import SubagentModeField from "./SubagentModeField.vue";
 import SubagentModelField from "./SubagentModelField.vue";
-import { SUBAGENT_AGENT_MODE_LABELS } from "./agentTeamSettingsMeta";
+import SubagentWebSearchField from "./SubagentWebSearchField.vue";
+import {
+  SUBAGENT_AGENT_MODE_LABELS,
+  SUBAGENT_WEB_SEARCH_LABELS
+} from "./agentTeamSettingsMeta";
 import type { SubagentModelConfig } from "./useSubagentModelConfig";
 
 const t = createScopedTranslator("components.agentTeamSubagentEditor");
@@ -26,6 +31,10 @@ const systemPrompt = defineModel<string>("systemPrompt", { required: true });
 const agentMode = defineModel<SubagentAgentMode>("agentMode", {
   required: true
 });
+const webSearchMode = defineModel<SubagentWebSearchMode | undefined>(
+  "webSearchMode",
+  { required: true }
+);
 const draw = defineModel<SubagentDrawSettings | undefined>("draw", {
   required: true
 });
@@ -47,12 +56,23 @@ const emit = defineEmits<{
   done: [];
 }>();
 
-// Run mode, draws and model are rarely touched, so they stay folded away
+// Run mode, web search, draws and model are rarely touched, so they stay folded away
 // until asked for; the summary keeps the current choices visible.
 const advancedOpen = ref(false);
 const advancedPanelId = `subagent-advanced-${useId()}`;
 const advancedSummary = computed(() => {
   const parts: string[] = [SUBAGENT_AGENT_MODE_LABELS[agentMode.value]];
+  if (
+    agentMode.value !== "pure-bare" &&
+    webSearchMode.value &&
+    webSearchMode.value !== "inherit"
+  ) {
+    parts.push(
+      t("webSearchSummary", {
+        arg0: SUBAGENT_WEB_SEARCH_LABELS[webSearchMode.value]
+      })
+    );
+  }
   if (agentMode.value !== "standard" && draw.value?.enabled) {
     parts.push(t("drawSummary", { arg0: draw.value.count }));
   }
@@ -137,6 +157,12 @@ const advancedSummary = computed(() => {
         <SubagentModeField
           v-model="agentMode"
           :name="`subagent-agent-mode-${subagent.id}`"
+          :disabled="disabled"
+        />
+        <SubagentWebSearchField
+          v-model="webSearchMode"
+          :name="`subagent-web-search-${subagent.id}`"
+          :agent-mode="agentMode"
           :disabled="disabled"
         />
         <SubagentDrawField

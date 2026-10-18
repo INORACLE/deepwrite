@@ -32,6 +32,7 @@ import type {
   SubagentActivity,
   ThinkingLevel as ConfiguredThinkingLevel,
   UserPromptAttachment,
+  WebSearchRuntimeConfig,
   WorkspaceRuntimeContext
 } from "@deepwrite/contracts";
 import type { AgentTurnRetryPolicyOptions } from "./agent-turn-retry";
@@ -51,6 +52,9 @@ export interface AgentRunInput {
   contextCompactionSettings?: ContextCompactionRunSettings;
   compactionRuntimeConfig?: AgentProviderRuntimeConfig;
   attachments?: UserPromptAttachment[];
+  /** Main-resolved web search settings; present only when search is on and configured. */
+  webSearch?: WebSearchRuntimeConfig;
+  /** The user's switch for this run: whether the main agent itself may search. */
   webSearchEnabled?: boolean;
   writeApprovalMode?: AgentWriteApprovalMode;
   /** Outcomes of earlier proposals, rendered into this turn's user message. */

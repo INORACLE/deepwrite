@@ -861,13 +861,13 @@ export default {
     loadingZhuque: "正在加载朱雀检测…"
   },
   chatAssistant: {
-    waitBeforeSearchChange: "当前回复完成或停止后，才能切换智能搜索",
-    disableSmartSearch: "关闭智能搜索",
-    enableSmartSearch: "开启智能搜索",
+    waitBeforeSearchChange: "当前回复完成或停止后，才能切换联网",
+    disableWebSearch: "关闭联网搜索",
+    enableWebSearch: "开启联网搜索",
     messageAssistant: "给聊天助手发送消息",
     desktopRequiredToSend: "浏览器预览不可发送，请启动桌面客户端",
     attachmentsComingSoon: "附件功能后续开放",
-    smartSearch: "智能搜索",
+    webSearch: "联网",
     chatModel: "聊天模型",
     defaultModel: "默认模型",
     voiceInput: "语音输入",
@@ -883,10 +883,8 @@ export default {
     viewAll: "查看全部",
     startNewChat: "开始一段新聊天",
     newChat: "新聊天",
-    smartSearchDisabled:
-      "智能搜索已关闭：仅 DeepSeek 的 Responses 或 Anthropic API 模型支持此功能",
-    smartSearchSupport:
-      "仅支持 Provider 为 DeepSeek，且 API 类型为 OpenAI Responses 或 Anthropic Messages 的模型",
+    webSearchUnavailable:
+      "联网搜索未启用或未配置密钥，请先在设置 → 个人 → 联网搜索中开启",
     currentModel: "当前模型",
     normalMode: "普通模式",
     addRoleplayOption: "+ 添加新扮演配置",

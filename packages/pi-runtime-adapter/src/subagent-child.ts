@@ -12,6 +12,7 @@ import { waitForSubagentPreparation } from "./subagent-preparation";
 import { snapshotSubagentHistory } from "./subagent-history";
 import {
   applySubagentAgentMode,
+  applySubagentWebSearch,
   subagentAgentMode,
   subagentContextPolicyForMode,
   subagentModeNote,
@@ -232,13 +233,18 @@ export async function runSubagentTask(
       !libraryManager &&
       mode === "standard" &&
       input.workspaceAccess !== "none";
+    const searchTools = applySubagentWebSearch(
+      builtTools,
+      definition.webSearchMode,
+      input.mainWebSearch === true
+    );
     const childTools = sharesWorkspace
       ? applySubagentWriteLock(
-          applySubagentAgentMode(builtTools, mode),
+          applySubagentAgentMode(searchTools, mode),
           context.writeLock,
           `「${definition.name}」（${request.key}）`
         )
-      : applySubagentAgentMode(builtTools, mode);
+      : applySubagentAgentMode(searchTools, mode);
     if (libraryManager) {
       for (const [index, tool] of childTools.entries()) {
         childTools[index] = {

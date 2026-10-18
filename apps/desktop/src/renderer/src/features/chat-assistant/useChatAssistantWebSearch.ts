@@ -1,8 +1,4 @@
-import { computed, ref, watch, type Ref } from "vue";
-import {
-  isDeepSeekWebSearchCompatible,
-  type ModelConfig
-} from "@deepwrite/contracts/renderer";
+import { computed, ref, type Ref } from "vue";
 
 export const CHAT_ASSISTANT_WEB_SEARCH_STORAGE_KEY =
   "deepwrite:chat-assistant-web-search:v1";
@@ -13,9 +9,9 @@ interface WebSearchPreferenceStorage {
 }
 
 export interface ChatAssistantWebSearchOptions {
-  selectedModel: Readonly<Ref<ModelConfig | undefined>>;
+  /** Whether the search settings let a run search at all. */
+  available: Readonly<Ref<boolean>>;
   storage?: WebSearchPreferenceStorage | null;
-  onAutomaticallyDisabled?: () => void;
 }
 
 function defaultStorage(): WebSearchPreferenceStorage | null {
@@ -35,15 +31,16 @@ function readPreference(storage: WebSearchPreferenceStorage | null): boolean {
   }
 }
 
+/**
+ * The chat assistant's own search switch. It is remembered even while the
+ * settings turn search off, and only counts while the settings allow it.
+ */
 export function useChatAssistantWebSearch(
   options: ChatAssistantWebSearchOptions
 ) {
   const storage =
     options.storage === undefined ? defaultStorage() : options.storage;
-  const enabled = ref(readPreference(storage));
-  const available = computed(() =>
-    isDeepSeekWebSearchCompatible(options.selectedModel.value)
-  );
+  const preference = ref(readPreference(storage));
 
   function persist(value: boolean): void {
     if (!storage) return;
@@ -55,28 +52,16 @@ export function useChatAssistantWebSearch(
   }
 
   function setEnabled(value: boolean): boolean {
-    if (value && !available.value) return false;
-    enabled.value = value;
+    if (value && !options.available.value) return false;
+    preference.value = value;
     persist(value);
     return true;
   }
 
-  watch(
-    options.selectedModel,
-    (model) => {
-      if (!model || !enabled.value || isDeepSeekWebSearchCompatible(model)) {
-        return;
-      }
-      enabled.value = false;
-      persist(false);
-      options.onAutomaticallyDisabled?.();
-    },
-    { immediate: true }
-  );
-
   return {
-    available,
-    enabled: enabled as Readonly<Ref<boolean>>,
+    available: options.available,
+    /** What the switch shows and what a turn sends. */
+    enabled: computed(() => preference.value && options.available.value),
     setEnabled
   };
 }

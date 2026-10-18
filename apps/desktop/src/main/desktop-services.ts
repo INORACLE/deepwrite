@@ -7,6 +7,7 @@ import {
   type CommandResult
 } from "@deepwrite/contracts";
 import { createId } from "@deepwrite/shared";
+import { safeStorage } from "electron";
 import { createCloudBackupFeature } from "../extras/cloud-backup/create-service";
 import { createDesktopDeviceSync } from "../extras/device-sync";
 import type { ConversationSyncLease } from "../extras/device-sync/conversations/lease";
@@ -18,6 +19,8 @@ import { AgentTeamMarketplaceClient } from "../extras/agent-team-marketplace";
 import { GeneralSettingsStore } from "./general-settings-store";
 import { VoiceService } from "./voice/voice-service";
 import { ImageService } from "./image/image-service";
+import { WebSearchService } from "./web-search/web-search-service";
+import { testWebSearch } from "./web-search/web-search-tester";
 import { imageSmokeOptions } from "./image/image-smoke-transport";
 import { CoverRenderService } from "../extras/book-identity/cover-render-service";
 import { voiceSmokeOptions } from "./smoke-voice-transport";
@@ -62,6 +65,11 @@ export function createDesktopServices(options: DesktopServiceOptions) {
     userDataPath,
     process.env.DEEPWRITE_SMOKE === "1" ? imageSmokeOptions() : undefined
   );
+  const webSearchService = new WebSearchService(userDataPath, {
+    secureStorage: safeStorage,
+    keySources: modelConfigStore,
+    tester: testWebSearch
+  });
   const agentTeamConfigStore = new AgentTeamConfigStore(userDataPath);
   const marketplaceClient = new MarketplaceClient(userDataPath, {
     loadCatalogSnapshot: async () => {
@@ -92,6 +100,7 @@ export function createDesktopServices(options: DesktopServiceOptions) {
   });
   return {
     imageService,
+    webSearchService,
     coverRenderService: new CoverRenderService(command, imageService),
     modelConfigStore,
     modelUsageStore,

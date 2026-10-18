@@ -5,12 +5,6 @@ import type {
   ThinkingLevel
 } from "@deepwrite/contracts";
 import type { AgentApprovalMode } from "../../types/conversation";
-import {
-  WORKSPACE_WEB_SEARCH_AUTO_DISABLED_MESSAGE,
-  isWorkspaceWebSearchAvailable,
-  resolveWorkspaceWebSearchEnabled,
-  workspaceWebSearchAfterModelChange
-} from "./web-search";
 import type { AgentRunSettings } from "./types";
 
 type RunSettingsContext = Pick<
@@ -26,7 +20,6 @@ type RunSettingsContext = Pick<
   | "webSearchEnabled"
   | "defaultModelId"
   | "applyRunSettings"
-  | "options"
 >;
 export function applyRunSettings(
   ctx: RunSettingsContext,
@@ -70,10 +63,8 @@ export function applyRunSettings(
     preferredModel && selected.temperatureOptions.includes(settings.temperature)
       ? settings.temperature
       : (selected.temperatureOptions[1] ?? 0.7);
-  ctx.webSearchEnabled.value = resolveWorkspaceWebSearchEnabled(
-    selected,
-    settings.webSearchEnabled ?? ctx.webSearchEnabled.value
-  );
+  ctx.webSearchEnabled.value =
+    settings.webSearchEnabled ?? ctx.webSearchEnabled.value;
 }
 export function applyModelSettings(
   ctx: RunSettingsContext,
@@ -120,14 +111,6 @@ export function selectModel(ctx: RunSettingsContext, modelId: string): void {
   ctx.selectedModelId.value = selected.id;
   ctx.thinkingLevel.value = selected.defaultThinkingLevel;
   ctx.temperature.value = selected.temperatureOptions[1];
-  const nextSearch = workspaceWebSearchAfterModelChange(
-    selected,
-    ctx.webSearchEnabled.value
-  );
-  ctx.webSearchEnabled.value = nextSearch.enabled;
-  if (nextSearch.autoDisabled) {
-    ctx.options.onContextWarning?.(WORKSPACE_WEB_SEARCH_AUTO_DISABLED_MESSAGE);
-  }
 }
 export function selectThinkingLevel(
   ctx: RunSettingsContext,
@@ -149,12 +132,8 @@ export function selectWebSearchEnabled(
   ctx: RunSettingsContext,
   enabled: boolean
 ): void {
-  const selected = ctx.configuredModels.value.find(
-    (model) => model.id === ctx.selectedModelId.value
-  );
-  if (enabled && !isWorkspaceWebSearchAvailable(selected)) {
-    return;
-  }
+  // Whether search can be turned on is the settings' call; the switch only
+  // offers it while they allow it, and Main checks again when the run starts.
   ctx.webSearchEnabled.value = enabled;
 }
 export function selectTemperature(

@@ -908,25 +908,17 @@ onBeforeUnmount(() => {
         :auto-save-enabled="autoSaveEnabled"
       />
       <button
+        v-if="!autoSaveEnabled"
         class="save-button"
         type="button"
         :disabled="
-          document.readOnly ||
-          locked ||
-          manualSaving ||
-          (!autoSaveEnabled && !dirty)
+          document.readOnly || locked || saving || manualSaving || !dirty
         "
         @mousedown.prevent
         @click="save"
       >
         <AppIcon name="save" :size="14" />
-        {{
-          manualSaving
-            ? t("saving")
-            : autoSaveEnabled
-              ? t("saveNow")
-              : t("apply")
-        }}
+        {{ manualSaving ? t("saving") : t("saveNow") }}
       </button>
     </footer>
   </aside>

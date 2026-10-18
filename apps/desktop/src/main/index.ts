@@ -141,6 +141,8 @@ import { GeneralSettingsStore } from "./general-settings-store";
 import { VoiceService } from "./voice/voice-service";
 import { ImageService } from "./image/image-service";
 import { handleImageCommands } from "./image/image-commands";
+import { handleWebSearchCommands } from "./web-search/web-search-commands";
+import type { WebSearchService } from "./web-search/web-search-service";
 import { CoverRenderService } from "../extras/book-identity/cover-render-service";
 import { handleBookIdentityCommands } from "../extras/book-identity/commands";
 import {
@@ -245,6 +247,7 @@ let appearanceService: AppearanceService | undefined;
 let generalSettingsStore: GeneralSettingsStore | undefined;
 let voiceService: VoiceService | undefined;
 let imageService: ImageService | undefined;
+let webSearchService: WebSearchService | undefined;
 let coverRenderService: CoverRenderService | undefined;
 let extrasAgentService: ExtrasAgentService;
 let libraryAgentConfigStore: LibraryAgentConfigStore | undefined;
@@ -784,6 +787,11 @@ function requireAppearanceService(): AppearanceService {
   return appearanceService;
 }
 
+/** Search never blocks a run: before the service is ready there is simply no search. */
+async function resolveWebSearch() {
+  return webSearchService?.resolveRuntime();
+}
+
 function requireGeneralSettingsStore(): GeneralSettingsStore {
   if (!generalSettingsStore) {
     throw new Error("常规设置存储尚未初始化。");
@@ -1013,6 +1021,24 @@ function registerIpc(): void {
           if (result) return result;
         }
       }
+      if (command.type.startsWith("webSearch.")) {
+        if (event.senderFrame !== event.sender.mainFrame)
+          return {
+            status: "rejected",
+            requestId: command.id,
+            error: {
+              code: "web_search.untrusted_frame",
+              message: "联网搜索配置仅允许从应用主界面操作。"
+            }
+          };
+        if (webSearchService) {
+          const result = await handleWebSearchCommands(
+            command,
+            webSearchService
+          );
+          if (result) return result;
+        }
+      }
       if (
         command.type.startsWith("storageSettings.") &&
         storageSettingsService
@@ -1226,6 +1252,7 @@ function registerIpc(): void {
             isBookIdentityFauxSmokeModel(modelId)
               ? Promise.resolve(undefined)
               : requireModelConfigStore().resolve(modelId),
+          resolveWebSearch,
           resolveContextCompaction: (runModelId) =>
             resolveContextCompactionRun(
               async () => (await requireGeneralSettingsStore().list()).settings,
@@ -2314,7 +2341,8 @@ function registerIpc(): void {
           requireLongAgentConfigStore,
           requireAgentTeamConfigStore,
           requireLibraryAgentConfigStore,
-          requireGeneralSettingsStore
+          requireGeneralSettingsStore,
+          resolveWebSearch
         },
         command
       );
@@ -2403,6 +2431,7 @@ if (!hasSingleInstanceLock) {
       generalSettingsStore,
       voiceService,
       imageService,
+      webSearchService,
       coverRenderService,
       updateService,
       appAlertStore,

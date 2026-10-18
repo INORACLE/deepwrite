@@ -13,5 +13,6 @@ export default {
   duplicateValue: "Duplicate {arg0}",
   delete: "Delete",
   deleteValue: "Delete {arg0}",
-  drawBadge: "Draw ×{arg0}"
+  drawBadge: "Draw ×{arg0}",
+  webSearchBadge: "Web"
 };

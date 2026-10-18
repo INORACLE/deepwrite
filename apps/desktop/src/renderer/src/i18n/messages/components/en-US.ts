@@ -1,4 +1,5 @@
 import imageModelSettings from "./imageModelSettings/en-US";
+import webSearchSettings from "./webSearchSettings/en-US";
 import metadataEditMessages from "./metadataEditMessages/en-US";
 import catalogLabels from "./catalogLabels/en-US";
 import agentActivityFloatPanel from "./agentActivityFloatPanel/en-US";
@@ -160,6 +161,7 @@ import subagentAuthoringGenerateControls from "./subagentAuthoringGenerateContro
 import subagentAuthoringOutputModeField from "./subagentAuthoringOutputModeField/en-US";
 import subagentDrawField from "./subagentDrawField/en-US";
 import subagentModeField from "./subagentModeField/en-US";
+import subagentWebSearchField from "./subagentWebSearchField/en-US";
 import subagentModelField from "./subagentModelField/en-US";
 import subagentRunList from "./subagentRunList/en-US";
 import subagentRunPresentation from "./subagentRunPresentation/en-US";
@@ -187,6 +189,7 @@ import writingWorkspaceModule from "./writingWorkspaceModule/en-US";
 
 export default {
   imageModelSettings,
+  webSearchSettings,
   metadataEditMessages,
   catalogLabels,
   agentActivityFloatPanel,
@@ -348,6 +351,7 @@ export default {
   subagentDrawGroup,
   subagentDrawPicker,
   subagentModeField,
+  subagentWebSearchField,
   subagentModelField,
   subagentRunList,
   subagentRunPresentation,

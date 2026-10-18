@@ -37,6 +37,7 @@ import {
   validateAgentTeamDraft
 } from "./agentTeamSettingsEditorHelpers";
 import { clonedDrawField, savedDrawField } from "./agentTeamDrawDraft";
+import { savedWebSearchField } from "./agentTeamSettingsEditorHelpers";
 import { useSubagentModelConfig } from "./useSubagentModelConfig";
 
 const t = createScopedTranslator("components.agentTeamSettingsPanel");
@@ -372,6 +373,7 @@ function saveSettings(): void {
         systemPrompt: subagent.systemPrompt.trim(),
         enabled: subagent.enabled,
         agentMode: subagent.agentMode ?? "standard",
+        ...savedWebSearchField(subagent.webSearchMode),
         ...savedDrawField(subagent.draw),
         modelMode: subagent.modelMode ?? "inherit",
         ...(subagent.modelMode === "custom" && subagent.modelId

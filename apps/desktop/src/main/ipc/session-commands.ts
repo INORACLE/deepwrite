@@ -9,7 +9,8 @@ import {
   SessionUserInputResponseAcceptedPayloadSchema,
   SessionPromptAcceptedPayloadSchema,
   createEnvelope,
-  isDeepSeekWebSearchCompatible,
+  conversationPromptBudgetError,
+  subagentsNeedWebSearch,
   type CommandEnvelope,
   type CommandResult
 } from "@deepwrite/contracts";
@@ -36,6 +37,7 @@ export async function handleSessionCommands(
     | "requireAgentTeamConfigStore"
     | "requireLibraryAgentConfigStore"
     | "requireGeneralSettingsStore"
+    | "resolveWebSearch"
   >,
   command: CommandEnvelope
 ): Promise<CommandResult | undefined> {
@@ -158,13 +160,6 @@ export async function handleSessionCommands(
       const runtimeConfig = await ctx
         .requireModelConfigStore()
         .resolve(command.payload.modelId);
-      if (command.payload.webSearchEnabled === true) {
-        if (!runtimeConfig || !isDeepSeekWebSearchCompatible(runtimeConfig)) {
-          throw new Error(
-            "智能搜索仅支持 Provider 为 DeepSeek，且 API 类型为 OpenAI Responses 或 Anthropic Messages 的模型。"
-          );
-        }
-      }
       const shortWorkspace = command.payload.workspaceContext?.shortWorkspace;
       const scriptWorkspace = command.payload.workspaceContext?.scriptWorkspace;
       const longWorkspace = command.payload.workspaceContext?.longWorkspace;
@@ -206,6 +201,13 @@ export async function handleSessionCommands(
                 .parallelSubagentsEnabled(workspaceType)
           }
         );
+      // Search exists for the run when the user switched it on or a member asks
+      // for it; the search settings still decide whether it can be given.
+      const webSearch =
+        command.payload.webSearchEnabled === true ||
+        subagentsNeedWebSearch(subagentDefinitions)
+          ? await ctx.resolveWebSearch?.()
+          : undefined;
       const libraryAgentProfile = libraryWorkspace
         ? await ctx
             .requireLibraryAgentConfigStore()
@@ -229,6 +231,16 @@ export async function handleSessionCommands(
         (modelId) => ctx.requireModelConfigStore().resolve(modelId),
         runtimeConfig?.id
       );
+      const promptError = conversationPromptBudgetError(
+        command.payload,
+        compaction.contextCompactionSettings.budgetTokens
+      );
+      if (promptError)
+        return {
+          status: "rejected",
+          requestId: command.id,
+          error: promptError
+        };
       const usageContext = createUsageRunContext(
         usageModuleForPrompt(command.payload),
         runtimeConfig,
@@ -262,6 +274,7 @@ export async function handleSessionCommands(
             ...(thinkingLevel ? { thinkingLevel } : {}),
             ...(temperature !== undefined ? { temperature } : {}),
             ...(runtimeConfig ? { runtimeConfig } : {}),
+            ...(webSearch ? { webSearch } : {}),
             ...compaction,
             ...(agentProfile
               ? scriptWorkspace

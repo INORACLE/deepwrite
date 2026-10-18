@@ -42,6 +42,14 @@ const emit = defineEmits<{
           <span v-if="subagent.agentMode !== 'standard'" class="model-badge">{{
             SUBAGENT_AGENT_MODE_LABELS[subagent.agentMode]
           }}</span>
+          <span
+            v-if="
+              subagent.webSearchMode === 'on' &&
+              subagent.agentMode !== 'pure-bare'
+            "
+            class="model-badge"
+            >{{ t("webSearchBadge") }}</span
+          >
           <span v-if="activeSubagentDraw(subagent)" class="model-badge">{{
             t("drawBadge", { arg0: activeSubagentDraw(subagent)!.count })
           }}</span>

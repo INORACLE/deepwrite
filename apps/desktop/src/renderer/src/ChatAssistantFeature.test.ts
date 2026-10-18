@@ -134,20 +134,21 @@ describe("independent chat assistant feature", () => {
     expect(composerSource).toContain("<VoiceInputBar");
   });
 
-  it("adds a persisted DeepSeek-only web search toggle before the model selector", () => {
-    const searchIndex = composerSource.indexOf("chatAssistant.smartSearch");
+  it("adds a persisted web search toggle that follows the search settings, before the model selector", () => {
+    const searchIndex = composerSource.indexOf("chatAssistant.webSearch");
     const modelIndex = composerSource.indexOf("chatAssistant.chatModel");
     expect(searchIndex).toBeGreaterThan(-1);
     expect(modelIndex).toBeGreaterThan(searchIndex);
     expect(composerSource).toContain("webSearchAvailable");
     expect(composerSource).toContain("is-active");
     expect(composerSource).toContain("var(--accent-soft)");
-    expect(composerSource).toContain("chatAssistant.smartSearch");
+    expect(composerSource).toContain("chatAssistant.webSearch");
     expect(composerSource).not.toContain('<AppIcon name="search"');
     expect(webSearchSource).toContain(
       '"deepwrite:chat-assistant-web-search:v1"'
     );
-    expect(webSearchSource).toContain("isDeepSeekWebSearchCompatible");
+    expect(webSearchSource).not.toContain("isDeepSeekWebSearchCompatible");
+    expect(overlaySource).toContain("useWebSearchStatusStore");
     expect(modeSource).toContain(
       "chatTaskWithWebSearch(task, webSearchEnabled)"
     );

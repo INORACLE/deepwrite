@@ -16,6 +16,7 @@ import type {
   AgentUsageObservationStatus
 } from "@deepwrite/contracts";
 import type { RuntimeSubagentDefinition } from "./subagent-types";
+import { webSearchPromptFor } from "./web-search/prompt";
 export const SUBAGENT_SUMMARY_MAX_LENGTH = 20_000;
 export function textResult<T>(text: string, details: T): AgentToolResult<T> {
   return { content: [{ type: "text", text }], details };
@@ -129,6 +130,17 @@ export function isAssistantMessage(
  * consumed. Whether the child should write through tools or hand information
  * back to the parent is left entirely to `definition.systemPrompt`.
  */
+/** A prepared child may already carry the section inside its own prompt. */
+function webSearchSection(
+  definition: RuntimeSubagentDefinition,
+  childTools: readonly AgentTool[]
+): string[] {
+  const section = webSearchPromptFor(childTools);
+  return section && !definition.systemPrompt.includes(section)
+    ? ["", section, ""]
+    : [];
+}
+
 export function buildSubagentSystemPrompt(
   definition: RuntimeSubagentDefinition,
   childTools: readonly AgentTool[],
@@ -155,6 +167,7 @@ export function buildSubagentSystemPrompt(
       : "你由当前主智能体为一个明确子任务临时创建。本次运行使用全新上下文，不继承主对话历史。",
     "你不能创建或调用其它子智能体。",
     ...(runtimeNote ? [runtimeNote] : []),
+    ...webSearchSection(definition, childTools),
     ...(toolLines.length > 0
       ? [
           "本轮可用工具：",

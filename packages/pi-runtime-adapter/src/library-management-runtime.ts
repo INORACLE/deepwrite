@@ -21,6 +21,8 @@ import {
 } from "./prompts-system";
 import type { AgentRunInput } from "./runtime-types";
 import type { RuntimeSubagentDefinition } from "./subagent-types";
+import { withWebSearchTool } from "./web-search/mount";
+import type { WebSearchSession } from "./web-search/session";
 import type { LibraryAgentToolSharedState } from "./library-agent-tools/types";
 
 export type LibraryManagementCommandExecutor = (
@@ -46,7 +48,10 @@ export function libraryManagementParentPrompt(input: AgentRunInput): string {
   ].join("\n");
 }
 
-export function createLibraryManagementRuntime(input: AgentRunInput) {
+export function createLibraryManagementRuntime(
+  input: AgentRunInput,
+  options: { webSearch?: WebSearchSession } = {}
+) {
   const context = input.libraryManagement;
   const states = new Map<
     string,
@@ -129,19 +134,24 @@ export function createLibraryManagementRuntime(input: AgentRunInput) {
     const prior = states.get(libraryId);
     const state = reconcileLibraryToolState(workspace, prior);
     states.set(libraryId, { workspace, state });
-    const tools: AgentTool[] = buildLibraryAgentTools({
-      workspace,
-      profile: manager.profile,
-      attachedSkills,
-      sharedState: state,
-      writeApprovalMode: input.writeApprovalMode ?? "request-approval"
-    });
+    // Managers search under the run's shared budget, or not at all.
+    const { webSearch: _runSearch, ...inputWithoutSearch } = input;
+    const promptInput = options.webSearch ? input : inputWithoutSearch;
+    const tools: AgentTool[] = withWebSearchTool(
+      buildLibraryAgentTools({
+        workspace,
+        profile: manager.profile,
+        attachedSkills,
+        sharedState: state,
+        writeApprovalMode: input.writeApprovalMode ?? "request-approval"
+      }),
+      options.webSearch
+    );
     const systemPrompt = [
       buildEffectiveSystemPrompt(buildDeepWriteSystemPrompt(), {
-        ...input,
+        ...promptInput,
         libraryAgentProfile: manager.profile,
-        workspaceContext: { libraryWorkspace: workspace, attachedSkills },
-        webSearchEnabled: false
+        workspaceContext: { libraryWorkspace: workspace, attachedSkills }
       }),
       LIBRARY_MANAGEMENT_INVOCATION_POLICY,
       "你是受委派的管理子智能体，当前目标库已经由主智能体确定。只能管理上述目标库。若仍缺少影响正确执行的关键信息，返回待澄清事项，由主智能体询问用户；不要猜测或越权写入。",

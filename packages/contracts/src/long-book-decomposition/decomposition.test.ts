@@ -4,6 +4,13 @@ import {
   decompositionInputBudget,
   decompositionReadingUnitId
 } from "./chunking";
+import { DECOMPOSITION_MAX_CHARACTERS } from "./limits";
+import { DEFAULT_DECOMPOSITION_PROFILE } from "./profile";
+import {
+  LongBookDecompositionJobSchema,
+  DecompositionSourceRefSchema
+} from "./job";
+import { LONG_BOOK_ANALYSIS_MAX_TOTAL_CHARACTERS } from "../long-book-analysis-limits";
 import {
   DecompositionRecordFileSchema,
   decompositionAssetProse
@@ -29,6 +36,60 @@ const chapter = (
 });
 
 describe("整书拆解纯契约", () => {
+  it("拆解来源上限与长篇来源导入上限一致", () => {
+    expect(DECOMPOSITION_MAX_CHARACTERS).toBe(
+      LONG_BOOK_ANALYSIS_MAX_TOTAL_CHARACTERS
+    );
+    const now = new Date().toISOString();
+    const result = LongBookDecompositionJobSchema.safeParse({
+      schemaVersion: 1,
+      id: "ldjob_large_source",
+      createdAt: now,
+      updatedAt: now,
+      mode: "continuation",
+      outputVersion: 1,
+      targetSelection: { action: "create", kind: "long", title: "大书" },
+      source: {
+        sourceId: "source_large",
+        sourceRevision: 1,
+        title: "大书",
+        fingerprint: "a".repeat(64),
+        confirmationId: "confirm_large",
+        confirmedAt: now,
+        chapterCount: 301,
+        characterCount: LONG_BOOK_ANALYSIS_MAX_TOTAL_CHARACTERS - 1,
+        range: { start: 1, end: 301 }
+      },
+      profile: DEFAULT_DECOMPOSITION_PROFILE,
+      models: {
+        reading: {
+          modelId: "faux",
+          thinkingLevel: "off",
+          contextWindow: 128_000
+        },
+        integration: {
+          modelId: "faux",
+          thinkingLevel: "off",
+          contextWindow: 128_000
+        }
+      },
+      chunks: [
+        {
+          id: "chunk:1",
+          startOrder: 1,
+          endOrder: 301,
+          chapterIds: ["chapter_1"],
+          estimatedTokens: 1
+        }
+      ],
+      phase: "prepare_target",
+      status: "idle",
+      autoContinue: false,
+      units: {}
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("20 章上限、不跨卷、完整保留顺序", () => {
     const chapters = Array.from({ length: 65 }, (_, i) =>
       chapter(i + 1, "正文", i < 25 ? "卷一" : "卷二")
@@ -197,4 +258,29 @@ describe("整书拆解纯契约", () => {
     expect(estimate.outputTokens[1]).toBeGreaterThan(estimate.outputTokens[0]);
     expect(estimate.minutes[1]).toBeGreaterThan(estimate.minutes[0]);
   });
+});
+
+it("合并主分支后同时保留五万章和五千万字符上限", () => {
+  const source = {
+    sourceId: "source_large",
+    sourceRevision: 1,
+    title: "合成大书",
+    fingerprint: "a".repeat(64),
+    confirmationId: "confirm_large",
+    confirmedAt: "2026-10-18T00:00:00.000Z",
+    chapterCount: 50_000,
+    characterCount: LONG_BOOK_ANALYSIS_MAX_TOTAL_CHARACTERS,
+    range: { start: 1, end: 50_000 }
+  };
+  expect(DecompositionSourceRefSchema.safeParse(source).success).toBe(true);
+  expect(
+    DecompositionSourceRefSchema.safeParse({ ...source, chapterCount: 50_001 })
+      .success
+  ).toBe(false);
+  expect(
+    DecompositionSourceRefSchema.safeParse({
+      ...source,
+      characterCount: LONG_BOOK_ANALYSIS_MAX_TOTAL_CHARACTERS + 1
+    }).success
+  ).toBe(false);
 });

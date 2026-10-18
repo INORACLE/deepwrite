@@ -12,6 +12,7 @@ import type {
   ConversationMessageRewriteRequest
 } from "../../types/conversation";
 import type { WorkspaceDocument } from "../../types/workspace";
+import { conversationPromptError } from "../../utils/conversationPromptBudget";
 import { workspaceWebSearchPromptFields } from "./web-search";
 import { buildConversationRestore } from "./history";
 import {
@@ -115,6 +116,15 @@ export async function sendMessage(
     ctx.hasPendingEditReview.value ||
     ctx.deferredPersistenceSessions.value.has(ctx.sessionId.value)
   ) {
+    return;
+  }
+  const promptError = conversationPromptError(
+    content,
+    ctx.options.contextCompactionBudgetTokens?.(),
+    requestAttachments
+  );
+  if (promptError) {
+    ctx.conversationError.value = promptError;
     return;
   }
   if (preparedRewrite) {

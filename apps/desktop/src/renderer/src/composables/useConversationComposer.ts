@@ -18,6 +18,7 @@ import {
   type ComposerReferenceTrigger
 } from "../utils/composerReferences";
 import { createEditorReferenceAttachment } from "../utils/editorTextReferences";
+import { conversationPromptError } from "../utils/conversationPromptBudget";
 
 const t = createScopedTranslator("workspace.conversationComposer");
 
@@ -34,6 +35,7 @@ export function useConversationComposer(options: {
   editorReferences: () => readonly EditorTextReference[];
   textAttachmentMaxCharacters: () => number;
   textAttachmentsTotalMaxCharacters: () => number;
+  contextCompactionBudgetTokens?: () => number;
   pendingAttachments: Ref<UserPromptAttachment[]>;
   readingAttachments: Ref<boolean>;
   emitDraft: (value: string) => void;
@@ -240,6 +242,15 @@ export function useConversationComposer(options: {
           toLocaleString: maximum.toLocaleString(locale.value)
         })
       );
+      return;
+    }
+    const promptError = conversationPromptError(
+      options.draft(),
+      options.contextCompactionBudgetTokens?.(),
+      attachments
+    );
+    if (promptError) {
+      uiMessage.warning(promptError);
       return;
     }
     options.pendingAttachments.value = [];

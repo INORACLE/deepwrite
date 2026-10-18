@@ -32,6 +32,7 @@ export interface ConversationStorage {
 export interface UseAgentConversationOptions {
   api: () => DeepWriteApi | undefined;
   autoApproveCrossStageOperations?: () => boolean;
+  contextCompactionBudgetTokens?: () => number;
   initialMessages?: ChatMessage[];
   idleTimeoutMs?: number;
   initialPersistenceSnapshot?: unknown;

@@ -28,10 +28,6 @@ import {
 } from "./portable-tool-schema";
 import { findProviderModel } from "./provider-model-catalog";
 import { enforceProviderToolSchemaCompatibility } from "./provider-tool-schema-compat";
-import {
-  appendDeepSeekWebSearchTool,
-  assertDeepSeekWebSearchCompatible
-} from "./deepseek-web-search";
 import { applyGoogleClaudeThinkingCompatibility } from "./google-claude-thinking";
 import { createOpenCodeRequestHeaders } from "./opencode-request-headers";
 import {
@@ -89,22 +85,13 @@ export function buildWorkspaceProviderRuntimes(
   streamFn: ProviderStreamFn;
   spawnStreamFn: ProviderStreamFn;
 } {
-  const parent = buildProviderRuntime(
+  const runtime = buildProviderRuntime(
     config,
     temperature,
     configuredThinkingLevel,
     compatibility
   );
-  if (compatibility.webSearchEnabled !== true) {
-    return { ...parent, spawnStreamFn: parent.streamFn };
-  }
-  const spawn = buildProviderRuntime(
-    config,
-    temperature,
-    configuredThinkingLevel,
-    { ...compatibility, webSearchEnabled: false }
-  );
-  return { ...parent, spawnStreamFn: spawn.streamFn };
+  return { ...runtime, spawnStreamFn: runtime.streamFn };
 }
 
 /** @internal Exported for runtime-configuration regression tests. */
@@ -117,9 +104,6 @@ export function buildProviderRuntime(
   model: Model<Api>;
   streamFn: ProviderStreamFn;
 } {
-  if (compatibility.webSearchEnabled) {
-    assertDeepSeekWebSearchCompatible(config);
-  }
   const builtin = findProviderModel(config);
   const configuredBaseUrl =
     config.baseUrl || (builtin?.api === config.api ? builtin.baseUrl : "");
@@ -206,7 +190,6 @@ export function buildProviderRuntime(
     context: Context,
     options?: SimpleStreamOptions
   ) => {
-    const upstreamOnPayload = options?.onPayload;
     const openCodeHeaders = openCodeRequestHeaders(options?.sessionId);
     return streams.streamSimple(
       requestModel,
@@ -222,19 +205,6 @@ export function buildProviderRuntime(
         ...options,
         ...(openCodeHeaders
           ? { headers: { ...options?.headers, ...openCodeHeaders } }
-          : {}),
-        ...(compatibility.webSearchEnabled
-          ? {
-              onPayload: async (payload: unknown, payloadModel: Model<Api>) => {
-                const transformed = upstreamOnPayload
-                  ? await upstreamOnPayload(payload, payloadModel)
-                  : undefined;
-                return appendDeepSeekWebSearchTool(
-                  transformed === undefined ? payload : transformed,
-                  config.api
-                );
-              }
-            }
           : {}),
         ...(mandatoryZaiThinkingFallback
           ? { reasoning: mandatoryZaiThinkingFallback }

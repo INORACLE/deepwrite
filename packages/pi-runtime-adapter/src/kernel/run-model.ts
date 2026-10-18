@@ -44,10 +44,7 @@ export function resolveRunModel(
       target.runtimeConfig,
       effectiveTemperature,
       configuredThinkingLevel,
-      {
-        portableToolSchemaProfile: plan.portableToolSchemaProfile,
-        webSearchEnabled: target.webSearchEnabled === true
-      }
+      { portableToolSchemaProfile: plan.portableToolSchemaProfile }
     );
     return {
       model: providerRuntime.model,

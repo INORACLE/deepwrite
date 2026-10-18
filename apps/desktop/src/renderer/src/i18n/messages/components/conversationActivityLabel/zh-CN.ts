@@ -8,7 +8,7 @@ export default {
   queryMaterials: "查询素材",
   askUser: "询问用户",
   commitContinuity: "提交连续性",
-  smartSearch: "智能搜索",
+  webSearch: "联网搜索",
   switchStage: "切换阶段",
   assigningTask: "安排任务中",
   searchContent: "搜索内容",

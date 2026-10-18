@@ -7,5 +7,6 @@ export default {
   arguments: "Arguments",
   result: "Result",
   toolCalls: "Tool calls",
-  charactersMessage: "Characters: {arg0}"
+  charactersMessage: "Characters: {arg0}",
+  webSearchSources: "Search sources"
 };

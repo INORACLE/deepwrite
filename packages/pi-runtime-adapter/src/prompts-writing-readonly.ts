@@ -63,7 +63,11 @@ function readOnlyRuntimeSystemRequirements(
     renderReadOnlyWorkspaceContext(workspace, workspaceKind),
     "",
     "【DeepWrite 当前工具边界（只读）】",
-    `本任务只使用 read 读取${workspaceKind}作品、query_linked_material_entries 读取素材；没有 create、edit、delete，不能修改作品，也不得声称已经修改。`,
+    `本任务只使用 read 读取${workspaceKind}作品、query_linked_material_entries 读取素材${
+      input.webSearch
+        ? "；工具清单列有 web_search 时，也可用它查证公开资料"
+        : ""
+    }；没有 create、edit、delete，不能修改作品，也不得声称已经修改。`,
     "read 一次读全目标，不分页。kind=draft_section 必须同时给出 document=body 或 character_state。kind=draft、id=draft、include_all_sections=true 可读取全部正文，不传 document 时默认 body；合计超过五万字时按工具提示优先分小节精读。",
     ...(workspaceType === "script"
       ? [
