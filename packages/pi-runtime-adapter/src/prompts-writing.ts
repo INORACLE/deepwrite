@@ -3,6 +3,7 @@ import type { WorkspaceRuntimeContext } from "@deepwrite/contracts";
 
 import type { AgentRunInput } from "./runtime-types";
 import { mainAgentHasWebSearch } from "./web-search/mount";
+import { webToolNamesFor } from "./web-search/prompt";
 import { writeApprovalBoundary } from "./write-approval";
 
 export function scriptRuntimeFormatRequirements(): string {
@@ -155,7 +156,9 @@ function writingRuntimeSystemRequirements(
     "",
     "【DeepWrite 当前工具边界】",
     `${workspaceKind}工作区只使用 read、create、edit、delete；素材使用 query_linked_material_entries，技能使用 load_skill，团队委派使用 spawn_subagent${
-      mainAgentHasWebSearch(input) ? "；联网查证公开资料使用 web_search" : ""
+      input.webSearch && mainAgentHasWebSearch(input)
+        ? `；联网查证公开资料使用 ${webToolNamesFor(input.webSearch.providerId)}`
+        : ""
     }。`,
     "read 一次读全目标，不分页。kind=draft_section 必须同时给出 document=body 或 character_state。kind=draft、id=draft、include_all_sections=true 可读取全部正文，不传 document 时默认 body；合计超过五万字时按工具提示优先分小节精读。",
     renderCharacterCreationRule(workspace),
