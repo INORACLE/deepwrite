@@ -200,7 +200,7 @@ onBeforeUnmount(() => {
         :disabled="page === pageCount"
         @click="setPage(page + 1)"
       >
-        <AppIcon name="arrow-right" :size="13" />
+        <AppIcon name="chevron" :size="13" />
       </button>
     </div>
     <button
@@ -383,7 +383,7 @@ onBeforeUnmount(() => {
         :disabled="page === pageCount"
         @click="setPage(page + 1)"
       >
-        <AppIcon name="arrow-right" :size="13" />
+        <AppIcon name="chevron" :size="13" />
       </button>
     </div>
   </aside>
