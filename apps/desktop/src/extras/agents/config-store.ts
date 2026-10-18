@@ -67,7 +67,6 @@ function validTimestamp(value: unknown): string | undefined {
 export class ExtrasAgentConfigStore {
   private readonly directory: string;
   private writeChain: Promise<void> = Promise.resolve();
-  private readonly diskCache = new Map<ExtrasAgentId, DiskSettings>();
 
   constructor(private readonly userDataPath: string) {
     this.directory = join(userDataPath, "config", "extras-agents");
@@ -79,13 +78,12 @@ export class ExtrasAgentConfigStore {
     await this.writeChain;
     const disk = await this.readDisk(agentId);
     const settings = this.publicSettings(agentId, disk);
-    this.cacheDisk(agentId, disk, settings);
     return settings;
   }
 
   async save(rawInput: ExtrasAgentSettingsInput): Promise<ExtrasAgentSettings> {
     const input = ExtrasAgentSettingsInputSchema.parse(rawInput);
-    const baseline = this.diskCache.get(input.agentId);
+    const baseline = input.baseProfiles;
     return this.enqueue(input.agentId, async () => {
       const profiles = this.withDefaults(input.agentId, input.profiles);
       const current = baseline ? await this.readDisk(input.agentId) : undefined;
@@ -94,7 +92,7 @@ export class ExtrasAgentConfigStore {
           ? mergeSettingsById(
               current.profiles,
               profiles,
-              baseline.profiles,
+              this.withDefaults(input.agentId, baseline),
               (profile) => profile.id
             )
           : profiles;
@@ -360,7 +358,6 @@ export class ExtrasAgentConfigStore {
       const disk = await operation();
       saved = this.publicSettings(agentId, disk);
       await atomicWrite(this.path(agentId), disk);
-      this.cacheDisk(agentId, disk, saved);
     });
     this.writeChain = pending.then(
       () => undefined,
@@ -368,18 +365,5 @@ export class ExtrasAgentConfigStore {
     );
     await pending;
     return saved!;
-  }
-
-  private cacheDisk(
-    agentId: ExtrasAgentId,
-    disk: DiskSettings,
-    settings: ExtrasAgentSettings
-  ): void {
-    this.diskCache.set(agentId, {
-      ...disk,
-      profiles: settings.profiles.map(({ builtin: _builtin, ...profile }) =>
-        structuredClone(profile)
-      ) as StoredProfile[]
-    });
   }
 }

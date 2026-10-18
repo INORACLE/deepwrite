@@ -364,6 +364,7 @@ it("saves and resets presets through the unified extras agent profiles", async (
     await c.savePresets([...c.presets.value, custom]);
     expect(fake.save).toHaveBeenCalledWith({
       agentId: "short-book-analysis",
+      baseProfiles: [preset],
       profiles: [preset, custom]
     });
     expect(c.presets.value.map((item) => item.id)).toEqual([

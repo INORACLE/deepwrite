@@ -178,11 +178,17 @@ export const LibraryAgentSettingsInputSchema = z
   .object({
     agents: z
       .array(LibraryAgentSettingsInputAgentSchema)
+      .length(LIBRARY_AGENT_DOMAINS.length),
+    baseAgents: z
+      .array(LibraryAgentSettingsInputAgentSchema)
       .length(LIBRARY_AGENT_DOMAINS.length)
+      .optional()
   })
-  .superRefine((value, context) =>
-    validateCompleteLibraryAgentSet(value.agents, context)
-  );
+  .superRefine((value, context) => {
+    validateCompleteLibraryAgentSet(value.agents, context);
+    if (value.baseAgents)
+      validateCompleteLibraryAgentSet(value.baseAgents, context);
+  });
 export type LibraryAgentSettingsInput = z.infer<
   typeof LibraryAgentSettingsInputSchema
 >;

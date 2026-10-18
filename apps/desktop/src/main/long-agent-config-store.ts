@@ -164,7 +164,6 @@ function parseDiskSettings(raw: unknown): LongAgentSettingsInput {
 export class LongAgentConfigStore {
   private readonly settingsPath: string;
   private writeChain: Promise<void> = Promise.resolve();
-  private inputCache: LongAgentSettingsInput | undefined;
 
   constructor(userDataPath: string) {
     this.settingsPath = join(
@@ -177,13 +176,12 @@ export class LongAgentConfigStore {
   async list(): Promise<LongAgentSettings> {
     await this.writeChain;
     const input = await this.readInput();
-    this.inputCache = input;
     return this.toPublicSettings(input);
   }
 
   async save(rawInput: LongAgentSettingsInput): Promise<LongAgentSettings> {
     const input = LongAgentSettingsInputSchema.parse(rawInput);
-    const baseline = this.inputCache;
+    const baseline = input.baseAgents;
     let saved: LongAgentSettings | undefined;
     const operation = this.writeChain.then(async () => {
       const normalized: LongAgentSettingsInput = {
@@ -197,13 +195,12 @@ export class LongAgentConfigStore {
             agents: mergeSettingsById(
               current.agents,
               normalized.agents,
-              baseline.agents,
+              baseline,
               (agent) => agent.id
             )
           }
         : normalized;
       await this.writeInput(next);
-      this.inputCache = next;
       saved = this.toPublicSettings(next);
     });
     this.trackWrite(operation);
@@ -238,7 +235,6 @@ export class LongAgentConfigStore {
       }
       const validated = LongAgentSettingsInputSchema.parse(next);
       await this.writeInput(validated);
-      this.inputCache = validated;
       saved = this.toPublicSettings(validated);
     });
     this.trackWrite(operation);

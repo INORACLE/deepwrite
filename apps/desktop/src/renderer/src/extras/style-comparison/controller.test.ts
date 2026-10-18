@@ -333,6 +333,7 @@ describe("文风比对运行与结果", () => {
     await ctx.controller.start(model);
     expect(ctx.fake.save).toHaveBeenCalledWith({
       agentId: "style-comparison",
+      baseProfiles: [defaultProfile],
       profiles: [{ ...defaultProfile, systemPrompt: "关注短句" }]
     });
     expect(ctx.requests[0]!.task).toMatchObject({

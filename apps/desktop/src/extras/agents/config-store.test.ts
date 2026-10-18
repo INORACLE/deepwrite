@@ -121,8 +121,16 @@ describe("extras agent config store", () => {
     );
 
     await Promise.all([
-      store.save({ agentId: "long-book-analysis", profiles: first }),
-      store.save({ agentId: "long-book-analysis", profiles: second })
+      store.save({
+        agentId: "long-book-analysis",
+        profiles: first,
+        baseProfiles: baseline
+      }),
+      store.save({
+        agentId: "long-book-analysis",
+        profiles: second,
+        baseProfiles: baseline
+      })
     ]);
 
     expect((await store.list("long-book-analysis")).profiles).toEqual(

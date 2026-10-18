@@ -1,3 +1,4 @@
+import { editableAgentProfileBaseline } from "../../utils/agentSettingsBaseline";
 import { identityApi } from "./book-identity-utils";
 import { computed, ref, watch, type Ref } from "vue";
 import {
@@ -58,7 +59,8 @@ export function useIdentityProfiles(field: Readonly<Ref<BookIdentityField>>) {
     try {
       const input = ExtrasAgentSettingsInputSchema.parse({
         agentId: agentIds[target],
-        profiles: value.map(({ builtin: _builtin, ...profile }) => profile)
+        profiles: value.map(({ builtin: _builtin, ...profile }) => profile),
+        baseProfiles: editableAgentProfileBaseline(catalogs.value[target])
       });
       const result = await identityApi().extrasAgents.profiles.save(input);
       catalogs.value[target] = result.profiles as IdentityProfile[];

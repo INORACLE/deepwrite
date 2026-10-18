@@ -55,6 +55,7 @@ describe("文风比对方法保存", () => {
       expect(store.method).toBe(method);
       expect(fake.save).toHaveBeenCalledWith({
         agentId: "style-comparison",
+        baseProfiles: [defaultProfile],
         profiles: [{ ...defaultProfile, systemPrompt: method }]
       });
       expect(storage.has(LEGACY_METHOD_KEY)).toBe(false);
@@ -104,7 +105,16 @@ describe("文风比对方法保存", () => {
     await vi.advanceTimersByTimeAsync(1_000);
     expect(fake.save).toHaveBeenCalledWith({
       agentId: "style-comparison",
+      baseProfiles: [defaultProfile],
       profiles: [{ ...defaultProfile, systemPrompt: "只比较句式" }]
+    });
+    store.method = "再比较对白";
+    await flush();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(fake.save).toHaveBeenLastCalledWith({
+      agentId: "style-comparison",
+      baseProfiles: [{ ...defaultProfile, systemPrompt: "只比较句式" }],
+      profiles: [{ ...defaultProfile, systemPrompt: "再比较对白" }]
     });
   });
 });

@@ -63,8 +63,6 @@ export class WorkspaceAgentConfigStore {
   private readonly shortSettingsPath: string;
   private readonly scriptSettingsPath: string;
   private writeChain: Promise<void> = Promise.resolve();
-  private shortInputCache: ShortWorkspaceAgentSettingsInput | undefined;
-  private scriptInputCache: ScriptWorkspaceAgentSettingsInput | undefined;
 
   constructor(userDataPath: string) {
     this.shortSettingsPath = join(
@@ -89,11 +87,9 @@ export class WorkspaceAgentConfigStore {
     await this.writeChain;
     if (workspaceType === "script") {
       const input = await this.readScriptInput();
-      this.scriptInputCache = input;
       return toPublicScriptWorkspaceAgentSettings(input);
     }
     const input = await this.readInput();
-    this.shortInputCache = input;
     return toPublicShortWorkspaceAgentSettings(input);
   }
 
@@ -113,7 +109,7 @@ export class WorkspaceAgentConfigStore {
     let saved: WorkspaceAgentSettings | undefined;
     const operation = this.writeChain.then(async () => {
       if (input.workspaceType === "script") {
-        const baseline = this.scriptInputCache;
+        const baseline = input.baseAgents;
         const normalized: ScriptWorkspaceAgentSettingsInput = {
           workspaceType: "script",
           agents: input.agents.map((agent) => ({
@@ -131,13 +127,12 @@ export class WorkspaceAgentConfigStore {
               agents: mergeSettingsById(
                 current.agents,
                 normalized.agents,
-                baseline.agents,
+                baseline,
                 (agent) => agent.id
               )
             }
           : normalized;
         await this.writeScriptInput(next);
-        this.scriptInputCache = next;
         saved = toPublicScriptWorkspaceAgentSettings(next);
         return;
       }
@@ -150,27 +145,26 @@ export class WorkspaceAgentConfigStore {
           readAccess: cloneReadAccess(agent.readAccess)
         }))
       };
-      const baseline = this.shortInputCache;
+      const baseline = input.baseAgents;
       const current = baseline ? await this.readInput() : normalized;
       const next = baseline
         ? {
             workspaceType: "short" as const,
             defaultPlotStageIds: sameSettingsValue(
               normalized.defaultPlotStageIds,
-              baseline.defaultPlotStageIds
+              input.baseDefaultPlotStageIds
             )
               ? current.defaultPlotStageIds
               : normalized.defaultPlotStageIds,
             agents: mergeSettingsById(
               current.agents,
               normalized.agents,
-              baseline.agents,
+              baseline,
               (agent) => agent.id
             )
           }
         : normalized;
       await this.writeInput(next);
-      this.shortInputCache = next;
       saved = toPublicShortWorkspaceAgentSettings(next);
     });
     this.writeChain = operation.then(
@@ -235,7 +229,6 @@ export class WorkspaceAgentConfigStore {
         }
         const validated = ScriptWorkspaceAgentSettingsInputSchema.parse(next);
         await this.writeScriptInput(validated);
-        this.scriptInputCache = validated;
         saved = toPublicScriptWorkspaceAgentSettings(validated);
         return;
       }
@@ -260,7 +253,6 @@ export class WorkspaceAgentConfigStore {
       }
       const validated = ShortWorkspaceAgentSettingsInputSchema.parse(next);
       await this.writeInput(validated);
-      this.shortInputCache = validated;
       saved = toPublicShortWorkspaceAgentSettings(validated);
     });
     this.writeChain = operation.then(

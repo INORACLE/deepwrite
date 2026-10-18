@@ -171,7 +171,6 @@ function normalizeDiskSettings(raw: unknown): LibraryAgentSettingsInput {
 export class LibraryAgentConfigStore {
   private readonly settingsPath: string;
   private writeChain: Promise<void> = Promise.resolve();
-  private inputCache: LibraryAgentSettingsInput | undefined;
 
   constructor(userDataPath: string) {
     this.settingsPath = join(userDataPath, "config", "library-agents.json");
@@ -180,7 +179,6 @@ export class LibraryAgentConfigStore {
   async list(): Promise<LibraryAgentSettings> {
     await this.writeChain;
     const input = await this.readInput();
-    this.inputCache = input;
     return this.toPublicSettings(input);
   }
 
@@ -188,7 +186,7 @@ export class LibraryAgentConfigStore {
     rawInput: LibraryAgentSettingsInput
   ): Promise<LibraryAgentSettings> {
     const input = LibraryAgentSettingsInputSchema.parse(rawInput);
-    const baseline = this.inputCache;
+    const baseline = input.baseAgents;
     let saved: LibraryAgentSettings | undefined;
     const operation = this.writeChain.then(async () => {
       const normalized: LibraryAgentSettingsInput = {
@@ -204,13 +202,12 @@ export class LibraryAgentConfigStore {
             agents: mergeSettingsById(
               current.agents,
               normalized.agents,
-              baseline.agents,
+              baseline,
               (agent) => agent.domain
             )
           }
         : normalized;
       await this.writeInput(next);
-      this.inputCache = next;
       saved = this.toPublicSettings(next);
     });
     this.trackWrite(operation);
@@ -243,7 +240,6 @@ export class LibraryAgentConfigStore {
       }
       const validated = LibraryAgentSettingsInputSchema.parse(next);
       await this.writeInput(validated);
-      this.inputCache = validated;
       saved = this.toPublicSettings(validated);
     });
     this.trackWrite(operation);
