@@ -966,7 +966,9 @@ function assertSummarySize(summary: LongBookSummary): void {
     Buffer.byteLength(JSON.stringify(summary), "utf8") >
     LONG_PROJECT_CATALOG_MAX_SUMMARY_BYTES
   ) {
-    throw new Error("长篇项目导航摘要超过 1 MiB 安全上限。");
+    throw new Error(
+      `长篇项目导航摘要超过 ${LONG_PROJECT_CATALOG_MAX_SUMMARY_BYTES / (1024 * 1024)} MiB 安全上限。`
+    );
   }
 }
 
