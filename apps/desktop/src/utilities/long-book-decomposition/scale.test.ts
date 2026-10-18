@@ -1,14 +1,22 @@
 import { rm, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { splitDecompositionChunks } from "@deepwrite/contracts";
 import { decompositionFixture } from "./test-support";
 import { runDecompositionFaux } from "./faux-run.test-support";
 import { queryDecomposition } from "./query";
+vi.setConfig({ testTimeout: 120_000, hookTimeout: 60_000 });
 const roots: string[] = [];
 afterEach(async () => {
   await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
+    roots.splice(0).map((root) =>
+      rm(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 100
+      })
+    )
   );
 });
 

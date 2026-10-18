@@ -14,7 +14,13 @@ if (
 
 export default defineConfig({
   plugins: [
-    vue(),
+    vue({
+      template: {
+        // Public-root SVG image URLs remain URLs; importing them creates
+        // synthetic file:///app-icon.png modules that are invalid on Windows.
+        transformAssetUrls: { tags: { image: [] } }
+      }
+    }),
     {
       name: "deepwrite-test-source",
       enforce: "pre",

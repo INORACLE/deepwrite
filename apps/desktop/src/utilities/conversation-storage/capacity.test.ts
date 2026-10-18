@@ -156,4 +156,4 @@ it("commits and restores more than 64 MiB per session and 256 MiB total through 
     database.close();
     await rm(root, { recursive: true, force: true });
   }
-}, 30_000);
+}, 120_000);

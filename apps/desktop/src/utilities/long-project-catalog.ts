@@ -739,9 +739,16 @@ async function atomicWriteJson(path: string, value: unknown): Promise<void> {
 async function readOptionalText(path: string): Promise<string | undefined> {
   let handle: Awaited<ReturnType<typeof open>> | undefined;
   try {
+    await assertSafeOptionalRegistryFile(path);
     handle = await open(path, constants.O_RDONLY | O_NOFOLLOW);
     const details = await handle.stat();
+    const pathDetails = await lstat(path);
     if (
+      !pathDetails.isFile() ||
+      pathDetails.isSymbolicLink() ||
+      pathDetails.nlink !== 1 ||
+      pathDetails.dev !== details.dev ||
+      pathDetails.ino !== details.ino ||
       !details.isFile() ||
       details.nlink !== 1 ||
       details.size > MAX_REGISTRY_BYTES
