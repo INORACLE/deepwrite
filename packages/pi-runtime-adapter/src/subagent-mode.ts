@@ -5,6 +5,7 @@ import {
   type SubagentDrawSettings
 } from "@deepwrite/contracts";
 import type { ContextPolicy } from "./kernel/context";
+import { WEB_SEARCH_TOOL_NAME } from "./web-search/tool";
 import type {
   BuildSpawnSubagentToolInput,
   RuntimeSubagentDefinition
@@ -12,12 +13,14 @@ import type {
 
 /**
  * The only tools a `pure-read` child keeps: reading the work and the
- * materials. An allow list, so tools added later never leak into pure modes.
+ * materials, and looking things up on the web, which changes nothing. An allow
+ * list, so tools added later never leak into pure modes.
  */
 export const PURE_READ_TOOL_NAMES: ReadonlySet<string> = new Set([
   "read",
   "list",
-  "query_linked_material_entries"
+  "query_linked_material_entries",
+  WEB_SEARCH_TOOL_NAME
 ]);
 
 /** Library managers own their tools and prompts, so they are never pure. */

@@ -48,7 +48,6 @@ export type PortableToolSchemaProfile = "default" | "writing-workspace";
 
 export interface ProviderRuntimeCompatibilityOptions {
   portableToolSchemaProfile?: PortableToolSchemaProfile;
-  webSearchEnabled?: boolean;
 }
 
 type SchemaKeywordFilter = (

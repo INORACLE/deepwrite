@@ -49,7 +49,6 @@ export interface AgentConversationState {
   sessionId: Ref<string>;
   approvalMode: Ref<AgentApprovalMode>;
   agentTeamMode: Ref<AgentTeamRunMode>;
-  webSearchEnabled: Ref<boolean>;
   thinkingLevel: Ref<ThinkingLevel>;
   temperature: Ref<number>;
   configuredModels: Ref<ModelConfig[]>;
@@ -149,7 +148,6 @@ export function createAgentConversationState(
     ),
     thinkingLevel: ref<ThinkingLevel>("medium"),
     agentTeamMode: ref<AgentTeamRunMode>("normal"),
-    webSearchEnabled: ref(false),
     temperature: ref(storedActive?.temperature ?? 0.7),
     configuredModels: ref<ModelConfig[]>([]),
     defaultModelId: ref(""),

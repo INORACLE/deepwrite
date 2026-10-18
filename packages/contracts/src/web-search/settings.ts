@@ -1,0 +1,163 @@
+import { z } from "zod";
+import {
+  DEFAULT_WEB_SEARCH_PROVIDER_ID,
+  WEB_SEARCH_PROVIDERS,
+  WEB_SEARCH_PROVIDER_IDS,
+  WebSearchProviderIdSchema
+} from "./providers";
+
+export const WEB_SEARCH_PER_RUN_CALL_LIMIT_MIN = 1;
+export const WEB_SEARCH_PER_RUN_CALL_LIMIT_MAX = 100;
+export const WEB_SEARCH_DEFAULT_PER_RUN_CALL_LIMIT = 20;
+export const WEB_SEARCH_API_KEY_MAX_LENGTH = 16_000;
+/** Hard ceiling of a runtime config, above every provider's own cap. */
+export const WEB_SEARCH_RUNTIME_MAX_RESULTS = 50;
+
+const ModelIdSchema = z.string().trim().min(1).max(120);
+
+/** Where the saved key came from; informational, never grants anything. */
+export const WebSearchKeySourceSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("manual") }),
+  z.object({
+    kind: z.literal("model"),
+    modelId: ModelIdSchema,
+    modelLabel: z.string().trim().min(1).max(120),
+    importedAt: z.string().datetime()
+  })
+]);
+export type WebSearchKeySource = z.infer<typeof WebSearchKeySourceSchema>;
+
+/** Tunable, non-secret parameters of each provider. */
+const DeepSeekParamsShape = {
+  providerId: z.literal("deepseek"),
+  maxResults: z
+    .number()
+    .int()
+    .min(1)
+    .max(WEB_SEARCH_PROVIDERS.deepseek.maxResultsCap)
+};
+
+/**
+ * Profiles that cross the process boundary are strict, so a response or input
+ * carrying a stray field (a key, say) is rejected rather than quietly dropped.
+ * Extend the member list here, and in the stored schema below, for a new
+ * provider.
+ */
+function profileSchema<Extra extends z.ZodRawShape>(extra: Extra) {
+  return z.discriminatedUnion("providerId", [
+    z.strictObject({ ...DeepSeekParamsShape, ...extra })
+  ]);
+}
+
+export const WebSearchProfileParamsSchema = profileSchema({});
+export type WebSearchProfileParams = z.infer<
+  typeof WebSearchProfileParamsSchema
+>;
+
+/**
+ * Profile as saved on disk: no key material and no derived fields. Lenient on
+ * unknown fields, so a file written by a newer version still opens.
+ */
+export const WebSearchStoredProfileSchema = z.discriminatedUnion("providerId", [
+  z.object({
+    ...DeepSeekParamsShape,
+    keySource: WebSearchKeySourceSchema.optional()
+  })
+]);
+export type WebSearchStoredProfile = z.infer<
+  typeof WebSearchStoredProfileSchema
+>;
+
+export const WebSearchProfileSchema = profileSchema({
+  hasApiKey: z.boolean(),
+  keySource: WebSearchKeySourceSchema.optional()
+});
+export type WebSearchProfile = z.infer<typeof WebSearchProfileSchema>;
+
+export const WebSearchProfileInputSchema = profileSchema({
+  apiKey: z.string().trim().max(WEB_SEARCH_API_KEY_MAX_LENGTH).optional(),
+  clearApiKey: z.boolean().optional()
+});
+export type WebSearchProfileInput = z.infer<typeof WebSearchProfileInputSchema>;
+
+const PerRunCallLimitSchema = z
+  .number()
+  .int()
+  .min(WEB_SEARCH_PER_RUN_CALL_LIMIT_MIN)
+  .max(WEB_SEARCH_PER_RUN_CALL_LIMIT_MAX);
+
+function uniqueProviders(
+  value: { profiles: { providerId: string }[] },
+  context: z.core.$RefinementCtx<unknown>
+): void {
+  const ids = value.profiles.map((profile) => profile.providerId);
+  if (ids.length !== new Set(ids).size)
+    context.addIssue({
+      code: "custom",
+      path: ["profiles"],
+      message: "联网搜索配置的搜索源不能重复。"
+    });
+}
+
+const maxProfiles = WEB_SEARCH_PROVIDER_IDS.length;
+
+export const WebSearchStoredSettingsSchema = z
+  .object({
+    enabled: z.boolean(),
+    activeProviderId: WebSearchProviderIdSchema,
+    perRunCallLimit: PerRunCallLimitSchema,
+    profiles: z.array(WebSearchStoredProfileSchema).max(maxProfiles)
+  })
+  .superRefine(uniqueProviders);
+export type WebSearchStoredSettings = z.infer<
+  typeof WebSearchStoredSettingsSchema
+>;
+
+/** Settings as the Renderer sees them: one profile per known provider. */
+export const WebSearchSettingsSchema = z
+  .strictObject({
+    enabled: z.boolean(),
+    activeProviderId: WebSearchProviderIdSchema,
+    perRunCallLimit: PerRunCallLimitSchema,
+    profiles: z.array(WebSearchProfileSchema).max(maxProfiles)
+  })
+  .superRefine(uniqueProviders);
+export type WebSearchSettings = z.infer<typeof WebSearchSettingsSchema>;
+
+/**
+ * Providers left out of the input keep their saved profile, so a client that
+ * only knows some providers never deletes another one's key.
+ */
+export const WebSearchSettingsInputSchema = z
+  .strictObject({
+    enabled: z.boolean(),
+    activeProviderId: WebSearchProviderIdSchema,
+    perRunCallLimit: PerRunCallLimitSchema,
+    profiles: z.array(WebSearchProfileInputSchema).max(maxProfiles)
+  })
+  .superRefine(uniqueProviders);
+export type WebSearchSettingsInput = z.infer<
+  typeof WebSearchSettingsInputSchema
+>;
+
+export const DEFAULT_WEB_SEARCH_STORED_SETTINGS: WebSearchStoredSettings = {
+  enabled: true,
+  activeProviderId: DEFAULT_WEB_SEARCH_PROVIDER_ID,
+  perRunCallLimit: WEB_SEARCH_DEFAULT_PER_RUN_CALL_LIMIT,
+  profiles: []
+};
+
+/**
+ * What Main hands the Agent Utility for one run. Runtime only: it carries the
+ * key, so it is never saved and never sent to the Renderer.
+ */
+export const WebSearchRuntimeConfigSchema = z.object({
+  providerId: WebSearchProviderIdSchema,
+  baseUrl: z.url().max(2_000),
+  apiKey: z.string().min(1).max(WEB_SEARCH_API_KEY_MAX_LENGTH),
+  maxResults: z.number().int().min(1).max(WEB_SEARCH_RUNTIME_MAX_RESULTS),
+  perRunCallLimit: PerRunCallLimitSchema
+});
+export type WebSearchRuntimeConfig = z.infer<
+  typeof WebSearchRuntimeConfigSchema
+>;

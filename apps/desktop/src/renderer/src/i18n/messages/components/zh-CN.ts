@@ -1,4 +1,5 @@
 import imageModelSettings from "./imageModelSettings/zh-CN";
+import webSearchSettings from "./webSearchSettings/zh-CN";
 import metadataEditMessages from "./metadataEditMessages/zh-CN";
 import catalogLabels from "./catalogLabels/zh-CN";
 import agentActivityFloatPanel from "./agentActivityFloatPanel/zh-CN";
@@ -187,6 +188,7 @@ import writingWorkspaceModule from "./writingWorkspaceModule/zh-CN";
 
 export default {
   imageModelSettings,
+  webSearchSettings,
   metadataEditMessages,
   catalogLabels,
   agentActivityFloatPanel,

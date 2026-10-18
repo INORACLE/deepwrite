@@ -26,7 +26,6 @@ const overlaySource = [
 import headerSource from "./features/chat-assistant/ChatAssistantHeader.vue?raw";
 import featureSource from "./features/chat-assistant/useChatAssistant.ts?raw";
 import modeSource from "./features/chat-assistant/useChatAssistantMode.ts?raw";
-import webSearchSource from "./features/chat-assistant/useChatAssistantWebSearch.ts?raw";
 
 describe("independent chat assistant feature", () => {
   it("places chat in more features without replacing the workspace view", () => {
@@ -134,23 +133,10 @@ describe("independent chat assistant feature", () => {
     expect(composerSource).toContain("<VoiceInputBar");
   });
 
-  it("adds a persisted DeepSeek-only web search toggle before the model selector", () => {
-    const searchIndex = composerSource.indexOf("chatAssistant.smartSearch");
-    const modelIndex = composerSource.indexOf("chatAssistant.chatModel");
-    expect(searchIndex).toBeGreaterThan(-1);
-    expect(modelIndex).toBeGreaterThan(searchIndex);
-    expect(composerSource).toContain("webSearchAvailable");
-    expect(composerSource).toContain("is-active");
-    expect(composerSource).toContain("var(--accent-soft)");
-    expect(composerSource).toContain("chatAssistant.smartSearch");
-    expect(composerSource).not.toContain('<AppIcon name="search"');
-    expect(webSearchSource).toContain(
-      '"deepwrite:chat-assistant-web-search:v1"'
-    );
-    expect(webSearchSource).toContain("isDeepSeekWebSearchCompatible");
-    expect(modeSource).toContain(
-      "chatTaskWithWebSearch(task, webSearchEnabled)"
-    );
+  it("has no per-chat web search toggle: search comes from the global setting", () => {
+    for (const source of [composerSource, overlaySource, modeSource])
+      expect(source).not.toMatch(/web-?search|smartSearch/iu);
+    expect(modeSource).toContain("controller.value.sendAssistantMessage(task)");
   });
 
   it("uses one context list and immutable book association in the project dialog", () => {

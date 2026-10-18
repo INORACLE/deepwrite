@@ -52,26 +52,11 @@ describe("App agent model selection", () => {
     const body = functionBody(
       shortConversationSource,
       "selectThinking",
-      "selectWebSearch"
-    );
-
-    expect(body).toContain("const conversation = activeConversation.value;");
-    expect(body).toContain("conversation.selectThinkingLevel(level);");
-    expect(body).toContain(
-      "options.runtime.synchronizeSessionModelSelection(conversation);"
-    );
-    expect(body.match(/activeConversation\.value/g)).toHaveLength(1);
-  });
-
-  it("keeps the selected conversation stable while publishing a web-search change", () => {
-    const body = functionBody(
-      shortConversationSource,
-      "selectWebSearch",
       "selectTemperature"
     );
 
     expect(body).toContain("const conversation = activeConversation.value;");
-    expect(body).toContain("conversation.selectWebSearchEnabled(enabled);");
+    expect(body).toContain("conversation.selectThinkingLevel(level);");
     expect(body).toContain(
       "options.runtime.synchronizeSessionModelSelection(conversation);"
     );

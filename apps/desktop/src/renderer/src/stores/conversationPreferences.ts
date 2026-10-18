@@ -16,8 +16,7 @@ export function captureRunSettings(
     thinkingLevel: controller.thinkingLevel.value,
     temperature: controller.temperature.value,
     approvalMode: controller.approvalMode.value,
-    agentTeamMode: controller.agentTeamMode.value,
-    webSearchEnabled: controller.webSearchEnabled.value
+    agentTeamMode: controller.agentTeamMode.value
   };
 }
 
@@ -31,9 +30,7 @@ export function validModelSelection(
     candidate.selectedModelId.length <= 120 &&
     typeof candidate.thinkingLevel === "string" &&
     candidate.thinkingLevel.length > 0 &&
-    candidate.thinkingLevel.length <= 64 &&
-    (candidate.webSearchEnabled === undefined ||
-      typeof candidate.webSearchEnabled === "boolean")
+    candidate.thinkingLevel.length <= 64
   );
 }
 

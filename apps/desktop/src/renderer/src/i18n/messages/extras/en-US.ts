@@ -955,15 +955,10 @@ export default {
     loadingZhuque: "Loading Zhuque detection…"
   },
   chatAssistant: {
-    waitBeforeSearchChange:
-      "Wait for the current reply to finish or stop it before changing smart search",
-    disableSmartSearch: "Turn off smart search",
-    enableSmartSearch: "Turn on smart search",
     messageAssistant: "Send a message to the chat assistant",
     desktopRequiredToSend:
       "Sending is unavailable in browser previews. Open the desktop app.",
     attachmentsComingSoon: "Attachments are coming soon",
-    smartSearch: "Smart search",
     chatModel: "Chat model",
     defaultModel: "Default model",
     voiceInput: "Voice input",
@@ -979,10 +974,6 @@ export default {
     viewAll: "View all",
     startNewChat: "Start a new chat",
     newChat: "New chat",
-    smartSearchDisabled:
-      "Smart search is off: only DeepSeek models using the Responses or Anthropic API support this feature",
-    smartSearchSupport:
-      "Requires the DeepSeek provider with the OpenAI Responses or Anthropic Messages API",
     currentModel: "Current model",
     normalMode: "Normal mode",
     addRoleplayOption: "+ Add roleplay configuration",

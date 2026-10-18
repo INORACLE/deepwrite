@@ -10,7 +10,6 @@ import {
 import { MODEL_PROVIDER_OPTIONS } from "../components/modelProviderPresets";
 import type { AgentApprovalMode } from "../types/conversation";
 import type { IconName } from "../types/workspace";
-import { isWorkspaceWebSearchAvailable } from "./agent-conversation/web-search";
 
 const t = createScopedTranslator("workspace.conversationModelOptions");
 
@@ -50,9 +49,6 @@ export function useConversationModelOptions(options: {
 }) {
   const selectedModel = computed(() =>
     options.models.find((model) => model.id === options.selectedModelId)
-  );
-  const webSearchAvailable = computed(() =>
-    isWorkspaceWebSearchAvailable(selectedModel.value)
   );
   const builtInThinkingLabels: Record<BuiltInReasoningLevel, string> = {
     get minimal() {
@@ -165,7 +161,6 @@ export function useConversationModelOptions(options: {
   );
   return {
     selectedModel,
-    webSearchAvailable,
     availableThinkingOptions,
     modelOptions,
     showsTemperature,

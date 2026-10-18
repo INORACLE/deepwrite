@@ -275,12 +275,6 @@ export default {
     theConversationWasSwitchedOrClosedBeforeToolCalls:
       "The conversation was switched or closed before tool calls returned their final state."
   },
-  webSearch: {
-    onlyDeepseekModelsUsingTheOpenaiResponsesOrAnthropic:
-      "Only DeepSeek models using the OpenAI Responses or Anthropic Messages API are supported.",
-    webAccessIsOffOnlyDeepseekModelsUsingThe:
-      "Web access is off. Only DeepSeek models using the Responses or Anthropic API support this feature."
-  },
   history: {
     historicalAttachmentNoteOnlyAttachmentNamesWereRestoredOriginal:
       "{content}\n\n[Historical attachment note] {map}. Only attachment names were restored. Original attachments were not saved in the conversation history. Ask the user to upload them again when checking or citing original text or images.",

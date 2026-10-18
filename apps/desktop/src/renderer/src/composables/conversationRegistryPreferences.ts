@@ -25,8 +25,7 @@ export function createConversationRegistryPreferences(
       thinkingLevel: conversation.thinkingLevel.value,
       temperature: conversation.temperature.value,
       approvalMode: conversation.approvalMode.value,
-      agentTeamMode: conversation.agentTeamMode.value,
-      webSearchEnabled: conversation.webSearchEnabled.value
+      agentTeamMode: conversation.agentTeamMode.value
     };
   }
 
@@ -68,8 +67,7 @@ export function createConversationRegistryPreferences(
     options.store.setSessionAgentModelSelection(
       {
         selectedModelId: source.selectedModelId.value,
-        thinkingLevel: source.thinkingLevel.value,
-        webSearchEnabled: source.webSearchEnabled.value
+        thinkingLevel: source.thinkingLevel.value
       },
       { source }
     );
@@ -156,8 +154,7 @@ export function createConversationRegistryPreferences(
         options.store.setSessionAgentModelSelection(
           {
             selectedModelId: representative.selectedModelId.value,
-            thinkingLevel: representative.thinkingLevel.value,
-            webSearchEnabled: representative.webSearchEnabled.value
+            thinkingLevel: representative.thinkingLevel.value
           },
           { persist: false }
         );

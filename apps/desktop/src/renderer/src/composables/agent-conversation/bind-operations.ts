@@ -187,10 +187,6 @@ export function bindConversationOperations(
     undefined,
     ctx
   );
-  ctx.selectWebSearchEnabled = runSettings.selectWebSearchEnabled.bind(
-    undefined,
-    ctx
-  );
   ctx.selectTemperature = runSettings.selectTemperature.bind(undefined, ctx);
   ctx.selectApprovalMode = runSettings.selectApprovalMode.bind(undefined, ctx);
   ctx.selectAgentTeamMode = runSettings.selectAgentTeamMode.bind(

@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { PiAgentRuntimeAdapter } from "../../adapter";
 import {
+  buildConversationRun,
   resolveConversationAgent,
   runFauxExtras
 } from "../extras.test-support";
+import { runtimeConfig } from "../../web-search/test-support";
 import {
   CHAT_ASSISTANT_ROLEPLAY_PROMPT_SUFFIX,
   cachedAgents,
@@ -18,7 +20,14 @@ describe("roleplay chat agent", () => {
     );
     expect(agent.systemPrompt).not.toContain("DeepWrite 软件基础情况");
     expect(agent.tools()).toEqual([]);
-    expect(agent.webSearchEnabled).toBe(false);
+  });
+
+  it("stays immersive even if search settings reach the run", () => {
+    const run = buildConversationRun(chatRoleplayTask(), {
+      webSearch: runtimeConfig()
+    });
+    expect(run.tools).toEqual([]);
+    expect(run.systemPrompt).not.toContain("【联网搜索】");
   });
 
   it("keeps role histories apart and refreshes an edited role on the next turn", async () => {

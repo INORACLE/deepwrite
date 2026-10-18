@@ -1,0 +1,120 @@
+.web-search-intro {
+  max-width: 760px;
+  margin: -4px 0 22px;
+  color: var(--text-secondary);
+  font-size: 0.928571rem;
+  line-height: 1.6;
+}
+
+.web-search-row {
+  flex-wrap: wrap;
+  cursor: default;
+}
+
+/* The first read is quick; hiding avoids showing defaults that then change. */
+.web-search-panel.is-pending .settings-card {
+  visibility: hidden;
+}
+
+.web-search-key-control {
+  display: flex;
+  align-items: center;
+  flex: 0 1 380px;
+  gap: 8px;
+  min-width: min(240px, 100%);
+}
+
+.web-search-key-control .voice-input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+.web-search-key-control .voice-button.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.web-search-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.web-search-number {
+  width: 110px;
+  min-width: 90px;
+  flex: 0 0 110px;
+  text-align: right;
+}
+
+.web-search-save-bar {
+  display: flex;
+  justify-content: flex-end;
+  max-width: 760px;
+  margin-top: -12px;
+}
+
+.web-search-import-dialog {
+  width: min(520px, calc(100vw - 48px));
+}
+
+.web-search-import-options {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 12px;
+}
+
+.web-search-import-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 13px;
+  border: 1px solid var(--theme-line);
+  border-radius: 10px;
+  background: var(--surface-main);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.web-search-import-option:hover {
+  background: var(--surface-hover);
+}
+
+.web-search-import-option.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.web-search-import-option input {
+  flex: none;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.web-search-import-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.web-search-import-text small {
+  color: var(--text-secondary);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.web-search-import-option em {
+  flex: none;
+  color: var(--text-tertiary);
+  font-size: 0.857143rem;
+  font-style: normal;
+}
+
+@media (max-width: 760px) {
+  .web-search-key-control {
+    flex-basis: 100%;
+  }
+}

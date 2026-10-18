@@ -35,6 +35,23 @@ export const EXTRAS_CONVERSATION_AGENT_IDS = [
 export type ExtrasConversationAgentId =
   (typeof EXTRAS_CONVERSATION_AGENT_IDS)[number];
 
+/**
+ * Agents that may be given the web search tool. Main attaches the search
+ * settings only to these; each one's definition still composes the tool itself.
+ */
+export const EXTRAS_WEB_SEARCH_AGENT_IDS = [
+  "chat-normal",
+  "chat-project"
+] as const satisfies readonly ExtrasAgentId[];
+export type ExtrasWebSearchAgentId =
+  (typeof EXTRAS_WEB_SEARCH_AGENT_IDS)[number];
+
+export function extrasAgentUsesWebSearch(
+  agentId: ExtrasAgentId
+): agentId is ExtrasWebSearchAgentId {
+  return (EXTRAS_WEB_SEARCH_AGENT_IDS as readonly string[]).includes(agentId);
+}
+
 export function isExtrasConversationAgent(
   agentId: ExtrasAgentId
 ): agentId is ExtrasConversationAgentId {

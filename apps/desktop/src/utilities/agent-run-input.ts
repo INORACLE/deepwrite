@@ -101,7 +101,7 @@ export function createAgentRunInput(
       ? { temperature: payload.temperature }
       : {}),
     ...(payload.runtimeConfig ? { runtimeConfig: payload.runtimeConfig } : {}),
-    ...(payload.webSearchEnabled === true ? { webSearchEnabled: true } : {}),
+    ...(payload.webSearch ? { webSearch: payload.webSearch } : {}),
     ...(payload.agentProfile ? { agentProfile: payload.agentProfile } : {}),
     ...(payload.scriptAgentProfile
       ? { scriptAgentProfile: payload.scriptAgentProfile }

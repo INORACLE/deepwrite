@@ -36,7 +36,6 @@ export interface AgentRunTarget {
   runtimeConfig?: AgentProviderRuntimeConfig;
   thinkingLevel?: ThinkingLevel;
   temperature?: number;
-  webSearchEnabled?: boolean;
   attachments?: UserPromptAttachment[];
   conversationHistory?: SessionConversationHistoryMessage[];
   conversationHistoryMode?: "replace";

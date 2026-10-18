@@ -45,3 +45,10 @@ export {
 export type { MaterialCommandExecutor } from "./material-query-runtime";
 
 export type { LibraryManagementCommandExecutor } from "./library-management-runtime";
+
+export { WebSearchProviderError, testWebSearchProvider } from "./web-search";
+export type {
+  WebSearchFailureKind,
+  WebSearchProviderTestInput,
+  WebSearchProviderTestResult
+} from "./web-search";

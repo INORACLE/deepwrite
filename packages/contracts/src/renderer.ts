@@ -364,8 +364,7 @@ export {
   MODEL_CONTEXT_WINDOW_MAX,
   MODEL_CONTEXT_WINDOW_MIN,
   MODEL_MAX_TOKENS_MAX,
-  MODEL_MAX_TOKENS_MIN,
-  isDeepSeekWebSearchCompatible
+  MODEL_MAX_TOKENS_MIN
 } from "./models";
 export {
   DEFAULT_SCRIPT_AGENT_WELCOME_SHORTCUTS,
@@ -515,6 +514,7 @@ export {
 
 export * from "./book-identity";
 export * from "./image-models";
+export * from "./web-search";
 export * from "./https-base-url";
 export { ChatAssistantProjectRefSchema } from "./chat-assistant-base";
 export { ExtrasAgentTaskSchema } from "./extras-agent/tasks";

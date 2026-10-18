@@ -5,6 +5,11 @@ import { WorkspaceRuntimeContextSchema } from "../session/runtime";
 import { assertExtrasAgentBudget } from "./budget";
 import { ExtrasAgentSettingsInputSchema } from "./profiles";
 import {
+  EXTRAS_AGENT_IDS,
+  EXTRAS_WEB_SEARCH_AGENT_IDS,
+  extrasAgentUsesWebSearch
+} from "./ids";
+import {
   ExtrasAgentResolvedTaskSchema,
   ExtrasAgentRunRequestSchema
 } from "./tasks";
@@ -192,9 +197,22 @@ describe("extras chat agents", () => {
     expect(request(normal, turn)).toBe(true);
     expect(request(normal)).toBe(false);
     expect(request(shortTask(), turn)).toBe(false);
+    // Search is never the Renderer's choice; the field no longer exists.
     expect(
       request({ ...normal, input: { webSearchEnabled: true } }, turn)
-    ).toBe(true);
+    ).toBe(false);
+  });
+
+  it("offers search to the two read-only chats only", () => {
+    expect([...EXTRAS_WEB_SEARCH_AGENT_IDS]).toEqual([
+      "chat-normal",
+      "chat-project"
+    ]);
+    for (const id of EXTRAS_AGENT_IDS)
+      expect(extrasAgentUsesWebSearch(id)).toBe(
+        id === "chat-normal" || id === "chat-project"
+      );
+    expect(extrasAgentUsesWebSearch("chat-roleplay")).toBe(false);
   });
 
   it("binds a project chat to its project's profile and keeps roleplay tool-free", () => {

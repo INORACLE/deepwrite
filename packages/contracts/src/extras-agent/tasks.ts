@@ -30,6 +30,7 @@ import {
 } from "../models";
 import { RevisionAnalysisRuntimeContextSchema } from "../revision-analysis";
 import { UserPromptAttachmentsSchema } from "../session/attachments";
+import { WebSearchRuntimeConfigSchema } from "../web-search/settings";
 import { SessionConversationHistorySchema } from "../session/commands";
 import {
   ContextCompactionRequestSchema,
@@ -251,6 +252,8 @@ export const ExtrasAgentRunSpecSchema = z
   .object({
     sessionId: z.string().min(1),
     runtimeConfig: AgentProviderRuntimeConfigSchema.optional(),
+    /** Main-resolved web search settings, only for `EXTRAS_WEB_SEARCH_AGENT_IDS`. */
+    webSearch: WebSearchRuntimeConfigSchema.optional(),
     thinkingLevel: ThinkingLevelSchema.optional(),
     temperature: TemperatureSchema.optional(),
     task: ExtrasAgentResolvedTaskSchema,

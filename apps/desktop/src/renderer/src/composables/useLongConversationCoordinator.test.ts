@@ -126,7 +126,6 @@ function controllerFixture() {
   const conversationError = ref<string | null>(null);
   const selectedModelId = ref("model-one");
   const thinkingLevel = ref<"off" | "low" | "medium" | "high">("medium");
-  const webSearchEnabled = ref(false);
   const temperature = ref(0.7);
   const approvalMode = ref<"request-approval" | "auto-approve">(
     "request-approval"
@@ -161,9 +160,6 @@ function controllerFixture() {
       thinkingLevel.value = level;
     }
   );
-  const selectWebSearchEnabled = vi.fn((enabled: boolean) => {
-    webSearchEnabled.value = enabled;
-  });
   const selectTemperature = vi.fn((value: number) => {
     temperature.value = value;
   });
@@ -185,7 +181,6 @@ function controllerFixture() {
     conversationError,
     selectedModelId,
     thinkingLevel,
-    webSearchEnabled,
     temperature,
     approvalMode,
     sendLongMessage,
@@ -197,7 +192,6 @@ function controllerFixture() {
     }),
     selectModel,
     selectThinkingLevel,
-    selectWebSearchEnabled,
     selectTemperature,
     selectApprovalMode,
     stopGeneration
@@ -215,7 +209,6 @@ function controllerFixture() {
     selectModel,
     selectTemperature,
     selectThinkingLevel,
-    selectWebSearchEnabled,
     selectedModelId,
     sendLongMessage,
     sessionId,
@@ -606,7 +599,6 @@ describe("useLongConversationCoordinator", () => {
     test.coordinator.selectConversation("session-two");
     test.coordinator.selectModel("model-two");
     test.coordinator.selectThinking("high");
-    test.coordinator.selectWebSearch(true);
     test.coordinator.selectTemperature(0.2);
     test.coordinator.selectApprovalMode("auto-approve");
 
@@ -614,7 +606,6 @@ describe("useLongConversationCoordinator", () => {
     expect(test.conversation.selectConversation).not.toHaveBeenCalled();
     expect(test.conversation.selectModel).not.toHaveBeenCalled();
     expect(test.conversation.selectThinkingLevel).not.toHaveBeenCalled();
-    expect(test.conversation.selectWebSearchEnabled).not.toHaveBeenCalled();
     expect(test.conversation.selectTemperature).not.toHaveBeenCalled();
     expect(test.conversation.selectApprovalMode).not.toHaveBeenCalled();
     expect(test.updatePermissionMode).not.toHaveBeenCalled();

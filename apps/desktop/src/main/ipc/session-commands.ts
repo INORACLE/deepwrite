@@ -9,7 +9,6 @@ import {
   SessionUserInputResponseAcceptedPayloadSchema,
   SessionPromptAcceptedPayloadSchema,
   createEnvelope,
-  isDeepSeekWebSearchCompatible,
   type CommandEnvelope,
   type CommandResult
 } from "@deepwrite/contracts";
@@ -36,6 +35,7 @@ export async function handleSessionCommands(
     | "requireAgentTeamConfigStore"
     | "requireLibraryAgentConfigStore"
     | "requireGeneralSettingsStore"
+    | "resolveWebSearch"
   >,
   command: CommandEnvelope
 ): Promise<CommandResult | undefined> {
@@ -158,13 +158,8 @@ export async function handleSessionCommands(
       const runtimeConfig = await ctx
         .requireModelConfigStore()
         .resolve(command.payload.modelId);
-      if (command.payload.webSearchEnabled === true) {
-        if (!runtimeConfig || !isDeepSeekWebSearchCompatible(runtimeConfig)) {
-          throw new Error(
-            "智能搜索仅支持 Provider 为 DeepSeek，且 API 类型为 OpenAI Responses 或 Anthropic Messages 的模型。"
-          );
-        }
-      }
+      // Search is a tool for every model; only the settings decide whether it exists.
+      const webSearch = await ctx.resolveWebSearch?.();
       const shortWorkspace = command.payload.workspaceContext?.shortWorkspace;
       const scriptWorkspace = command.payload.workspaceContext?.scriptWorkspace;
       const longWorkspace = command.payload.workspaceContext?.longWorkspace;
@@ -262,6 +257,7 @@ export async function handleSessionCommands(
             ...(thinkingLevel ? { thinkingLevel } : {}),
             ...(temperature !== undefined ? { temperature } : {}),
             ...(runtimeConfig ? { runtimeConfig } : {}),
+            ...(webSearch ? { webSearch } : {}),
             ...compaction,
             ...(agentProfile
               ? scriptWorkspace

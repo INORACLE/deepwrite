@@ -117,12 +117,20 @@ describe("Agent Utility prompt forwarding", () => {
       }
     ];
     const project = { projectType: "long" as const, projectId: "longbook_a" };
-    const chatRun = (sessionId: string, task: unknown) =>
+    const webSearch = {
+      providerId: "deepseek" as const,
+      baseUrl: "https://search.example.test",
+      apiKey: "invalid-test-search-key",
+      maxResults: 8,
+      perRunCallLimit: 20
+    };
+    const chatRun = (sessionId: string, task: unknown, search = false) =>
       CommandEnvelopeSchema.parse(
         createEnvelope(
           "agent.extras_run",
           {
             sessionId,
+            ...(search ? { webSearch } : {}),
             task,
             conversation: {
               message: "查询今天的行业动态",
@@ -145,15 +153,18 @@ describe("Agent Utility prompt forwarding", () => {
 
     await expect(
       captured.commandHandler!(
-        chatRun("session-chat-long", {
-          agentId: "chat-project",
-          profile,
-          input: {
-            project,
-            webSearchEnabled: true,
-            runtime: { projectBook: { id: "longbook_a", bookType: "long" } }
-          }
-        }),
+        chatRun(
+          "session-chat-long",
+          {
+            agentId: "chat-project",
+            profile,
+            input: {
+              project,
+              runtime: { projectBook: { id: "longbook_a", bookType: "long" } }
+            }
+          },
+          true
+        ),
         vi.fn(),
         utilityContext
       )
@@ -173,15 +184,17 @@ describe("Agent Utility prompt forwarding", () => {
 
     const [longChat, roleplay] = captured.extrasInputs;
     expect(longChat?.spec).toMatchObject({
-      task: { agentId: "chat-project", input: { webSearchEnabled: true } },
+      task: { agentId: "chat-project" },
+      webSearch,
       conversation: { history, historyMode: "replace" }
     });
+    expect(roleplay?.spec.webSearch).toBeUndefined();
     expect(longChat?.longCommandExecutor).toBeTypeOf("function");
     expect(roleplay?.longCommandExecutor).toBeUndefined();
     expect(captured.startInputs).toHaveLength(0);
   });
 
-  it("forwards workspace web search from the command payload", async () => {
+  it("forwards the Main-resolved web search settings from the command payload", async () => {
     await import("./agent-entry");
     const command = CommandEnvelopeSchema.parse(
       createEnvelope(
@@ -189,7 +202,13 @@ describe("Agent Utility prompt forwarding", () => {
         {
           sessionId: "session-workspace-web-search",
           message: "查一下近期同类题材",
-          webSearchEnabled: true
+          webSearch: {
+            providerId: "deepseek",
+            baseUrl: "https://search.example.test",
+            apiKey: "invalid-test-search-key",
+            maxResults: 8,
+            perRunCallLimit: 20
+          }
         },
         {
           id: "command-workspace-web-search",
@@ -209,8 +228,13 @@ describe("Agent Utility prompt forwarding", () => {
     await vi.waitFor(() => expect(captured.startInputs).toHaveLength(1));
 
     expect(captured.startInputs[0]).toMatchObject({
-      webSearchEnabled: true
+      webSearch: {
+        providerId: "deepseek",
+        apiKey: "invalid-test-search-key",
+        perRunCallLimit: 20
+      }
     });
+    expect(captured.startInputs[0]).not.toHaveProperty("webSearchEnabled");
   });
 
   it("forwards scriptAgentProfile from the command payload into streamPrompt", async () => {

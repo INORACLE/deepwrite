@@ -16,6 +16,7 @@ import {
   ThinkingLevelSchema
 } from "../models";
 import { ScriptWorkspaceAgentProfileSchema } from "../script-agent-settings";
+import { WebSearchRuntimeConfigSchema } from "../web-search/settings";
 import { resolveScriptWorkspaceAgentIdForStage } from "../script-workspace";
 import {
   ShortWorkspaceAgentProfileSchema,
@@ -98,7 +99,6 @@ export const SessionPromptCommandPayloadSchema = z
     proposalSettlements: ProposalSettlementsSchema.optional(),
     agentTeamMode: AgentTeamRunModeSchema.optional(),
     autoApproveCrossStageOperations: z.boolean().optional(),
-    webSearchEnabled: z.boolean().optional(),
     workspaceContext: WorkspaceRuntimeContextSchema.optional()
   })
   .superRefine((value, context) => {
@@ -226,6 +226,11 @@ export const SessionUserInputResponseCommandEnvelopeSchema =
 export const AgentPromptCommandPayloadSchema =
   SessionPromptCommandPayloadSchema.extend({
     runtimeConfig: AgentProviderRuntimeConfigSchema.optional(),
+    /**
+     * Main-resolved web search settings, including the key. Present only when
+     * search is on and configured; the Renderer never sends or sees it.
+     */
+    webSearch: WebSearchRuntimeConfigSchema.optional(),
     agentProfile: ShortWorkspaceAgentProfileSchema.optional(),
     scriptAgentProfile: ScriptWorkspaceAgentProfileSchema.optional(),
     longAgentProfile: LongAgentProfileSchema.optional(),

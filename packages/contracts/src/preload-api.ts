@@ -180,6 +180,7 @@ export interface DeepWriteApi extends TextContextMenuPreloadApi {
   longMaterialPack: import("./long-material-pack").LongMaterialPackApi;
   libraryPackage: import("./library-package").LibraryPackageApi;
   imageModels: import("./image-models").ImageModelsApi;
+  webSearch: import("./web-search").WebSearchApi;
   windowFrame?: WindowFrameApi;
   system: {
     health(): Promise<SystemHealthPayload>;

@@ -8,7 +8,7 @@ export default {
   queryMaterials: "Query materials",
   askUser: "Ask user",
   commitContinuity: "Commit continuity",
-  smartSearch: "Smart search",
+  webSearch: "Web search",
   switchStage: "Switch stage",
   assigningTask: "Assigning task",
   searchContent: "Search content",

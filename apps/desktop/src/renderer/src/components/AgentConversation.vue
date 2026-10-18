@@ -38,7 +38,6 @@ import ConversationComposer from "./ConversationComposer.vue";
 import ConversationMessageList from "./ConversationMessageList.vue";
 import ConversationTurnNavigator from "./ConversationTurnNavigator.vue";
 import { AGENT_ACTIVITY_CONTEXT_KEY } from "../composables/agentActivityContext";
-import { WORKSPACE_WEB_SEARCH_DISABLED_REASON } from "../composables/agent-conversation/web-search";
 
 const t = createScopedTranslator("components.agentConversation");
 
@@ -61,7 +60,6 @@ const props = withDefaults(
     models: ModelConfig[];
     selectedModelId: string;
     thinkingLevel: ThinkingLevel;
-    webSearchEnabled: boolean;
     temperature: number;
     approvalMode: AgentApprovalMode;
     agentTeamMode: AgentTeamRunMode;
@@ -137,7 +135,6 @@ const emit = defineEmits<{
   toggleRight: [];
   selectModel: [modelId: string];
   selectThinking: [level: ThinkingLevel];
-  toggleWebSearch: [enabled: boolean];
   selectTemperature: [temperature: number];
   selectApproval: [mode: AgentApprovalMode];
   selectAgentTeamMode: [mode: AgentTeamRunMode];
@@ -231,7 +228,6 @@ function applySuggestion(value: string): void {
 
 const {
   selectedModel,
-  webSearchAvailable,
   availableThinkingOptions,
   modelOptions,
   showsTemperature,
@@ -419,9 +415,6 @@ const {
         :selected-model-id="selectedModelId"
         :selected-model="selectedModel"
         :thinking-level="thinkingLevel"
-        :web-search-enabled="webSearchEnabled"
-        :web-search-available="webSearchAvailable"
-        :web-search-disabled-reason="WORKSPACE_WEB_SEARCH_DISABLED_REASON"
         :temperature="temperature"
         :approval-mode="approvalMode"
         :agent-team-mode="agentTeamMode"
@@ -445,7 +438,6 @@ const {
         @locate-editor-reference="locateComposerReference"
         @select-model="emit('selectModel', $event)"
         @select-thinking="emit('selectThinking', $event)"
-        @toggle-web-search="emit('toggleWebSearch', $event)"
         @select-temperature="emit('selectTemperature', $event)"
         @select-approval="emit('selectApproval', $event)"
         @select-agent-team-mode="emit('selectAgentTeamMode', $event)"

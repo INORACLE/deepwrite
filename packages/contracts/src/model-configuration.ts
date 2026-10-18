@@ -76,16 +76,6 @@ export const ModelApiSchema = z.enum([
 ]);
 export type ModelApi = z.infer<typeof ModelApiSchema>;
 
-export function isDeepSeekWebSearchCompatible(
-  model: { provider: string; api: ModelApi } | null | undefined
-): boolean {
-  if (!model) return false;
-  return (
-    model.provider.trim().toLowerCase() === "deepseek" &&
-    (model.api === "openai-responses" || model.api === "anthropic-messages")
-  );
-}
-
 export const ToolSchemaProfileSchema = z.enum(["native", "portable"]);
 export type ToolSchemaProfile = z.infer<typeof ToolSchemaProfileSchema>;
 

@@ -6,7 +6,8 @@ import {
   type SyncModelEntry,
   type ModelConfigInput,
   type ModelSettings,
-  type ModelSettingsInput
+  type ModelSettingsInput,
+  type WebSearchKeyImportModel
 } from "@deepwrite/contracts";
 import {
   DeepWriteFreeModelCatalogStore,
@@ -49,6 +50,13 @@ export interface ModelConfigStoreOptions {
 
 interface CatalogRefreshOptions {
   refreshFree?: boolean;
+}
+
+/** A saved model's decrypted key; for Main-internal reuse, never for IPC. */
+export interface ModelKeySource {
+  id: string;
+  label: string;
+  apiKey: string;
 }
 
 function publicSettings(state: ModelConfigSnapshot): ModelSettings {
@@ -134,6 +142,38 @@ export class ModelConfigStore {
     await this.writeChain;
     const { secrets } = await this.persistence.read();
     return decryptModelKey(secrets.encryptedApiKeys[input.id.trim()]);
+  }
+
+  /**
+   * Saved models that match and hold a readable key. Models whose key cannot
+   * be decrypted are left out, as nothing could use them anyway.
+   */
+  async listKeySources(
+    match: (model: WebSearchKeyImportModel) => boolean
+  ): Promise<ModelKeySource[]> {
+    await this.writeChain;
+    const { settings, secrets } = await this.persistence.read();
+    const sources: ModelKeySource[] = [];
+    for (const model of settings.models) {
+      const encrypted = secrets.encryptedApiKeys[model.id];
+      if (
+        !match({
+          id: model.id,
+          provider: model.provider,
+          baseUrl: model.baseUrl,
+          managedBy: model.managedBy,
+          hasApiKey: Boolean(encrypted)
+        })
+      )
+        continue;
+      try {
+        const apiKey = decryptModelKey(encrypted);
+        if (apiKey) sources.push({ id: model.id, label: model.label, apiKey });
+      } catch {
+        continue;
+      }
+    }
+    return sources;
   }
 
   private async update(

@@ -25,6 +25,8 @@ import { buildSpawnSubagentTool } from "./subagent-runtime";
 import { workspaceContextPolicy } from "./workspace-context-policy";
 import { writeApprovalBoundary } from "./write-approval";
 import { buildProviderRuntime, toPiThinkingLevel } from "./provider-runtime";
+import { withWebSearchTool } from "./web-search/mount";
+import { createWebSearchSession } from "./web-search/session";
 import {
   scriptReadOnlyRuntimeSystemRequirements,
   scriptRuntimeSystemRequirements,
@@ -71,6 +73,14 @@ export function buildRunTools(
     libraryWorkspace,
     subagentAuthoring
   } = input.workspaceContext ?? {};
+  // One search budget for the main agent and every subagent of this run.
+  const runSignal = options.parentSignal ?? input.signal;
+  const webSearch = input.webSearch
+    ? createWebSearchSession(input.webSearch, {
+        ...(runSignal ? { signal: runSignal } : {}),
+        localFaux: runtime.mode === "local-faux"
+      })
+    : undefined;
   const writingToolSharedState =
     scriptWorkspace && input.scriptAgentProfile
       ? createScriptWorkspaceToolSharedState(scriptWorkspace)
@@ -81,7 +91,7 @@ export function buildRunTools(
     longWorkspace && input.longAgentProfile
       ? createLongWorkspaceToolSharedState()
       : undefined;
-  const buildWritingTools = (
+  const buildWritingToolSet = (
     onContextCompacted = options.onContextCompacted
   ): AgentTool[] => {
     if (scriptWorkspace && input.scriptAgentProfile) {
@@ -119,7 +129,11 @@ export function buildRunTools(
         })
       : [];
   };
-  const buildLongTools = (
+  const buildWritingTools = (
+    onContextCompacted = options.onContextCompacted
+  ): AgentTool[] =>
+    withWebSearchTool(buildWritingToolSet(onContextCompacted), webSearch);
+  const buildLongToolSet = (
     includeAskUserQuestion = true,
     onContextCompacted = options.onContextCompacted
   ): AgentTool[] =>
@@ -144,16 +158,33 @@ export function buildRunTools(
           ...(longToolSharedState ? { sharedState: longToolSharedState } : {})
         })
       : [];
-  const management = createLibraryManagementRuntime(input);
+  const buildLongTools = (
+    includeAskUserQuestion = true,
+    onContextCompacted = options.onContextCompacted
+  ): AgentTool[] =>
+    withWebSearchTool(
+      buildLongToolSet(includeAskUserQuestion, onContextCompacted),
+      webSearch
+    );
+  const management = createLibraryManagementRuntime(
+    input,
+    webSearch ? { webSearch } : {}
+  );
   let tools: AgentTool[] = subagentAuthoring
-    ? buildSubagentAuthoringTools(subagentAuthoring)
+    ? withWebSearchTool(
+        buildSubagentAuthoringTools(subagentAuthoring),
+        webSearch
+      )
     : libraryWorkspace && input.libraryAgentProfile
-      ? buildLibraryAgentTools({
-          workspace: libraryWorkspace,
-          profile: input.libraryAgentProfile,
-          writeApprovalMode: input.writeApprovalMode ?? "request-approval",
-          attachedSkills: input.workspaceContext?.attachedSkills
-        })
+      ? withWebSearchTool(
+          buildLibraryAgentTools({
+            workspace: libraryWorkspace,
+            profile: input.libraryAgentProfile,
+            writeApprovalMode: input.writeApprovalMode ?? "request-approval",
+            attachedSkills: input.workspaceContext?.attachedSkills
+          }),
+          webSearch
+        )
       : longWorkspace && input.longAgentProfile
         ? buildLongTools()
         : (scriptWorkspace && input.scriptAgentProfile) ||
@@ -235,8 +266,9 @@ export function buildRunTools(
                   "这是长篇主智能体委派的单层子任务。只能使用继承的长篇查询/提案工具和当前 bookId。交回结果时列出已提交的修改。",
                   writeApprovalBoundary(input.writeApprovalMode)
                 ].join("\n"),
-                pureReadSystemPromptRequirements:
-                  "这是长篇主智能体委派的单层只读子任务。只能使用 read、list 读取当前 bookId 的作品，以及 query_linked_material_entries 读取素材；没有任何写入工具，不能修改作品，也不得声称已修改或已提交连续性账本。"
+                pureReadSystemPromptRequirements: `这是长篇主智能体委派的单层只读子任务。只能使用 read、list 读取当前 bookId 的作品，以及 query_linked_material_entries 读取素材${
+                  webSearch ? "、web_search 查证公开资料" : ""
+                }；没有任何写入工具，不能修改作品，也不得声称已修改或已提交连续性账本。`
               }
             : {}),
       toolExecutionHooks: options.toolExecutionHooks,

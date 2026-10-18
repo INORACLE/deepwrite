@@ -18,10 +18,7 @@ import {
   runtime,
   shortWorkspaceRuntimeFixture
 } from "./index.test-support";
-import {
-  isDeepSeekWebSearchCompatible,
-  ModelConnectionTestResultSchema
-} from "./models";
+import { ModelConnectionTestResultSchema } from "./models";
 import { SessionPromptCommandPayloadSchema } from "./session/commands";
 
 describe("DeepWrite desktop contracts: commands-models-and-prompts", () => {
@@ -191,7 +188,7 @@ describe("DeepWrite desktop contracts: commands-models-and-prompts", () => {
     ).toThrow();
   });
 
-  it("keeps chat out of session.prompt and allows workspace web search", () => {
+  it("keeps chat out of session.prompt and never takes search choices from the Renderer", () => {
     // Chat runs as a "更多功能" agent through extrasAgent.run now.
     const legacyChat = createEnvelope(
       "session.prompt",
@@ -199,7 +196,7 @@ describe("DeepWrite desktop contracts: commands-models-and-prompts", () => {
         sessionId: "session_chat_1",
         message: "聊聊今天的计划",
         mode: "chat-assistant",
-        chatAssistant: { mode: "normal", webSearchEnabled: true }
+        chatAssistant: { mode: "normal" }
       },
       { id: "cmd_chat", context: { sessionId: "session_chat_1" } }
     );
@@ -209,49 +206,65 @@ describe("DeepWrite desktop contracts: commands-models-and-prompts", () => {
     expect(parsed.payload).not.toHaveProperty("mode");
     expect(parsed.payload).not.toHaveProperty("chatAssistant");
 
+    // Neither the old switch nor settings with a key can come from the Renderer.
     const workspaceSearch = createEnvelope(
       "session.prompt",
       {
         sessionId: "session_workspace_search",
         message: "查一下近期同类题材",
         thinkingLevel: "medium" as const,
-        webSearchEnabled: true
+        webSearchEnabled: true,
+        webSearch: {
+          providerId: "deepseek",
+          baseUrl: "https://evil.example.test",
+          apiKey: "invalid-forged-key",
+          maxResults: 8,
+          perRunCallLimit: 20
+        }
       },
       {
         id: "cmd_workspace_search",
         context: { sessionId: "session_workspace_search" }
       }
     );
-    expect(CommandEnvelopeSchema.parse(workspaceSearch)).toMatchObject({
-      payload: { webSearchEnabled: true }
-    });
+    const workspace = CommandEnvelopeSchema.parse(workspaceSearch) as {
+      payload: Record<string, unknown>;
+    };
+    expect(workspace.payload).not.toHaveProperty("webSearchEnabled");
+    expect(workspace.payload).not.toHaveProperty("webSearch");
   });
 
-  it("restricts DeepSeek web search to the two server-tool APIs", () => {
+  it("lets Main hand web search settings to the Agent, and only valid ones", () => {
+    const prompt = (webSearch: unknown) =>
+      CommandEnvelopeSchema.safeParse(
+        createEnvelope(
+          "agent.prompt",
+          {
+            sessionId: "session_agent_search",
+            message: "查一下近期同类题材",
+            webSearch
+          },
+          {
+            id: "cmd_agent_search",
+            context: { sessionId: "session_agent_search" }
+          }
+        )
+      );
+    const settings = {
+      providerId: "deepseek",
+      baseUrl: "https://search.example.test",
+      apiKey: "invalid-test-search-key",
+      maxResults: 8,
+      perRunCallLimit: 20
+    };
+    const accepted = prompt(settings);
+    expect(accepted.success).toBe(true);
     expect(
-      isDeepSeekWebSearchCompatible({
-        provider: " DeepSeek ",
-        api: "openai-responses"
-      })
-    ).toBe(true);
-    expect(
-      isDeepSeekWebSearchCompatible({
-        provider: "DEEPSEEK",
-        api: "anthropic-messages"
-      })
-    ).toBe(true);
-    expect(
-      isDeepSeekWebSearchCompatible({
-        provider: "deepseek",
-        api: "openai-completions"
-      })
-    ).toBe(false);
-    expect(
-      isDeepSeekWebSearchCompatible({
-        provider: "deepseek-official",
-        api: "openai-responses"
-      })
-    ).toBe(false);
+      (accepted.data as { payload: { webSearch: unknown } }).payload.webSearch
+    ).toEqual(settings);
+    expect(prompt({ ...settings, apiKey: "" }).success).toBe(false);
+    expect(prompt({ ...settings, providerId: "unknown" }).success).toBe(false);
+    expect(prompt({ ...settings, perRunCallLimit: 0 }).success).toBe(false);
   });
 
   it("accepts extracted text and base64 image prompt attachments", () => {

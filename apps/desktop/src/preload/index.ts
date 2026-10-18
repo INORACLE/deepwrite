@@ -2,6 +2,7 @@ import { bookTemplates, createBookFromTemplate } from "./book-templates-api";
 import { desktopEvents } from "./desktop-events-api";
 import { voice } from "./voice-api";
 import { imageModels } from "./image-models-api";
+import { webSearch } from "./web-search-api";
 import { bookIdentity } from "./book-identity-api";
 import { longMaterialPack } from "./long-material-pack-api";
 import { libraryPackage } from "./library-package-api";
@@ -980,6 +981,7 @@ async function exportLongManuscript(
 
 const api: DeepWriteApi = {
   imageModels,
+  webSearch,
   bookIdentity,
   longMaterialPack,
   libraryPackage,

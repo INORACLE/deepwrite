@@ -258,12 +258,6 @@ export default {
     theConversationWasSwitchedOrClosedBeforeToolCalls:
       "会话已切换或关闭，工具调用未返回完整终态。"
   },
-  webSearch: {
-    onlyDeepseekModelsUsingTheOpenaiResponsesOrAnthropic:
-      "仅支持 Provider 为 DeepSeek，且 API 类型为 OpenAI Responses 或 Anthropic Messages 的模型",
-    webAccessIsOffOnlyDeepseekModelsUsingThe:
-      "联网已关闭：仅 DeepSeek 的 Responses 或 Anthropic API 模型支持此功能"
-  },
   history: {
     historicalAttachmentNoteOnlyAttachmentNamesWereRestoredOriginal:
       "{content}\n\n【历史附件说明】{map}。本条只恢复了附件名称，原始附件未在会话记录中保存；需要核对或引用原文、图片时，请用户重新上传。",

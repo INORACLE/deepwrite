@@ -13,6 +13,10 @@ import { buildSpawnSubagentTool } from "../subagent-runtime";
 import type { AgentRunBuildContext } from "../kernel/run-plan";
 import { rawUserMessageContent } from "../prompts-user-message";
 import type { AgentRuntimeEvent } from "../runtime-types";
+import { webSearchCompactor } from "../web-search/compactor";
+import { webSearchPromptFor } from "../web-search/prompt";
+import { createWebSearchSession } from "../web-search/session";
+import { WEB_SEARCH_TOOL_NAME } from "../web-search/tool";
 import { chatNormalAgent } from "./agents/chat-normal";
 import { chatProjectAgent } from "./agents/chat-project";
 import { chatRoleplayAgent } from "./agents/chat-roleplay";
@@ -158,9 +162,19 @@ export function planExtrasRun(input: ExtrasAgentRunInput): AgentRunPlan {
     assertModelBudget: (model: Parameters<typeof assertExtrasAgentBudget>[1]) =>
       assertExtrasAgentBudget(spec.task, model),
     build: (context: AgentRunBuildContext) => {
+      const localFaux = context.runtime.mode === "local-faux";
       const runServices = {
         ...services,
-        localFaux: context.runtime.mode === "local-faux"
+        localFaux,
+        // One search budget per run; a definition decides whether to mount it.
+        ...(spec.webSearch
+          ? {
+              webSearch: createWebSearchSession(spec.webSearch, {
+                signal: context.parentSignal,
+                localFaux
+              })
+            }
+          : {})
       };
       const tools = agent.tools(runServices);
       const orchestration =
@@ -195,7 +209,13 @@ export function planExtrasRun(input: ExtrasAgentRunInput): AgentRunPlan {
         });
         if (spawn) tools.push(spawn);
       }
-      return { systemPrompt: agent.systemPrompt, tools };
+      const webSearchSection = webSearchPromptFor(tools);
+      return {
+        systemPrompt: webSearchSection
+          ? `${agent.systemPrompt}\n\n${webSearchSection}`
+          : agent.systemPrompt,
+        tools
+      };
     }
   };
   if (agent.interaction === "task") {
@@ -235,7 +255,7 @@ export function planExtrasRun(input: ExtrasAgentRunInput): AgentRunPlan {
     spec.contextCompactionSettings && {
       settings: spec.contextCompactionSettings,
       task: spec.task.agentId === "chat-roleplay" ? "roleplay" : "chat",
-      toolCompactors: {},
+      toolCompactors: { [WEB_SEARCH_TOOL_NAME]: webSearchCompactor },
       ...(turn.checkpoint ? { checkpoint: turn.checkpoint } : {}),
       ...(turn.compaction ? { manual: turn.compaction } : {})
     };
@@ -248,7 +268,6 @@ export function planExtrasRun(input: ExtrasAgentRunInput): AgentRunPlan {
         ? { conversationHistoryMode: turn.historyMode }
         : {}),
       ...(turn.attachments?.length ? { attachments: turn.attachments } : {}),
-      ...(agent.webSearchEnabled ? { webSearchEnabled: true } : {}),
       ...(spec.compactionRuntimeConfig
         ? { compactionRuntimeConfig: spec.compactionRuntimeConfig }
         : {})

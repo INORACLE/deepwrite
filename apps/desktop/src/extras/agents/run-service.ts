@@ -10,13 +10,14 @@ import {
   SessionPromptAcceptedPayloadSchema,
   assertExtrasAgentBudget,
   createEnvelope,
-  isDeepSeekWebSearchCompatible,
+  extrasAgentUsesWebSearch,
   type AgentProviderRuntimeConfig,
   type AgentRuntimeRef,
   type CommandEnvelope,
   type CommandResult,
   type ExtrasAgentRunSpec,
-  type ExtrasAgentTask
+  type ExtrasAgentTask,
+  type WebSearchRuntimeConfig
 } from "@deepwrite/contracts";
 import {
   withCompactionUsageConfig,
@@ -77,6 +78,8 @@ export interface ExtrasAgentRunDependencies {
   resolveModel(
     modelId: string | undefined
   ): Promise<AgentProviderRuntimeConfig | undefined>;
+  /** Search settings for one run; undefined while search is off or unconfigured. */
+  resolveWebSearch?(): Promise<WebSearchRuntimeConfig | undefined>;
   /** Compaction settings for conversations and durable decomposition tasks. */
   resolveContextCompaction(
     runModelId: string | undefined
@@ -107,19 +110,6 @@ function rejected(
     requestId: command.id,
     error: { code, message }
   };
-}
-
-function assertWebSearchSupported(
-  task: ExtrasAgentTask,
-  runtimeConfig: AgentProviderRuntimeConfig | undefined
-): void {
-  const requested =
-    "webSearchEnabled" in task.input && task.input.webSearchEnabled === true;
-  if (requested && !isDeepSeekWebSearchCompatible(runtimeConfig)) {
-    throw new Error(
-      "智能搜索仅支持 Provider 为 DeepSeek，且 API 类型为 OpenAI Responses 或 Anthropic Messages 的模型。"
-    );
-  }
 }
 
 /**
@@ -178,7 +168,6 @@ export async function runExtrasAgent(
   let startFailureCode: string | undefined;
   try {
     const runtimeConfig = await deps.resolveModel(command.payload.modelId);
-    assertWebSearchSupported(task, runtimeConfig);
     const guideCapacity =
       task.agentId === "long-material-guide"
         ? runtimeConfig
@@ -254,9 +243,14 @@ export async function runExtrasAgent(
         : undefined;
     if (compaction && task.agentId === "long-book-decomposition")
       compaction.contextCompactionSettings.enabled = true;
+    // Only agents that may search are given the settings, and only while search is on.
+    const webSearch = extrasAgentUsesWebSearch(task.agentId)
+      ? await deps.resolveWebSearch?.()
+      : undefined;
     const spec: ExtrasAgentRunSpec = {
       sessionId,
       ...(runtimeConfig ? { runtimeConfig } : {}),
+      ...(webSearch ? { webSearch } : {}),
       ...(thinkingLevel ? { thinkingLevel } : {}),
       ...(temperature !== undefined ? { temperature } : {}),
       task: resolution.task,

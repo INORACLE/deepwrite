@@ -4,6 +4,7 @@ import {
   type BookIdentityUpdatedEventEnvelope
 } from "./book-identity/commands";
 import { ImageModelCommandSchemas } from "./image-models/commands";
+import { WebSearchCommandSchemas } from "./web-search/commands";
 import { LibraryPackageCommandSchemas } from "./library-package/commands";
 import {
   LongMaterialCommandSchemas,
@@ -252,6 +253,7 @@ export const CommandEnvelopeSchema = z.discriminatedUnion("type", [
   ...LongMaterialCommandSchemas,
   ...LibraryPackageCommandSchemas,
   ...ImageModelCommandSchemas,
+  ...WebSearchCommandSchemas,
   ...BookTemplateCommandSchemas,
   DeviceSyncWorkspaceCommandEnvelopeSchema,
   DeviceSyncConversationCommandEnvelopeSchema,

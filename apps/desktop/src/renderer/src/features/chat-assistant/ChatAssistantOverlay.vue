@@ -23,7 +23,6 @@ import ChatAssistantHome from "./ChatAssistantHome.vue";
 import ChatAssistantComposer from "./ChatAssistantComposer.vue";
 import { useChatAssistantMode } from "./useChatAssistantMode";
 import { useChatAssistantHistoryActions } from "./useChatAssistantHistoryActions";
-import { useChatAssistantWebSearch } from "./useChatAssistantWebSearch";
 
 const t = createScopedTranslator("extras");
 
@@ -72,15 +71,6 @@ const selectedModel = computed(() =>
   controller.value!.configuredModels.value.find(
     (model) => model.id === controller.value!.selectedModelId.value
   )
-);
-const webSearch = useChatAssistantWebSearch({
-  selectedModel,
-  onAutomaticallyDisabled: () => {
-    uiMessage.info(t("chatAssistant.smartSearchDisabled"));
-  }
-});
-const webSearchDisabledReason = computed(() =>
-  t("chatAssistant.smartSearchSupport")
 );
 const modelOptions = computed(() =>
   controller.value!.configuredModels.value.map((model) => ({
@@ -216,9 +206,7 @@ function setConversationScroller(element: unknown): void {
 
 async function send(): Promise<void> {
   if (!effectiveCanSend.value) return;
-  await assistant.sendAssistantMessage(
-    webSearch.enabled.value && webSearch.available.value
-  );
+  await assistant.sendAssistantMessage();
 }
 
 function updateContext(value: PopupSelectValue): void {
@@ -389,18 +377,11 @@ watch(
       :model-options="modelOptions"
       :thinking-level="controller.thinkingLevel.value"
       :thinking-options="thinkingOptions"
-      :web-search-visible="assistant.mode.value !== 'roleplay'"
-      :web-search-enabled="
-        assistant.mode.value !== 'roleplay' && webSearch.enabled.value
-      "
-      :web-search-available="webSearch.available.value"
-      :web-search-disabled-reason="webSearchDisabledReason"
       @update:draft="controller.draft.value = $event"
       @send="send"
       @stop="controller.stopGeneration()"
       @select-model="controller.selectModel($event)"
       @select-thinking="controller.selectThinkingLevel($event)"
-      @toggle-web-search="webSearch.setEnabled($event)"
     />
 
     <ChatAssistantProjectConfig ref="projectConfig" :assistant="assistant" />

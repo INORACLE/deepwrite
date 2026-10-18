@@ -90,8 +90,7 @@ export function cloneChatTask(task: ExtrasChatTask): ExtrasChatTask {
         project: {
           projectType: task.input.project.projectType,
           projectId: task.input.project.projectId
-        },
-        ...(task.input.webSearchEnabled ? { webSearchEnabled: true } : {})
+        }
       }
     };
   }
@@ -99,7 +98,7 @@ export function cloneChatTask(task: ExtrasChatTask): ExtrasChatTask {
     return {
       agentId: task.agentId,
       profileId: task.profileId,
-      input: task.input.webSearchEnabled ? { webSearchEnabled: true } : {}
+      input: {}
     };
   }
   return { agentId: task.agentId, profileId: task.profileId, input: {} };

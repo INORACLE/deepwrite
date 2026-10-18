@@ -14,7 +14,6 @@ export const AGENT_MODEL_SELECTION_STORAGE_KEY =
 export interface AgentModelSelection {
   selectedModelId: string;
   thinkingLevel: ThinkingLevel;
-  webSearchEnabled?: boolean;
 }
 
 export interface AgentRunPreferences {
@@ -88,10 +87,7 @@ export function parseAgentModelSelection(
     }
     return {
       selectedModelId: value.selectedModelId,
-      thinkingLevel: value.thinkingLevel,
-      ...(typeof value.webSearchEnabled === "boolean"
-        ? { webSearchEnabled: value.webSearchEnabled }
-        : {})
+      thinkingLevel: value.thinkingLevel
     };
   } catch {
     return undefined;

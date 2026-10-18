@@ -75,8 +75,7 @@ export function captureCurrentConversation(
       thinkingLevel: controller.thinkingLevel.value,
       temperature: controller.temperature.value,
       approvalMode: controller.approvalMode.value,
-      agentTeamMode: controller.agentTeamMode.value,
-      webSearchEnabled: controller.webSearchEnabled.value
+      agentTeamMode: controller.agentTeamMode.value
     },
     record
   };

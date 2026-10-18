@@ -339,7 +339,6 @@ function forwardPreviewMutation(
         :models="conversationController.configuredModels.value"
         :selected-model-id="conversationController.selectedModelId.value"
         :thinking-level="conversationController.thinkingLevel.value"
-        :web-search-enabled="conversationController.webSearchEnabled.value"
         :temperature="conversationController.temperature.value"
         :approval-mode="conversationController.approvalMode.value"
         :agent-team-mode="conversationController.agentTeamMode.value"
@@ -373,9 +372,6 @@ function forwardPreviewMutation(
         @toggle-right="emit('toggleRight')"
         @select-model="emit('selectModel', $event)"
         @select-thinking="emit('selectThinking', $event)"
-        @toggle-web-search="
-          conversationController.selectWebSearchEnabled($event)
-        "
         @select-temperature="emit('selectTemperature', $event)"
         @select-approval="emit('selectApproval', $event)"
         @select-agent-team-mode="emit('selectAgentTeamMode', $event)"

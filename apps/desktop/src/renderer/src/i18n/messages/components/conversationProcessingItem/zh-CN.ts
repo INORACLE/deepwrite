@@ -7,5 +7,6 @@ export default {
   arguments: "调用参数",
   result: "执行结果",
   toolCalls: "工具调用列表",
-  charactersMessage: "{arg0} 字符"
+  charactersMessage: "{arg0} 字符",
+  webSearchSources: "搜索来源"
 };

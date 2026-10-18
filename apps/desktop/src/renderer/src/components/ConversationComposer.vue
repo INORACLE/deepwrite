@@ -81,9 +81,6 @@ const props = defineProps<{
     providerLabel: string;
   }>;
   availableThinkingOptions: Array<{ value: ThinkingLevel; label: string }>;
-  webSearchEnabled: boolean;
-  webSearchAvailable: boolean;
-  webSearchDisabledReason: string;
   showsTemperature: boolean;
   temperatureSelectOptions: Array<{ value: number; label: string }>;
   approvalOptions: Array<{
@@ -103,7 +100,6 @@ const emit = defineEmits<{
   locateEditorReference: [reference: EditorTextReference];
   selectModel: [modelId: string];
   selectThinking: [level: ThinkingLevel];
-  toggleWebSearch: [enabled: boolean];
   selectTemperature: [temperature: number];
   selectApproval: [mode: AgentApprovalMode];
   selectAgentTeamMode: [mode: AgentTeamRunMode];
@@ -507,14 +503,10 @@ defineExpose({ focusInput });
                 :temperature="temperature"
                 :temperature-options="temperatureSelectOptions"
                 :shows-temperature="showsTemperature"
-                :web-search-enabled="webSearchEnabled"
-                :web-search-available="webSearchAvailable"
-                :web-search-disabled-reason="webSearchDisabledReason"
                 :responding="responding"
                 @select-model="emit('selectModel', $event)"
                 @select-thinking="emit('selectThinking', $event)"
                 @select-temperature="emit('selectTemperature', $event)"
-                @toggle-web-search="emit('toggleWebSearch', $event)"
               />
             </div>
             <div class="composer-actions">

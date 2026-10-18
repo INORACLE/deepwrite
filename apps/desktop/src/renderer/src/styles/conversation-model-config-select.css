@@ -36,10 +36,6 @@
   gap: 3px;
 }
 
-.conversation-model-config-network-indicator {
-  color: var(--accent, #5b82b8);
-}
-
 .conversation-model-config-label {
   overflow: hidden;
   max-width: 132px;
@@ -182,39 +178,6 @@
 
 .conversation-model-config-footer .conversation-model-config-value {
   max-width: 76px;
-}
-
-.conversation-model-config-footer > .conversation-model-config-network {
-  grid-template-columns: minmax(0, 1fr) 34px;
-}
-
-.conversation-model-config-switch {
-  display: flex;
-  align-items: center;
-  width: 34px;
-  height: 20px;
-  padding: 2px;
-  border-radius: 999px;
-  background: var(--theme-line, #d9d9d6);
-  transition: background-color 140ms ease;
-}
-
-.conversation-model-config-switch > span {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--surface-main, #ffffff);
-  box-shadow: 0 1px 3px
-    color-mix(in srgb, var(--theme-foreground) 20%, transparent);
-  transition: transform 140ms ease;
-}
-
-.conversation-model-config-switch.is-active {
-  background: var(--accent, #5b82b8);
-}
-
-.conversation-model-config-switch.is-active > span {
-  transform: translateX(14px);
 }
 
 .conversation-model-config-submenu header {

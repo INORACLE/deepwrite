@@ -1,8 +1,5 @@
 import { MATERIAL_METADATA_AUTHORING_GUIDANCE } from "@deepwrite/contracts";
-import {
-  renderDeepSeekWebSearchCapabilityPrompt,
-  renderDeepSeekWebSearchNetworkBoundary
-} from "./deepseek-web-search";
+import { WEB_SEARCH_PROMPT } from "./web-search/prompt";
 import { buildWritingSystemPrompt } from "./prompts-writing";
 import type { AgentRunInput } from "./runtime-types";
 import { renderSubagentAuthoringSystemPrompt } from "./subagent-authoring-tools";
@@ -24,12 +21,7 @@ function appendWorkspaceWebSearchPrompt(
   webSearchEnabled: boolean
 ): string {
   if (!webSearchEnabled) return prompt;
-  return [
-    prompt,
-    "",
-    renderDeepSeekWebSearchCapabilityPrompt(),
-    renderDeepSeekWebSearchNetworkBoundary()
-  ].join("\n");
+  return [prompt, "", WEB_SEARCH_PROMPT].join("\n");
 }
 
 function buildWorkspaceAgentSystemPrompt(
@@ -45,7 +37,7 @@ function buildWorkspaceAgentSystemPrompt(
       renderSubagentAuthoringSystemPrompt(subagentAuthoring).trim(),
       "",
       "【DeepWrite 技能转子智能体工具边界】",
-      "只能使用本轮列出的技能读取与草稿写入工具。write_subagent_draft 只更新预览区，不会写入智能体团队；正式加入必须等待用户在界面中确认。"
+      "只能使用本轮列出的工具（技能读取、草稿写入等）。write_subagent_draft 只更新预览区，不会写入智能体团队；正式加入必须等待用户在界面中确认。"
     ].join("\n");
   }
   const libraryProfile = input.libraryAgentProfile;
@@ -90,6 +82,6 @@ export function buildEffectiveSystemPrompt(
 ): string {
   return appendWorkspaceWebSearchPrompt(
     buildWorkspaceAgentSystemPrompt(basePrompt, input),
-    input.webSearchEnabled === true
+    input.webSearch !== undefined
   );
 }

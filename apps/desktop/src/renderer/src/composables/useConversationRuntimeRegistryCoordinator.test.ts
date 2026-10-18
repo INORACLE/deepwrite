@@ -54,14 +54,12 @@ function controllerFixture(name: string) {
     "request-approval"
   );
   const agentTeamMode = ref<"normal" | "team">("normal");
-  const webSearchEnabled = ref(false);
   const applyRunSettings = vi.fn((settings: AgentRunSettings) => {
     selectedModelId.value = settings.selectedModelId;
     thinkingLevel.value = settings.thinkingLevel;
     temperature.value = settings.temperature;
     approvalMode.value = settings.approvalMode;
     agentTeamMode.value = settings.agentTeamMode ?? "normal";
-    webSearchEnabled.value = settings.webSearchEnabled === true;
   });
   const applyModelSettings = vi.fn((settings: ModelSettings) => {
     const selected =
@@ -88,7 +86,6 @@ function controllerFixture(name: string) {
     temperature,
     approvalMode,
     agentTeamMode,
-    webSearchEnabled,
     applyRunSettings,
     applyModelSettings,
     selectAgentTeamMode,
@@ -528,8 +525,7 @@ describe("useConversationRuntimeRegistryCoordinator", () => {
     expect(test.setSessionAgentModelSelection).toHaveBeenCalledWith(
       {
         selectedModelId: first.selectedModelId.value,
-        thinkingLevel: first.thinkingLevel.value,
-        webSearchEnabled: first.webSearchEnabled.value
+        thinkingLevel: first.thinkingLevel.value
       },
       { source: first }
     );

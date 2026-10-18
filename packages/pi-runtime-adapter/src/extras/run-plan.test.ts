@@ -167,7 +167,6 @@ describe("extras run plan", () => {
       conversationHistory: history,
       conversationHistoryMode: "replace"
     });
-    expect(current.target.webSearchEnabled).toBeUndefined();
     expect(current.completionEvents).toBeUndefined();
     expect(current.userMessageContent(false)).toEqual([
       { type: "text", text: "看这张图\n【用户上传的图片】灯塔.png" },

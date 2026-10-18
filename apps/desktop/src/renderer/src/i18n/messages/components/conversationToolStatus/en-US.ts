@@ -50,7 +50,7 @@ export default {
   renameCharacter: "Rename character",
   moveCharacterEntry: "Move character entry",
   deleteCharacterFile: "Delete character file",
-  smartSearch: "Smart search",
+  webSearch: "Web search",
   write: "Write",
   edit: "Edit",
   couldNotGenerateManuscriptReview: "Could not generate manuscript review",
@@ -84,5 +84,9 @@ export default {
   generatingArguments: "Generating arguments",
   submittingValueContent: "Submitting {arg0} content",
   manuscriptAwaitingReview: "Manuscript awaiting review",
-  contentToWrite: "Content to write"
+  contentToWrite: "Content to write",
+  searchingWeb: "Searching the web",
+  webSearched: "Searched the web",
+  webSearchResultCount: "“{query}” · {count} results",
+  webSearchNoResults: "“{query}” · no results"
 };

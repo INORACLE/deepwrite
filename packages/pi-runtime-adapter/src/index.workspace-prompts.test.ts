@@ -14,6 +14,7 @@ import {
   normalChatContext,
   screenplayWorkspace
 } from "./index.test-support";
+import { runtimeConfig } from "./web-search/test-support";
 import { writeApprovalBoundary } from "./write-approval";
 
 function withWriteApprovalBoundary(
@@ -134,26 +135,21 @@ describe("DeepWrite Pi runtime adapter: workspace-prompts", () => {
       agentProfile: shortProfile,
       workspaceContext
     });
-    expect(disabledPrompt).not.toContain("本轮已启用 DeepSeek 服务端智能搜索");
-    expect(disabledPrompt).not.toContain(
-      "实时公开信息使用 DeepSeek 服务端 web_search"
-    );
+    expect(disabledPrompt).not.toContain("【联网搜索】");
+    expect(disabledPrompt).not.toContain("web_search");
 
     const enabledPrompt = buildEffectiveSystemPrompt("DeepWrite base", {
       runId: "run_short_search_on",
       sessionId: "session_short_search_on",
       prompt: "查一下同类题材",
       agentProfile: shortProfile,
-      webSearchEnabled: true,
+      webSearch: runtimeConfig(),
       workspaceContext
     });
-    expect(enabledPrompt).toContain("本轮已启用 DeepSeek 服务端智能搜索");
-    expect(enabledPrompt).toContain(
-      "实时公开信息使用 DeepSeek 服务端 web_search"
-    );
-    expect(enabledPrompt).toContain(
-      "网络能力仅限本轮列出的 DeepSeek 服务端 web_search"
-    );
+    expect(enabledPrompt).toContain("【联网搜索】");
+    expect(enabledPrompt).toContain("联网查证公开资料使用 web_search");
+    expect(enabledPrompt).toContain("网络能力仅限 web_search");
+    expect(enabledPrompt).not.toContain("DeepSeek 服务端");
   });
 
   it("uses only the configured long-agent prompt and discards the base prompt", () => {

@@ -167,9 +167,7 @@ export function longProjectRuntime(): ChatAssistantProjectRuntimeSnapshot {
   } as unknown as ChatAssistantProjectRuntimeSnapshot;
 }
 
-export function chatNormalTask(
-  webSearchEnabled = false
-): ExtrasAgentResolvedTaskOf<"chat-normal"> {
+export function chatNormalTask(): ExtrasAgentResolvedTaskOf<"chat-normal"> {
   return {
     agentId: "chat-normal",
     profile: {
@@ -178,16 +176,12 @@ export function chatNormalTask(
       description: "测试",
       systemPrompt: DEFAULT_CHAT_ASSISTANT_NORMAL_PROMPT
     },
-    input: {
-      ...(webSearchEnabled ? { webSearchEnabled: true } : {}),
-      runtime: chatRuntime()
-    }
+    input: { runtime: chatRuntime() }
   };
 }
 
 export function chatProjectTask(
-  runtime: ChatAssistantProjectRuntimeSnapshot = shortProjectRuntime(),
-  webSearchEnabled = false
+  runtime: ChatAssistantProjectRuntimeSnapshot = shortProjectRuntime()
 ): ExtrasAgentResolvedTaskOf<"chat-project"> {
   const project = {
     projectType: runtime.projectBook.bookType,
@@ -201,11 +195,7 @@ export function chatProjectTask(
       project,
       systemPrompt: "优先核对人物动机。"
     },
-    input: {
-      project,
-      ...(webSearchEnabled ? { webSearchEnabled: true } : {}),
-      runtime
-    }
+    input: { project, runtime }
   };
 }
 
