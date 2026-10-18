@@ -20,6 +20,7 @@ import type {
   ResourceTreeNode
 } from "../types/workspace";
 import AppIcon from "./AppIcon.vue";
+import { createLongTreeItemBoundaries } from "../utils/longTreeItemBoundaries";
 import LongBookActionMenu from "./LongBookActionMenu.vue";
 import LibraryGroupActionMenu from "./LibraryGroupActionMenu.vue";
 import { useTreeNodeDisclosure } from "../composables/useTreeNodeDisclosure";
@@ -210,22 +211,9 @@ const isDropTarget = ref(false);
 const draftUnitLabel = computed(() =>
   props.node.workspaceType === "script" ? t("episode") : t("section")
 );
-const longTreeItemBoundaries = computed(() => {
-  const grouped = new Map<string, string[]>();
-  for (const child of props.node.children ?? []) {
-    const kind = child.longTreeItem?.kind;
-    if (!kind) continue;
-    grouped.set(kind, [...(grouped.get(kind) ?? []), child.id]);
-  }
-  const boundaries = new Map<string, { first: boolean; last: boolean }>();
-  for (const ids of grouped.values()) {
-    if (!ids.length) continue;
-    boundaries.set(ids[0]!, { first: true, last: ids.length === 1 });
-    if (ids.length > 1)
-      boundaries.set(ids.at(-1)!, { first: false, last: true });
-  }
-  return boundaries;
-});
+const longTreeItemBoundaries = computed(() =>
+  createLongTreeItemBoundaries(props.node.children ?? [])
+);
 
 function activate(): void {
   if (props.node.unavailable && props.node.catalogNodeType === "long-book") {
