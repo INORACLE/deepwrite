@@ -1,12 +1,15 @@
 import { mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   createLongChapterPrimaryArcOperation,
   type LongWorkspaceOperationBatch
 } from "@deepwrite/contracts";
 import { LongWorkspaceService } from "./long-workspace-service";
+
+// Real project transactions need a disk integration budget on Windows runners.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
 describe("persisted chapter plot point changes", () => {
   it("saves reviewed rebinding and unlinking across restarts while preserving Markdown", async () => {
@@ -109,7 +112,12 @@ describe("persisted chapter plot point changes", () => {
         ).toBe("这一章的正文。");
       }
     } finally {
-      await rm(root, { recursive: true, force: true });
+      await rm(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 100
+      });
     }
   });
 });

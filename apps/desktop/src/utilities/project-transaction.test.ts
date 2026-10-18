@@ -11,7 +11,7 @@ import {
 } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ProjectTransactionConflictError,
   commitProjectTransaction,
@@ -19,6 +19,9 @@ import {
   projectTransactionFileIdentity,
   recoverProjectTransaction
 } from "./project-transaction";
+
+// Real project transactions need a disk integration budget on Windows runners.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
 const temporaryRoots: string[] = [];
 
@@ -30,9 +33,14 @@ async function temporaryProject(): Promise<string> {
 
 afterEach(async () => {
   await Promise.all(
-    temporaryRoots
-      .splice(0)
-      .map(async (root) => rm(root, { recursive: true, force: true }))
+    temporaryRoots.splice(0).map(async (root) =>
+      rm(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 100
+      })
+    )
   );
 });
 
