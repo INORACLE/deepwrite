@@ -126,6 +126,7 @@ Test installers must be built on their target platform from the repository root:
 
 ```bash
 pnpm pack:test             # All test packages supported by the current host
+pnpm pack:test:linux       # Linux x64: AppImage, DEB, RPM, Arch
 pnpm pack:test:win         # Windows x64
 pnpm pack:test:mac:arm64   # macOS Apple Silicon
 pnpm pack:test:mac:x64     # macOS Intel
@@ -133,6 +134,10 @@ pnpm pack:test:mac         # Both macOS architectures
 ```
 
 Artifacts are written to `apps/desktop/release/`. The packaging flow runs the full verification suite and a production build before generating and validating installers.
+
+Linux builds use the same `pnpm pack:test:linux` entry for every format. Ubuntu/Debian build hosts need `rpm`, `rpm2cpio`, `libarchive-tools`, and `zstd` in addition to the desktop runtime dependencies; Arch build hosts need `rpm-tools`, `libarchive`, and `zstd`. The workflow installs these tools automatically. RPM and Arch packages include the bundled Electron runtime and declare `libsecret` as a dependency.
+
+For a downloaded local package, use `sudo dnf install ./DeepWrite-<version>-linux-x86_64-test.rpm` on Fedora/RHEL or `sudo pacman -U ./DeepWrite-<version>-linux-x64-test.pkg.tar.zst` on Arch. This produces a local Arch package, not an AUR submission. Package validation checks architecture, launcher, required runtime files, and that the RPM/Arch ASAR bytes match the app used for first-launch and reopen checks.
 
 ### Automatic Releases from Tags
 
@@ -143,7 +148,7 @@ The `Build and publish tagged release` workflow runs when a `v*` tag is pushed: 
 3. Create and push that tag with `git tag v1.6.6` followed by `git push origin v1.6.6`. There is no need to create a Release manually.
 4. Follow **Actions → Build and publish tagged release**. Once every platform passes, installers, blockmaps, update manifests, and `SHA256SUMS.txt` are uploaded to a draft and verified before the Release becomes public.
 
-Native runners build Windows x64 EXE, macOS Apple Silicon and Intel DMG / ZIP, and Linux x64 AppImage / deb packages. Each runs the existing `pnpm pack:test:*` flow, including full verification, production builds, and packaged first-launch and reopen checks. macOS also verifies DMGs, ad-hoc signatures, and ZIP integrity. The publish job checks sizes and SHA-512 hashes and merges both architectures into `latest-mac.yml`. Actions artifacts are retained for 14 days.
+Native runners build Windows x64 EXE, macOS Apple Silicon and Intel DMG / ZIP, and Linux x64 AppImage / DEB / RPM / Arch (`.pkg.tar.zst`) packages. Each runs the existing `pnpm pack:test:*` flow, including full verification, production builds, and packaged first-launch and reopen checks. macOS also verifies DMGs, ad-hoc signatures, and ZIP integrity. The publish job checks sizes and SHA-512 hashes and merges both architectures into `latest-mac.yml`. Actions artifacts are retained for 14 days.
 
 Only the publish job receives `contents: write` through the repository-provided `GITHUB_TOKEN`; builds remain read-only. Enable Actions and allow the actions used by this workflow. Windows packages remain unsigned; macOS uses ad-hoc signing without Apple notarization.
 

@@ -44,12 +44,62 @@ linux:
   target:
     - AppImage
     - deb
+    - rpm
+    - pacman
   icon: build/icon.png
   category: Office
   executableName: deepwrite
   maintainer: carswj <wenjia@wenjiadeMacBook-Air.local>
   vendor: DeepWrite
   syncDesktopName: true
+
+rpm:
+  packageName: deepwrite
+  depends:
+    - gtk3
+    - libnotify
+    - nss
+    - libXScrnSaver
+    - "(libXtst or libXtst6)"
+    - xdg-utils
+    - at-spi2-core
+    - "(libuuid or libuuid1)"
+    - libsecret
+
+pacman:
+  packageName: deepwrite
+  artifactName: "${productName}-${version}-linux-${arch}-test.pkg.tar.zst"
+  compression: zstd
+  depends:
+    - alsa-lib
+    - at-spi2-core
+    - cairo
+    - dbus
+    - expat
+    - gcc-libs
+    - glib2
+    - glibc
+    - gtk3
+    - libdrm
+    - libcups
+    - libnotify
+    - libsecret
+    - libx11
+    - libxcb
+    - libxcomposite
+    - libxdamage
+    - libxext
+    - libxfixes
+    - libxkbcommon
+    - libxrandr
+    - libxss
+    - libxtst
+    - mesa
+    - nspr
+    - nss
+    - pango
+    - systemd-libs
+    - xdg-utils
 
 nsis:
   oneClick: false
