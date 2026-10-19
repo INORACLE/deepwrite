@@ -1,3 +1,4 @@
+import { editableAgentProfileBaseline } from "../../utils/agentSettingsBaseline";
 import { localizedMessage } from "../analysis-ui/localized-text";
 import { presetLabel } from "../analysis-ui/preset-labels";
 import { createScopedTranslator } from "../../i18n";
@@ -173,7 +174,8 @@ export function useLongBookAnalysis(options: {
   ): Promise<void> {
     const input = ExtrasAgentSettingsInputSchema.parse({
       agentId: "long-book-analysis",
-      profiles: nextPresets.map(({ builtin: _builtin, ...preset }) => preset)
+      profiles: nextPresets.map(({ builtin: _builtin, ...preset }) => preset),
+      baseProfiles: editableAgentProfileBaseline(presets.value)
     });
     if (input.agentId !== "long-book-analysis") return;
     batch.settle();

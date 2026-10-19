@@ -1,3 +1,4 @@
+import { editableAgentProfileBaseline } from "../../utils/agentSettingsBaseline";
 import { computed, ref, shallowRef, watch } from "vue";
 import {
   DEFAULT_DECOMPOSITION_PROFILE,
@@ -245,6 +246,7 @@ export function useLongBookDecomposition(options: {
       profiles.value = (
         await api().extrasAgents.profiles.save({
           agentId: "long-book-decomposition",
+          baseProfiles: editableAgentProfileBaseline(profiles.value),
           profiles: next.map(({ builtin: _builtin, ...profile }) => ({
             ...profile,
             worldCategories: profile.worldCategories.map((category) => ({

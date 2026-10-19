@@ -359,6 +359,7 @@ describe("revision analysis controller", () => {
     expect(f.c.systemPrompt.value).toBe("只分析对白");
     expect(f.save).toHaveBeenCalledWith({
       agentId: "revision-analysis",
+      baseProfiles: [defaultProfile],
       profiles: [{ ...defaultProfile, systemPrompt: "只分析对白" }]
     });
     await f.c.saveSettings(true);

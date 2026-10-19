@@ -14,6 +14,7 @@ import {
   type ExtrasAgentProfileCatalog
 } from "./profile-catalogs";
 import { previousLongBookPrompts } from "./previous-long-book-prompts";
+import { mergeSettingsById } from "../../main/merge-agent-settings";
 
 interface StoredProfile {
   id: string;
@@ -75,17 +76,33 @@ export class ExtrasAgentConfigStore {
     agentId: A
   ): Promise<ExtrasAgentSettingsOf<A>> {
     await this.writeChain;
-    return this.publicSettings(agentId, await this.readDisk(agentId));
+    const disk = await this.readDisk(agentId);
+    const settings = this.publicSettings(agentId, disk);
+    return settings;
   }
 
   async save(rawInput: ExtrasAgentSettingsInput): Promise<ExtrasAgentSettings> {
     const input = ExtrasAgentSettingsInputSchema.parse(rawInput);
-    return this.enqueue(input.agentId, async () => ({
-      version: 1,
-      profiles: this.withDefaults(input.agentId, input.profiles),
-      updatedAt: new Date().toISOString(),
-      ...this.currentPromptRevisions(input.agentId)
-    }));
+    const baseline = input.baseProfiles;
+    return this.enqueue(input.agentId, async () => {
+      const profiles = this.withDefaults(input.agentId, input.profiles);
+      const current = baseline ? await this.readDisk(input.agentId) : undefined;
+      const mergedProfiles =
+        current && baseline
+          ? mergeSettingsById(
+              current.profiles,
+              profiles,
+              this.withDefaults(input.agentId, baseline),
+              (profile) => profile.id
+            )
+          : profiles;
+      return {
+        version: 1,
+        profiles: mergedProfiles,
+        updatedAt: new Date().toISOString(),
+        ...this.currentPromptRevisions(input.agentId)
+      };
+    });
   }
 
   async reset(

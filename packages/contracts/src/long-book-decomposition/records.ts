@@ -10,19 +10,35 @@ import { DecompositionIdSchema } from "./limits";
 // model submission, a Core-generated overview contains many valid assets.
 export const DECOMPOSITION_RECORD_MAX_BYTES = 32 * 1024 * 1024;
 
-const generatedCharacterOverview = z.object({
-  unitId: z.literal("summary:characters"),
-  data: z.object({
-    kind: z.literal("asset"),
-    asset: z.object({
-      kind: z.literal("topic"),
-      domain: z.literal("character"),
-      title: z.literal("人物概览"),
-      // The store also checks the serialized UTF-8 bytes, including escaping.
-      content: z.string().trim().min(1).max(DECOMPOSITION_RECORD_MAX_BYTES)
+function validateRecordBytes(
+  value: unknown,
+  context: z.core.$RefinementCtx<unknown>
+): void {
+  if (
+    new TextEncoder().encode(JSON.stringify(value)).byteLength >
+    DECOMPOSITION_RECORD_MAX_BYTES
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "拆解单元记录超过 32 MiB UTF-8 安全上限。"
+    });
+  }
+}
+
+const generatedCharacterOverview = z
+  .object({
+    unitId: z.literal("summary:characters"),
+    data: z.object({
+      kind: z.literal("asset"),
+      asset: z.object({
+        kind: z.literal("topic"),
+        domain: z.literal("character"),
+        title: z.literal("人物概览"),
+        content: z.string().trim().min(1).max(DECOMPOSITION_RECORD_MAX_BYTES)
+      })
     })
   })
-});
+  .superRefine(validateRecordBytes);
 
 export const DecompositionRecordSchema = z.union([
   generatedCharacterOverview,
@@ -46,7 +62,8 @@ export const DecompositionRecordFileSchema = z
     savedAt: z.string().datetime(),
     record: DecompositionRecordSchema
   })
-  .strict();
+  .strict()
+  .superRefine(validateRecordBytes);
 export type DecompositionRecordFile = z.infer<
   typeof DecompositionRecordFileSchema
 >;

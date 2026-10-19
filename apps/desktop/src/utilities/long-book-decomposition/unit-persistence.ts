@@ -1,7 +1,9 @@
 import type {
   LongBookDecompositionJob,
   DecompositionSubmitInput,
-  DecompositionAsset
+  DecompositionAsset,
+  DecompositionRegistry,
+  DecompositionReceipt
 } from "@deepwrite/contracts";
 import { readDecompositionRegistry } from "./query";
 import { emptyDecompositionRegistry } from "./workflow";
@@ -14,17 +16,34 @@ import { writeDecompositionLongUnit } from "./long-unit-writer";
 import { decompositionUnitIsRecordOnly } from "./record-store";
 import type { DecompositionService } from "./service";
 
-/** Saves the task-local record first, then the finished content, if any, to the target. */
-export async function persistDecompositionUnit(
-  service: DecompositionService,
+/** Look up a chapter's deterministic reading units without scanning all units. */
+export function decompositionChapterReadingUnitIds(
+  job: LongBookDecompositionJob,
+  chapterId: string
+): string[] {
+  const prefix = `reading:${chapterId}`;
+  const ids: string[] = [];
+  if (job.units[prefix]) ids.push(prefix);
+  for (let segment = 0; ; segment += 1) {
+    const id = `${prefix}:${segment}`;
+    if (!job.units[id]) break;
+    ids.push(id);
+  }
+  return ids;
+}
+
+export interface PreparedDecompositionUnit {
+  base: Omit<DecompositionReceipt, "refs">;
+  registry: DecompositionRegistry;
+  recordOnly: boolean;
+}
+
+export function prepareDecompositionUnit(
   job: LongBookDecompositionJob,
   unitId: string,
-  data: DecompositionSubmitInput["data"]
-) {
-  const registry =
-    job.units["registry:merge"]?.status === "done"
-      ? await readDecompositionRegistry(job, service.reader)
-      : emptyDecompositionRegistry();
+  data: DecompositionSubmitInput["data"],
+  registry: DecompositionRegistry
+): PreparedDecompositionUnit {
   const base = {
     id: decompositionReceiptId(
       job.id,
@@ -37,7 +56,7 @@ export async function persistDecompositionUnit(
     unitId,
     inputRevision: job.units[unitId]!.inputRevision,
     savedAt: new Date().toISOString()
-  };
+  } satisfies Omit<DecompositionReceipt, "refs">;
   const recordOnly = decompositionUnitIsRecordOnly(job, unitId);
   job.units[unitId]!.requiredReceiptIds =
     !recordOnly && job.target?.kind === "material-group"
@@ -45,7 +64,34 @@ export async function persistDecompositionUnit(
           ({ receipt }) => receipt.id
         )
       : [base.id];
-  await service.state.save(job);
+  return { base, registry, recordOnly };
+}
+
+export interface PersistDecompositionUnitOptions {
+  prepared?: PreparedDecompositionUnit;
+  saveState?: boolean;
+}
+
+/** Saves the task-local record first, then the finished content, if any, to the target. */
+export async function persistDecompositionUnit(
+  service: DecompositionService,
+  job: LongBookDecompositionJob,
+  unitId: string,
+  data: DecompositionSubmitInput["data"],
+  options: PersistDecompositionUnitOptions = {}
+) {
+  const prepared =
+    options.prepared ??
+    prepareDecompositionUnit(
+      job,
+      unitId,
+      data,
+      job.units["registry:merge"]?.status === "done"
+        ? await readDecompositionRegistry(job, service.reader)
+        : emptyDecompositionRegistry()
+    );
+  const { base, registry, recordOnly } = prepared;
+  if (options.saveState !== false) await service.state.save(job);
   await service.records.save(job, unitId, data);
   if (recordOnly) return { ...base, refs: [] };
   if (job.target?.kind !== "long")
@@ -80,14 +126,8 @@ export async function persistDecompositionUnit(
   // Segments of an oversized chapter share its card.
   const chapter = data.card.chapters[0]!;
   const chapterReadings = [chapter];
-  for (const [id, unit] of Object.entries(job.units)) {
-    if (
-      id === unitId ||
-      unit.status !== "done" ||
-      (id !== `reading:${chapter.chapterId}` &&
-        !id.startsWith(`reading:${chapter.chapterId}:`))
-    )
-      continue;
+  for (const id of decompositionChapterReadingUnitIds(job, chapter.chapterId)) {
+    if (id === unitId || job.units[id]?.status !== "done") continue;
     const record = await service.reader.record(job, id);
     if (record.data.kind === "reading")
       chapterReadings.push(record.data.card.chapters[0]!);

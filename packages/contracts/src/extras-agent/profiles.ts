@@ -151,51 +151,75 @@ export type ExtrasAgentSettingsOf<A extends ExtrasAgentId> = Extract<
   { agentId: A }
 >;
 
+function settingsInputVariant<
+  A extends ExtrasAgentId,
+  P extends z.ZodType<{ id: string; name: string }>
+>(agentId: A, profile: P, options: { uniqueNames?: boolean } = {}) {
+  return settingsVariant(agentId, profile, options)
+    .safeExtend({
+      baseProfiles: z
+        .array(profile)
+        .max(EXTRAS_AGENT_MAX_PROFILES[agentId])
+        .optional()
+    })
+    .superRefine((value, context) => {
+      if (value.baseProfiles)
+        validateProfileList(
+          value.baseProfiles,
+          options.uniqueNames ?? true,
+          context
+        );
+    });
+}
+
 const withoutBuiltin = { builtin: true } as const;
 export const ExtrasAgentSettingsInputSchema = z.discriminatedUnion("agentId", [
-  settingsVariant(
+  settingsInputVariant(
     "book-title-design",
     BookTitleDesignProfileSchema.omit(withoutBuiltin)
   ),
-  settingsVariant(
+  settingsInputVariant(
     "book-synopsis-design",
     BookSynopsisDesignProfileSchema.omit(withoutBuiltin)
   ),
-  settingsVariant(
+  settingsInputVariant(
     "book-cover-design",
     BookCoverDesignProfileSchema.safeExtend({ builtin: z.never().optional() })
   ),
-  settingsVariant(
+  settingsInputVariant(
     "revision-analysis",
     RevisionAnalysisProfileSchema.omit(withoutBuiltin)
   ),
-  settingsVariant(
+  settingsInputVariant(
     "short-book-analysis",
     ShortBookAnalysisPresetSchema.omit(withoutBuiltin)
   ),
-  settingsVariant(
+  settingsInputVariant(
     "long-book-analysis",
     LongBookAnalysisPresetSchema.omit(withoutBuiltin)
   ),
-  settingsVariant(
+  settingsInputVariant(
     "long-book-decomposition",
     LongBookDecompositionProfileSchema.safeExtend({
       builtin: z.never().optional()
     })
   ),
-  settingsVariant(
+  settingsInputVariant(
     "long-material-guide",
     LongMaterialGuideProfileSchema.omit(withoutBuiltin)
   ),
-  settingsVariant(
+  settingsInputVariant(
     "style-comparison",
     StyleComparisonProfileSchema.omit(withoutBuiltin)
   ),
-  settingsVariant("chat-normal", ChatNormalProfileSchema.omit(withoutBuiltin)),
-  settingsVariant("chat-project", ChatProjectProfileInputSchema, {
+  settingsInputVariant(
+    "chat-normal",
+    ChatNormalProfileSchema.omit(withoutBuiltin)
+  ),
+  settingsInputVariant("chat-project", ChatProjectProfileInputSchema, {
     uniqueNames: false
   }),
-  settingsVariant(
+  settingsInputVariant(
     "chat-roleplay",
     ChatRoleplayProfileSchema.omit(withoutBuiltin),
     { uniqueNames: false }

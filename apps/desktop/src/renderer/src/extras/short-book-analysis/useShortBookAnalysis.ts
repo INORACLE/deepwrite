@@ -1,3 +1,4 @@
+import { editableAgentProfileBaseline } from "../../utils/agentSettingsBaseline";
 import { createScopedTranslator } from "../../i18n";
 import { presetLabel } from "../analysis-ui/preset-labels";
 import { computed, ref, shallowRef, watch } from "vue";
@@ -299,6 +300,7 @@ export function useShortBookAnalysis(options: {
       editable();
       const input = ExtrasAgentSettingsInputSchema.parse({
         agentId: "short-book-analysis",
+        baseProfiles: editableAgentProfileBaseline(presets.value),
         profiles: next.map(({ builtin, ...preset }) => {
           void builtin;
           return preset;

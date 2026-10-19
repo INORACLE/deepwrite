@@ -20,10 +20,13 @@ import type {
   ResourceTreeNode
 } from "../types/workspace";
 import AppIcon from "./AppIcon.vue";
+import { createLongTreeItemBoundaries } from "../utils/longTreeItemBoundaries";
 import LongBookActionMenu from "./LongBookActionMenu.vue";
 import LibraryGroupActionMenu from "./LibraryGroupActionMenu.vue";
 import { useTreeNodeDisclosure } from "../composables/useTreeNodeDisclosure";
 import { SIDEBAR_SELECTION_ACTIVE } from "../composables/sidebarSelectionContext";
+
+import { registerTreeNodeActionListeners } from "../utils/treeNodeActionListeners";
 
 const t = createScopedTranslator("components.treeNodeItem");
 
@@ -88,6 +91,7 @@ const actionMenuOpen = ref(false);
 const actionArea = ref<HTMLElement | null>(null);
 const actionMenu = ref<HTMLElement | null>(null);
 const actionMenuOpensUpward = ref(false);
+let unregisterTreeNodeActionListeners: (() => void) | undefined;
 const libraryDomain = computed<"skill" | "material" | undefined>(() =>
   props.resourceDomain === "skill" || props.resourceDomain === "material"
     ? props.resourceDomain
@@ -210,26 +214,9 @@ const isDropTarget = ref(false);
 const draftUnitLabel = computed(() =>
   props.node.workspaceType === "script" ? t("episode") : t("section")
 );
-
-function isFirstLongTreeItem(node: ResourceTreeNode): boolean {
-  const kind = node.longTreeItem?.kind;
-  if (!kind) return false;
-  return (
-    props.node.children?.find(
-      (candidate) => candidate.longTreeItem?.kind === kind
-    )?.id === node.id
-  );
-}
-
-function isLastLongTreeItem(node: ResourceTreeNode): boolean {
-  const kind = node.longTreeItem?.kind;
-  if (!kind) return false;
-  const siblings =
-    props.node.children?.filter(
-      (candidate) => candidate.longTreeItem?.kind === kind
-    ) ?? [];
-  return siblings.at(-1)?.id === node.id;
-}
+const longTreeItemBoundaries = computed(() =>
+  createLongTreeItemBoundaries(props.node.children ?? [])
+);
 
 function activate(): void {
   if (props.node.unavailable && props.node.catalogNodeType === "long-book") {
@@ -477,34 +464,23 @@ function characterItemAction(
   emit("characterItemAction", action, props.node);
 }
 
-function handleDocumentPointerDown(event: PointerEvent): void {
-  if (!actionArea.value?.contains(event.target as Node)) {
-    actionMenuOpen.value = false;
-  }
-}
-
-function handleDocumentKeydown(event: KeyboardEvent): void {
-  if (event.key === "Escape") {
-    actionMenuOpen.value = false;
-  }
-}
-
 onMounted(() => {
   if (!hasActionMenu.value) {
     return;
   }
-  document.addEventListener("pointerdown", handleDocumentPointerDown);
-  document.addEventListener("keydown", handleDocumentKeydown);
-  window.addEventListener("resize", updateActionMenuPlacement);
+  unregisterTreeNodeActionListeners = registerTreeNodeActionListeners({
+    containsTarget: (target) =>
+      Boolean(actionArea.value?.contains(target as Node)),
+    close: () => {
+      actionMenuOpen.value = false;
+    },
+    updatePlacement: updateActionMenuPlacement
+  });
 });
 
 onBeforeUnmount(() => {
-  if (!hasActionMenu.value) {
-    return;
-  }
-  document.removeEventListener("pointerdown", handleDocumentPointerDown);
-  document.removeEventListener("keydown", handleDocumentKeydown);
-  window.removeEventListener("resize", updateActionMenuPlacement);
+  unregisterTreeNodeActionListeners?.();
+  unregisterTreeNodeActionListeners = undefined;
 });
 </script>
 
@@ -1055,8 +1031,12 @@ onBeforeUnmount(() => {
           Boolean(child.longWorkspaceSelection?.chapterCardId) &&
           childIndex === node.children.length - 1
         "
-        :long-tree-item-move-up-disabled="isFirstLongTreeItem(child)"
-        :long-tree-item-move-down-disabled="isLastLongTreeItem(child)"
+        :long-tree-item-move-up-disabled="
+          longTreeItemBoundaries.get(child.id)?.first ?? false
+        "
+        :long-tree-item-move-down-disabled="
+          longTreeItemBoundaries.get(child.id)?.last ?? false
+        "
         @select="emit('select', $event)"
         @toggle-pin="emit('togglePin', $event)"
         @book-action="(mode, book) => emit('bookAction', mode, book)"
