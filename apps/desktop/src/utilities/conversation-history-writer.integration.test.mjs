@@ -16,8 +16,6 @@ import {
   document,
   runtime
 } from "../renderer/src/composables/useAgentConversation.test-support";
-// Multi-megabyte drafts cross several durable SQLite staging transactions.
-vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 const key = "conversation-history:integration-fixture";
 const date = "2026-09-11T00:00:00.000Z";
 const cleanup = [];
@@ -243,7 +241,7 @@ describe("controller → incremental writer → SQLite", () => {
       database.session({ key, sessionId: controller.sessionId.value })
         ?.messageCount
     ).toBe(1);
-  }, 20_000);
+  });
   it("rewrites a middle prompt while keeping its prefix and exact database order", async () => {
     const { database, api } = await storage();
     const model = createDeferredApi();

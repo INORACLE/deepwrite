@@ -15,6 +15,32 @@ if (
 const scaleTest =
   "apps/desktop/src/utilities/long-book-decomposition/scale.test.ts";
 
+// Only suites with real temporary SQLite databases belong here. In-memory
+// storage unit tests keep the normal test budget and parallel scheduling.
+const diskConversationTests = [
+  "apps/desktop/src/utilities/conversation-history-*.integration.test.mjs",
+  "apps/desktop/src/utilities/conversation-long-prompt.integration.test.mjs",
+  "apps/desktop/src/utilities/conversation-exit.test.mjs",
+  "apps/desktop/src/utilities/renderer-state-store.test.ts",
+  "tools/renderer-state-history-migration.test.mjs",
+  ...[
+    "capacity",
+    "runtime-recovery",
+    "offline-repair",
+    "migration-capacity",
+    "message-projection",
+    "legacy-replay-recovery",
+    "worker-client",
+    "legacy-migration-relocation",
+    "legacy-file-migration",
+    "staging",
+    "sync-sessions",
+    "database"
+  ].map(
+    (name) => `apps/desktop/src/utilities/conversation-storage/${name}.test.ts`
+  )
+];
+
 const testFiles = [
   "packages/**/*.test.ts",
   "tools/**/*.test.mjs",
@@ -51,7 +77,7 @@ export default defineConfig({
   ],
   test: {
     maxWorkers,
-    // A failed regular suite already blocks packaging; avoid running the slow
+    // A failed suite already blocks packaging; avoid running the slow
     // scale project afterwards just to report the same failed verification.
     bail: process.env.CI === "true" ? 1 : 0,
     globalSetup: ["./tools/setup-i18n-fixtures.ts"],
@@ -65,8 +91,23 @@ export default defineConfig({
         test: {
           name: "regular",
           include: testFiles,
-          exclude: [...configDefaults.exclude, scaleTest],
+          exclude: [
+            ...configDefaults.exclude,
+            scaleTest,
+            ...diskConversationTests
+          ],
           sequence: { groupOrder: 0 }
+        }
+      },
+      {
+        extends: true,
+        test: {
+          name: "disk-conversation",
+          include: diskConversationTests,
+          maxWorkers: 1,
+          testTimeout: 30_000,
+          hookTimeout: 30_000,
+          sequence: { groupOrder: 1 }
         }
       },
       {
@@ -75,7 +116,7 @@ export default defineConfig({
           name: "scale",
           include: [scaleTest],
           maxWorkers: 1,
-          sequence: { groupOrder: 1 }
+          sequence: { groupOrder: 2 }
         }
       }
     ]
