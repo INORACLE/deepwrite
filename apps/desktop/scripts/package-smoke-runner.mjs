@@ -2,7 +2,20 @@ import { prepareSmokeWorkspace } from "./smoke-workspace.mjs";
 import { spawn } from "node:child_process";
 import { assertElectronLaunchAllowed } from "../../../tools/electron-launch-environment.mjs";
 
-export function validateSmokeSummary(summary, reopened) {
+export function validateSmokeSummary(
+  summary,
+  reopened,
+  requireReleaseConfig = process.env.DEEPWRITE_REQUIRE_RELEASE_CONFIG === "1"
+) {
+  if (
+    requireReleaseConfig &&
+    (summary.releaseConfig?.status !== "ok" ||
+      summary.releaseConfig?.publicData !== true ||
+      summary.releaseConfig?.cloudBackup !== true)
+  )
+    throw new Error(
+      "Packaged app did not verify its bundled release configuration."
+    );
   if (
     summary.health?.status !== "ok" ||
     summary.health?.workers?.length !== 3 ||
@@ -24,6 +37,21 @@ export function validateSmokeSummary(summary, reopened) {
     );
 }
 
+export function packagedSmokeEnvironment(source = process.env) {
+  const environment = {
+    ...source,
+    DEEPWRITE_SMOKE: "1",
+    ELECTRON_DISABLE_SECURITY_WARNINGS: "true"
+  };
+  // Prove the package works without credentials supplied by the runner.
+  if (environment.DEEPWRITE_REQUIRE_RELEASE_CONFIG === "1") {
+    for (const key of Object.keys(environment)) {
+      if (key.startsWith("MAIN_VITE_")) delete environment[key];
+    }
+  }
+  return environment;
+}
+
 export async function runPackagedSmoke(
   executable,
   appDir,
@@ -33,6 +61,7 @@ export async function runPackagedSmoke(
   assertElectronLaunchAllowed();
   await prepareSmokeWorkspace(profile);
   let output = "";
+  const environment = packagedSmokeEnvironment();
   const result = await new Promise((resolveResult) => {
     let timedOut = false;
     const child = spawn(
@@ -47,11 +76,7 @@ export async function runPackagedSmoke(
       ],
       {
         cwd: appDir,
-        env: {
-          ...process.env,
-          DEEPWRITE_SMOKE: "1",
-          ELECTRON_DISABLE_SECURITY_WARNINGS: "true"
-        },
+        env: environment,
         stdio: ["ignore", "pipe", "pipe"]
       }
     );

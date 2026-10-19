@@ -54,6 +54,12 @@ jobs:
       - name: Validate release tag and both package versions
         run: node tools/release-version.mjs
 
+      - name: Validate private release configuration before packaging
+        if: ${{ inputs.reuse_run_id == '' }}
+        env:
+          DEEPWRITE_RELEASE_ENV: ${{ secrets.DEEPWRITE_RELEASE_ENV }}
+        run: node tools/release-environment.mjs check-secret
+
       - name: Record released source for recovery
         if: ${{ inputs.reuse_run_id == '' }}
         run: git rev-parse HEAD > release-source.txt
@@ -63,7 +69,7 @@ jobs:
         if: ${{ inputs.reuse_run_id == '' }}
         uses: actions/upload-artifact@v6
         with:
-          name: release-source-${{ steps.source.outputs.commit }}
+          name: release-source-configured-${{ steps.source.outputs.commit }}
           path: release-source.txt
           if-no-files-found: error
           retention-days: 14
@@ -104,16 +110,10 @@ jobs:
             const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, { ...options, per_page: 100 });
             // checkout pins the installer source; a manual run's head_sha is its workflow revision.
             const sources = artifacts.filter(artifact => artifact.name.startsWith('release-source-'));
-            if (sources.length) {
-              if (sources.length !== 1 ||
-                  sources[0].name !== `release-source-${process.env.RELEASE_COMMIT}` ||
-                  sources[0].expired || sources[0].size_in_bytes <= 0) {
-                throw new Error('Installer source record is mismatched, incomplete or expired.');
-              }
-            } else if (run.event !== 'push' ||
-                       run.head_branch !== process.env.RELEASE_TAG ||
-                       run.head_sha !== process.env.RELEASE_COMMIT) {
-              throw new Error('Installer run does not match the released source; a source record is required for manual builds.');
+            if (sources.length !== 1 ||
+                sources[0].name !== `release-source-configured-${process.env.RELEASE_COMMIT}` ||
+                sources[0].expired || sources[0].size_in_bytes <= 0) {
+              throw new Error('Installer source record does not match the released source or is expired; verified release configuration is required.');
             }
             const installers = artifacts.filter(artifact => artifact.name.startsWith('installers-'));
             if (installers.length !== platforms.length || platforms.some(platform => {
@@ -161,6 +161,7 @@ jobs:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
       DEEPWRITE_TEST_MAX_WORKERS: ${{ matrix.workers }}
       NODE_OPTIONS: --max-old-space-size=${{ matrix.heap }}
+      DEEPWRITE_REQUIRE_RELEASE_CONFIG: "1"
     steps:
       - name: Preserve LF source files on Windows
         if: runner.os == 'Windows'
@@ -189,6 +190,11 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Restore private build configuration
+        env:
+          DEEPWRITE_RELEASE_ENV: ${{ secrets.DEEPWRITE_RELEASE_ENV }}
+        run: node tools/release-environment.mjs restore-secret
 
       - name: Prepare Linux desktop verification
         if: runner.os == 'Linux'

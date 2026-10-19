@@ -12,7 +12,7 @@ import {
 } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   ProjectTransactionConflictError,
   commitProjectTransaction,
@@ -21,9 +21,6 @@ import {
   recoverProjectTransaction
 } from "./project-transaction";
 import { withProjectTransactionLock } from "./project-transaction/lock";
-
-// Real project transactions need a disk integration budget on Windows runners.
-vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
 const temporaryRoots: string[] = [];
 

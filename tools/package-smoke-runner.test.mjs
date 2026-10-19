@@ -1,5 +1,11 @@
-import { describe, expect, it } from "vitest";
-import { validateSmokeSummary } from "../apps/desktop/scripts/package-smoke-runner.mjs";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  packagedSmokeEnvironment,
+  validateSmokeSummary
+} from "../apps/desktop/scripts/package-smoke-runner.mjs";
+
+beforeEach(() => vi.stubEnv("DEEPWRITE_REQUIRE_RELEASE_CONFIG", "0"));
+afterEach(() => vi.unstubAllEnvs());
 
 function summary() {
   return {
@@ -19,6 +25,47 @@ function summary() {
 }
 
 describe("packaged persistence smoke acceptance", () => {
+  it("strips host-provided build values only for release acceptance", () => {
+    const source = {
+      DEEPWRITE_REQUIRE_RELEASE_CONFIG: "1",
+      MAIN_VITE_OSS_ACCESS_KEY_SECRET: "invalid-test-host-secret",
+      MAIN_VITE_DEEPWRITE_PUBLIC_DATA_API_KEY: "invalid-test-host-key",
+      PATH: "invalid-test-path"
+    };
+    expect(packagedSmokeEnvironment(source)).toEqual({
+      DEEPWRITE_REQUIRE_RELEASE_CONFIG: "1",
+      PATH: "invalid-test-path",
+      DEEPWRITE_SMOKE: "1",
+      ELECTRON_DISABLE_SECURITY_WARNINGS: "true"
+    });
+    expect(source.MAIN_VITE_OSS_ACCESS_KEY_SECRET).toBe(
+      "invalid-test-host-secret"
+    );
+    expect(
+      packagedSmokeEnvironment({
+        ...source,
+        DEEPWRITE_REQUIRE_RELEASE_CONFIG: "0"
+      }).MAIN_VITE_OSS_ACCESS_KEY_SECRET
+    ).toBe("invalid-test-host-secret");
+  });
+  it("requires bundled public service and OSS configuration for release builds", () => {
+    expect(() => validateSmokeSummary(summary(), false, true)).toThrow(
+      "bundled release configuration"
+    );
+    vi.stubEnv("DEEPWRITE_REQUIRE_RELEASE_CONFIG", "1");
+    expect(() => validateSmokeSummary(summary(), false)).toThrow(
+      "bundled release configuration"
+    );
+    const result = {
+      ...summary(),
+      releaseConfig: { status: "ok", publicData: true, cloudBackup: true }
+    };
+    expect(() => validateSmokeSummary(result, false, true)).not.toThrow();
+    result.releaseConfig.cloudBackup = false;
+    expect(() => validateSmokeSummary(result, false, true)).toThrow(
+      "bundled release configuration"
+    );
+  });
   it("requires the database path to have been exercised instead of accepting utility health alone", () => {
     const { conversation: _conversation, ...oldSummary } = summary();
     expect(() => validateSmokeSummary(oldSummary, false)).toThrow(

@@ -94,6 +94,16 @@ DeepWrite 是 pnpm workspace，`apps/desktop/` 是唯一桌面客户端。根目
 
 按“现象 → 根源 → 守则”记录已经出过、容易重犯的问题；新增条目沿用这个格式，并附上可复用的实现位置。
 
+- **远端安装包构建成功，公共服务和云备份却缺少配置：**
+  - **现象：**本地运行正常，GitHub 构建的安装包没有公共服务地址和 OSS 凭据。
+  - **根源：**仓库根目录 `.env` 被 Git 忽略，远端 checkout 不包含本机配置；Main 的 `MAIN_VITE_*` 需要在编译时读入。
+  - **守则：**官方发布使用仓库 Actions Secret `DEEPWRITE_RELEASE_ENV`，由 `tools/release-environment.mjs` 校验并恢复 `.env`；缺失必填项时在打包前失败。禁止将真实值写入源码、夹具、日志或发布说明。
+  - **验证：**发布时启用 `DEEPWRITE_REQUIRE_RELEASE_CONFIG=1`，包内冒烟清除宿主 `MAIN_VITE_*` 后检查公共服务及 OSS 配置，首次启动与重开都须通过；保留 `releaseConfig` 成功标记。参考 `smoke-release-config.ts`、`package-smoke-runner.mjs`。
+- **本地检查通过，Windows 发版却在测试阶段失败：**
+  - **现象：**迁移测试单独运行通过，全量运行却触及默认 5 秒超时，清理临时目录又报 `ENOTEMPTY`；事务锁测试依赖大量写盘和轮询，耗时随机器负载波动。
+  - **根源：**日常 CI 只覆盖 Linux，真实文件系统和 SQLite 测试又与普通测试争抢磁盘；竞态测试靠运行速度制造时序，发版时才暴露 Windows 差异。
+  - **守则：**日常 `.github/workflows/verify.yml` 同时覆盖 Linux 和与发布一致的 Windows runner、Node、pnpm 及 worker 配置。迁移、事务和 SQLite 集成测试统一归入 `vitest.config.ts` 的 `disk-integration` 阶段，单 worker、测试及清理默认各 30 秒；普通测试和规模测试分阶段运行。事务锁竞态用 `withProjectTransactionLock` 回调等确定性同步点触发，保留文件身份、所有者和持久内容断言；临时目录只对可重试的占用做有界清理，不跳过失败或靠无限重试发版。
+  - **验证：**运行完整 `pnpm verify`，确认测试没有遗漏或重复；改动 Windows 文件语义时还须通过原生 Windows CI。参考 `storage-migration.test.ts`、`project-transaction.test.ts` 和 `project-transaction/lock.windows.test.ts`。
 - **操作一次，整页闪烁：**
   - **现象：**智能体团队切换启用时，列表与编辑器里所有开关、按钮同时降到 50% 透明再恢复；同类型还会短暂出现两个“已启用”。
   - **根源：**把一次几十毫秒的请求提升成页面级 pending 标志（`agentTeamSaving`），再让每个控件都把它绑到 `disabled`，往返期间整页变灰又恢复。开关又靠原生 checkbox 自己翻转，显示值与数据脱节，失败时也不回滚。

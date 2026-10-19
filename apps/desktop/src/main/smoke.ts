@@ -21,6 +21,7 @@ import { runLongBookDecompositionSmoke } from "./smoke-long-book-decomposition";
 import { runDecompositionUiSmoke } from "./smoke-decomposition-ui";
 import { runBookIdentitySmoke } from "./smoke-book-identity";
 import { runLibraryGroupDeletionSmoke } from "./smoke-library-group-deletion";
+import { smokeReleaseConfig } from "./smoke-release-config";
 
 export function smokeErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -36,6 +37,7 @@ export async function runApplicationSmoke(
   window: BrowserWindow,
   setEventTap: (tap: ((event: SystemEventEnvelope) => void) | undefined) => void
 ): Promise<void> {
+  const releaseConfig = smokeReleaseConfig();
   if (process.env.DEEPWRITE_SMOKE_SUITE === "library-groups") {
     const libraryGroups = await runLibraryGroupDeletionSmoke(window);
     console.log(
@@ -188,6 +190,7 @@ export async function runApplicationSmoke(
     console.log(
       `DEEPWRITE_SMOKE_OK ${JSON.stringify({
         health,
+        releaseConfig,
         conversation,
         bookTemplates,
         extrasAgents,

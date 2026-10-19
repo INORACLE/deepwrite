@@ -229,6 +229,11 @@ try {
       targetPlatform
     );
     validateSmokeSummary(summary, reopened);
+    if (process.env.DEEPWRITE_REQUIRE_RELEASE_CONFIG === "1") {
+      console.log(
+        `PACKAGE_RELEASE_CONFIG_OK reopened=${reopened} publicData=${summary.releaseConfig.publicData} cloudBackup=${summary.releaseConfig.cloudBackup}`
+      );
+    }
     console.log(
       `PACKAGE_CONVERSATION_SMOKE_OK reopened=${reopened} chunkPages=${summary.conversation.chunkPages} metadataChunkPages=${summary.conversation.metadataChunkPages}`
     );

@@ -42,7 +42,7 @@ function sourceRecord(sourceCommit = commit) {
   };
 }
 
-function fixture(runId = "123") {
+function fixture(runId = "123", recorded = true) {
   const run = {
     path: ".github/workflows/release.yml",
     event: "push",
@@ -61,6 +61,7 @@ function fixture(runId = "123") {
     expired: false,
     size_in_bytes: 10
   }));
+  if (recorded) artifacts.push(sourceRecord());
   const actions = {
     getWorkflowRun: vi.fn(async () => ({ data: run })),
     listJobsForWorkflowRun: vi.fn(),
@@ -100,7 +101,7 @@ describe("verified release artifact recovery", () => {
   });
 
   it("recovers a manual build of an older tag using its checked-out source record", async () => {
-    const { invoke, run, artifacts, core } = fixture();
+    const { invoke, run, artifacts, core } = fixture("123", false);
     Object.assign(run, {
       event: "workflow_dispatch",
       head_branch: "main",
@@ -111,9 +112,8 @@ describe("verified release artifact recovery", () => {
     expect(core.setOutput).toHaveBeenCalledExactlyOnceWith("run_id", "123");
   });
 
-  it("accepts a recorded tag build as well as legacy tag-push builds", async () => {
-    const { invoke, artifacts, core } = fixture();
-    artifacts.push(sourceRecord());
+  it("accepts a tag build with a validated configuration source record", async () => {
+    const { invoke, core } = fixture();
     await invoke();
     expect(core.setOutput).toHaveBeenCalledExactlyOnceWith("run_id", "123");
   });
@@ -121,13 +121,13 @@ describe("verified release artifact recovery", () => {
   it.each([commit, "b".repeat(40)])(
     "requires a source record for manual builds even when the workflow SHA is %s",
     async (headSha) => {
-      const { invoke, run, core } = fixture();
+      const { invoke, run, core } = fixture("123", false);
       Object.assign(run, {
         event: "workflow_dispatch",
         head_branch: "main",
         head_sha: headSha
       });
-      await expect(invoke()).rejects.toThrow("a source record is required");
+      await expect(invoke()).rejects.toThrow("Installer source record");
       expect(core.setOutput).not.toHaveBeenCalled();
     }
   );
@@ -135,7 +135,7 @@ describe("verified release artifact recovery", () => {
   it.each(["mismatched", "empty", "expired", "duplicate"])(
     "rejects a %s source record without falling back to the trigger SHA",
     async (kind) => {
-      const { invoke, artifacts, core } = fixture();
+      const { invoke, artifacts, core } = fixture("123", false);
       const record = sourceRecord(
         kind === "mismatched" ? "b".repeat(40) : commit
       );
@@ -147,6 +147,15 @@ describe("verified release artifact recovery", () => {
       expect(core.setOutput).not.toHaveBeenCalled();
     }
   );
+
+  it("rejects legacy artifacts that did not validate private release configuration", async () => {
+    const { invoke, artifacts, core } = fixture("123", false);
+    artifacts.push({ ...sourceRecord(), name: `release-source-${commit}` });
+    await expect(invoke()).rejects.toThrow(
+      "verified release configuration is required"
+    );
+    expect(core.setOutput).not.toHaveBeenCalled();
+  });
 
   it.each(["0", "-1", "01", "invalid", "9007199254740992"])(
     "rejects invalid run ID %s before contacting GitHub",
@@ -165,7 +174,7 @@ describe("verified release artifact recovery", () => {
     ["path", ".github/workflows/other.yml"],
     ["status", "in_progress"]
   ])("rejects a mismatched run %s", async (key, value) => {
-    const { invoke, run, core } = fixture();
+    const { invoke, run, core } = fixture("123", false);
     run[key] = value;
     await expect(invoke()).rejects.toThrow(
       "does not match the released source"
@@ -209,7 +218,7 @@ describe("verified release artifact recovery", () => {
     "rejects %s installer artifacts",
     async (kind) => {
       const { invoke, artifacts, core } = fixture();
-      if (kind === "missing") artifacts.pop();
+      if (kind === "missing") artifacts.shift();
       if (kind === "empty") artifacts[0].size_in_bytes = 0;
       if (kind === "duplicate") artifacts.push({ ...artifacts[0] });
       if (kind === "unexpected") artifacts[0].name = "installers-other";

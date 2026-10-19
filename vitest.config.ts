@@ -15,9 +15,12 @@ if (
 const scaleTest =
   "apps/desktop/src/utilities/long-book-decomposition/scale.test.ts";
 
-// Only suites with real temporary SQLite databases belong here. In-memory
-// storage unit tests keep the normal test budget and parallel scheduling.
-const diskConversationTests = [
+// Durable filesystem and SQLite suites run on one worker after regular tests.
+// In-memory unit tests keep the normal timeout and parallel scheduling.
+const diskIntegrationTests = [
+  "apps/desktop/src/utilities/storage-migration.test.ts",
+  "apps/desktop/src/utilities/project-transaction*.test.ts",
+  "apps/desktop/src/utilities/project-transaction/**/*.test.ts",
   "apps/desktop/src/utilities/conversation-history-*.integration.test.mjs",
   "apps/desktop/src/utilities/conversation-long-prompt.integration.test.mjs",
   "apps/desktop/src/utilities/conversation-exit.test.mjs",
@@ -83,8 +86,8 @@ export default defineConfig({
     globalSetup: ["./tools/setup-i18n-fixtures.ts"],
     setupFiles: ["./tools/setup-renderer-i18n.ts"],
     environment: "node",
-    // Scale fixtures perform thousands of durable writes. Run them after other
-    // suites so they do not compete for the same disk, especially on Windows.
+    // Separate regular, disk integration, and scale phases so expensive durable
+    // writes do not compete with other workers, especially on Windows.
     projects: [
       {
         extends: true,
@@ -94,7 +97,7 @@ export default defineConfig({
           exclude: [
             ...configDefaults.exclude,
             scaleTest,
-            ...diskConversationTests
+            ...diskIntegrationTests
           ],
           sequence: { groupOrder: 0 }
         }
@@ -102,8 +105,8 @@ export default defineConfig({
       {
         extends: true,
         test: {
-          name: "disk-conversation",
-          include: diskConversationTests,
+          name: "disk-integration",
+          include: diskIntegrationTests,
           maxWorkers: 1,
           testTimeout: 30_000,
           hookTimeout: 30_000,
