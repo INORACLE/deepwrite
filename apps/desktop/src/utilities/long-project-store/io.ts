@@ -239,14 +239,13 @@ export async function readNoFollowFile(
     if (info.size > BigInt(maxBytes)) {
       throw new Error(`${label}超过大小限制。`);
     }
+    const pathInfo = await lstat(path, { bigint: true });
+    if (pathInfo.isSymbolicLink()) {
+      throw new Error(`${label}不能是符号链接。`);
+    }
     const canonical = await realpath(path);
     if (containingRoot) assertContained(containingRoot, canonical);
-    const pathInfo = await lstat(path, { bigint: true });
-    if (
-      pathInfo.isSymbolicLink() ||
-      pathInfo.dev !== info.dev ||
-      pathInfo.ino !== info.ino
-    ) {
+    if (pathInfo.dev !== info.dev || pathInfo.ino !== info.ino) {
       throw new Error(`${label}在读取期间发生替换。`);
     }
     const bytes = await handle.readFile();

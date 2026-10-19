@@ -117,8 +117,11 @@ describe("ModelUsageStore", () => {
     expect(ledger.recentRecords).toEqual([usageRecord]);
     expect(ledger.rollups).toEqual([]);
     expect(registry).not.toContain("apiKey");
-    expect((await stat(store.ledgerPath)).mode & 0o777).toBe(0o600);
-    expect((await stat(store.registryPath)).mode & 0o777).toBe(0o600);
+    // Windows modes do not represent POSIX owner/group access bits.
+    if (process.platform !== "win32") {
+      expect((await stat(store.ledgerPath)).mode & 0o777).toBe(0o600);
+      expect((await stat(store.registryPath)).mode & 0o777).toBe(0o600);
+    }
     await expect(access(legacyDirectory)).rejects.toMatchObject({
       code: "ENOENT"
     });

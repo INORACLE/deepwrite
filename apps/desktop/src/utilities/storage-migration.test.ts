@@ -1,7 +1,7 @@
+import { denyFileReads } from "./file-read-permissions.test-support";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import {
-  chmod,
   lstat,
   mkdir,
   mkdtemp,
@@ -364,14 +364,14 @@ describe("offline profile migration", () => {
     const unreadable = await fixture();
     const path = join(unreadable.sourcePath, "private.bin");
     await file(path, "fixture-secret-bytes");
-    await chmod(path, 0);
+    const restoreReads = await denyFileReads(path);
     try {
       await expect(migrateStorageProfile(unreadable)).rejects.toBeDefined();
       await expect(lstat(unreadable.targetPath)).rejects.toMatchObject({
         code: "ENOENT"
       });
     } finally {
-      await chmod(path, 0o600);
+      await restoreReads();
     }
     expect(await readFile(path, "utf8")).toBe("fixture-secret-bytes");
   });

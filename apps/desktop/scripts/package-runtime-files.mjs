@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 import { open } from "node:fs/promises";
-import { posix } from "node:path";
+import { normalize, posix } from "node:path";
 import ts from "typescript";
 
 export const REQUIRED_RUNTIME_FILES = [
@@ -85,7 +85,9 @@ export function verifyPackagedRuntime(archive) {
   );
   const asar = appBuilderRequire("@electron/asar");
   return validateRuntimeFiles(asar.listPackage(archive), (file) =>
-    asar.extractFile(archive, file).toString("utf8")
+    // ASAR 3 traverses directories using the host separator, while inventory
+    // validation uses POSIX paths for portable module resolution.
+    asar.extractFile(archive, normalize(file)).toString("utf8")
   );
 }
 

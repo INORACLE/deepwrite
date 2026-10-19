@@ -278,7 +278,7 @@ describe("LongProjectStore: ledger semantic cleanup", () => {
         }
       }
     });
-  }, 15_000);
+  });
 
   it("uses a later v2 record as the replay watermark after deleting the preceding v3 commit", async () => {
     const { projectStore, created } = await createFixture("cleanup-v3-v2");
@@ -320,7 +320,7 @@ describe("LongProjectStore: ledger semantic cleanup", () => {
     expect(remaining.chapterOutputs.handoff.summary).toBe(
       "最近一次连续性归档已删除，请依据当前剩余记录继续创作。"
     );
-  }, 15_000);
+  });
 
   it("removes orphaned semantic history while preserving later unrelated outcomes", async () => {
     const { projectStore, created } = await createFixture(
@@ -459,7 +459,7 @@ describe("LongProjectStore: ledger semantic cleanup", () => {
       ]
     });
     expect(JSON.stringify(records)).not.toContain(characterId);
-  }, 15_000);
+  });
 
   it("removes dependent knowledge and loops for a historical fact absent from the projection", async () => {
     const { projectStore, created } = await createFixture(
@@ -566,5 +566,5 @@ describe("LongProjectStore: ledger semantic cleanup", () => {
       openLoops: [],
       latestHandoff: null
     });
-  }, 15_000);
+  });
 });

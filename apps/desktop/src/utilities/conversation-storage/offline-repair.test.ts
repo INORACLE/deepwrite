@@ -2,7 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { repairConversationStorage } from "./offline-repair";
 import { ConversationDatabase } from "./database";
 import { migrateLegacyFile } from "./legacy-file-migration";
@@ -13,6 +13,7 @@ import {
   useOldMigrationPath
 } from "./legacy-migration-fixture.test-support";
 
+vi.setConfig({ testTimeout: 120_000, hookTimeout: 60_000 });
 const roots: string[] = [];
 async function profile() {
   const root = await mkdtemp(join(tmpdir(), "deepwrite-offline-repair-"));
@@ -23,7 +24,14 @@ async function profile() {
 }
 afterEach(async () => {
   await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
+    roots.splice(0).map((root) =>
+      rm(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 100
+      })
+    )
   );
 });
 

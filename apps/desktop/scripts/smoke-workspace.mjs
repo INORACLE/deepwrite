@@ -10,4 +10,20 @@ export async function prepareSmokeWorkspace(profile) {
     join(profile, "config", "workspace-directory.json"),
     JSON.stringify({ version: 1, path: workspace })
   );
+  // UI smoke selectors use Chinese; CI hosts normally start in English.
+  // Preserve saved settings on reopen so language persistence stays testable.
+  await writeFile(
+    join(profile, "config", "general-settings.json"),
+    JSON.stringify({
+      version: 2,
+      permissionMode: "auto-approve",
+      autoApproveCrossStageOperations: true,
+      autoSave: true,
+      language: "zh-CN",
+      showInMenuBar: true
+    }),
+    { flag: "wx" }
+  ).catch((error) => {
+    if (error.code !== "EEXIST") throw error;
+  });
 }

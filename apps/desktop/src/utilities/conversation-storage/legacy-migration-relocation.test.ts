@@ -1,7 +1,7 @@
 import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { ConversationDatabase } from "./database";
 import { migrateLegacyFile } from "./legacy-file-migration";
 import { LegacyConversationStore } from "./legacy-store";
@@ -16,6 +16,9 @@ import {
   useOldMigrationPath
 } from "./legacy-migration-fixture.test-support";
 
+// Real project transactions and SQLite/profile copies need a disk integration budget.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
+
 const roots: string[] = [];
 const databases: ConversationDatabase[] = [];
 afterEach(async () => {
@@ -27,7 +30,14 @@ afterEach(async () => {
     }
   }
   await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
+    roots.splice(0).map((root) =>
+      rm(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 100
+      })
+    )
   );
 });
 
