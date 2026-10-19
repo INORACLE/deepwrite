@@ -127,6 +127,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           pnpm exec vitest run \
+            tools/package-runtime-archive.test.mjs \
             tools/renderer-vendor-graph.test.mjs \
             apps/desktop/src/main/model-usage-store.test.ts \
             apps/desktop/src/renderer/src/components/ConversationMessageItem.errors.test.ts \
