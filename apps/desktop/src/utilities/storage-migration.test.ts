@@ -15,7 +15,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConversationDatabase } from "./conversation-storage/database";
 import { LegacyConversationStore } from "./conversation-storage/legacy-store";
 import { STORAGE_MIGRATION_RECEIPT } from "./storage-migration-files";
@@ -25,10 +25,20 @@ import {
 } from "./storage-migration-state";
 import { migrateStorageProfile } from "./storage-migration";
 
+// Profile copies and real SQLite WAL recovery need a disk integration budget.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
+
 const roots: string[] = [];
 afterEach(async () => {
   await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
+    roots.splice(0).map((root) =>
+      rm(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 100
+      })
+    )
   );
 });
 

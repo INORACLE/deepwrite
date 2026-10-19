@@ -4,6 +4,7 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  realpath,
   rename,
   rm,
   unlink,
@@ -19,6 +20,7 @@ import {
   projectTransactionFileIdentity,
   recoverProjectTransaction
 } from "./project-transaction";
+import { withProjectTransactionLock } from "./project-transaction/lock";
 
 // Real project transactions need a disk integration budget on Windows runners.
 vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
@@ -212,76 +214,44 @@ describe("project transaction", () => {
   });
 
   it("does not unlink an ABA replacement that reuses the same lock owner data", async () => {
-    const root = await temporaryProject();
+    const root = await realpath(await temporaryProject());
     const lockPath = join(root, ".deepwrite", "transaction.lock");
-    const commit = commitProjectTransaction({
-      projectRoot: root,
-      operations: Array.from({ length: 1_000 }, (_, index) => ({
-        path: `long/aba/file-${index}.md`,
-        content: `content-${index}`,
-        expectedSha256: null
-      }))
-    }).then(
-      (value) => ({ status: "fulfilled" as const, value }),
-      (reason: unknown) => ({ status: "rejected" as const, reason })
-    );
-
-    let ownerText: string | undefined;
-    for (let attempt = 0; attempt < 2_000; attempt += 1) {
-      try {
-        const candidate = await readFile(lockPath, "utf8");
-        const owner = JSON.parse(candidate) as {
-          pid?: unknown;
-          token?: unknown;
-        };
-        if (typeof owner.pid === "number" && typeof owner.token === "string") {
-          ownerText = candidate;
-          break;
+    let originalOwnerText: string | undefined;
+    let replacementIdentity: string | undefined;
+    await expect(
+      withProjectTransactionLock(root, async () => {
+        // Acquisition has completed, so replacement deterministically tests release ownership.
+        const ownerText = await readFile(lockPath, "utf8");
+        originalOwnerText = ownerText;
+        const original = await lstat(lockPath, { bigint: true });
+        const replacementPath = join(
+          root,
+          ".deepwrite",
+          "transaction.replacement"
+        );
+        await writeFile(replacementPath, ownerText, {
+          encoding: "utf8",
+          flag: "wx"
+        });
+        const replacement = await lstat(replacementPath, { bigint: true });
+        replacementIdentity = projectTransactionFileIdentity(replacement);
+        expect(replacementIdentity).not.toBe(
+          projectTransactionFileIdentity(original)
+        );
+        try {
+          await rename(replacementPath, lockPath);
+        } catch (error: unknown) {
+          const code = (error as NodeJS.ErrnoException).code;
+          if (code !== "EEXIST" && code !== "EPERM") throw error;
+          await unlink(lockPath);
+          await rename(replacementPath, lockPath);
         }
-      } catch {
-        // The lock file may exist briefly before its tiny owner record is
-        // fully written. Poll until acquisition has durably published it.
-      }
-      await new Promise<void>((resolveDelay) => {
-        setTimeout(resolveDelay, 1);
-      });
-    }
-    expect(ownerText).toBeDefined();
-
-    const original = await lstat(lockPath);
-    const replacementPath = join(root, ".deepwrite", "transaction.replacement");
-    await writeFile(replacementPath, ownerText!, {
-      encoding: "utf8",
-      flag: "wx"
-    });
-    const replacement = await lstat(replacementPath);
-    expect(`${replacement.dev}:${replacement.ino}`).not.toBe(
-      `${original.dev}:${original.ino}`
-    );
-    try {
-      await rename(replacementPath, lockPath);
-    } catch (error: unknown) {
-      const code = (error as NodeJS.ErrnoException).code;
-      if (code !== "EEXIST" && code !== "EPERM") throw error;
-      await unlink(lockPath);
-      await rename(replacementPath, lockPath);
-    }
-
-    const outcome = await commit;
-    expect(outcome.status).toBe("rejected");
-    if (outcome.status !== "rejected") {
-      throw new Error("替换事务锁后，原事务不应继续提交。");
-    }
-    expect(outcome.reason).toBeInstanceOf(Error);
-    expect((outcome.reason as Error).message).toMatch(
-      /所有者发生变化|路径替换/u
-    );
-    const remaining = await lstat(lockPath);
-    expect(`${remaining.dev}:${remaining.ino}`).toBe(
-      `${replacement.dev}:${replacement.ino}`
-    );
-    await expect(readFile(lockPath, "utf8")).resolves.toBe(ownerText);
-  }, 60_000);
+      })
+    ).rejects.toThrow("项目事务锁所有者发生变化");
+    const remaining = await lstat(lockPath, { bigint: true });
+    expect(projectTransactionFileIdentity(remaining)).toBe(replacementIdentity);
+    await expect(readFile(lockPath, "utf8")).resolves.toBe(originalOwnerText);
+  });
 
   it("reclaims a transaction lock left by a terminated process", async () => {
     const root = await temporaryProject();
