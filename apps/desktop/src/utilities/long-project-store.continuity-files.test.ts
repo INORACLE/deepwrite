@@ -558,5 +558,5 @@ describe("LongProjectStore: continuity file lifecycle", () => {
         content: "重新提交后禁止修改"
       })
     ).rejects.toThrow("已提交的连续性文件为只读");
-  }, 10_000);
+  });
 });

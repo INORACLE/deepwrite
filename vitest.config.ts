@@ -51,6 +51,9 @@ export default defineConfig({
   ],
   test: {
     maxWorkers,
+    // A failed regular suite already blocks packaging; avoid running the slow
+    // scale project afterwards just to report the same failed verification.
+    bail: process.env.CI === "true" ? 1 : 0,
     globalSetup: ["./tools/setup-i18n-fixtures.ts"],
     setupFiles: ["./tools/setup-renderer-i18n.ts"],
     environment: "node",
