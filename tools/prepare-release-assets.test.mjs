@@ -53,7 +53,12 @@ async function fixture() {
     [
       "linux-x64",
       "latest-linux.yml",
-      [`${prefix}linux-x86_64-test.AppImage`, `${prefix}linux-amd64-test.deb`]
+      [
+        `${prefix}linux-x86_64-test.AppImage`,
+        `${prefix}linux-amd64-test.deb`,
+        `${prefix}linux-x86_64-test.rpm`,
+        `${prefix}linux-x64-test.pkg.tar.zst`
+      ]
     ]
   ];
   for (const [id, manifestName, installers] of groups) {
@@ -100,7 +105,9 @@ describe("release asset preparation", () => {
   it("merges both Mac architectures and provides hashes for every upload", async () => {
     const { input, output } = await fixture();
     const names = await prepareReleaseAssets(input, output, version);
-    expect(names).toHaveLength(14);
+    expect(names).toHaveLength(16);
+    expect(names).toContain(`${prefix}linux-x86_64-test.rpm`);
+    expect(names).toContain(`${prefix}linux-x64-test.pkg.tar.zst`);
     const manifest = yaml.load(
       await readFile(join(output, "latest-mac.yml"), "utf8")
     );
@@ -114,7 +121,7 @@ describe("release asset preparation", () => {
     const checksums = (await readFile(join(output, "SHA256SUMS.txt"), "utf8"))
       .trim()
       .split("\n");
-    expect(checksums).toHaveLength(13);
+    expect(checksums).toHaveLength(15);
     for (const line of checksums) {
       const [hash, name] = line.split("  ");
       expect(hash).toBe(
@@ -125,14 +132,57 @@ describe("release asset preparation", () => {
     }
   });
 
-  it("rejects a modified installer before copying upload files", async () => {
-    const { input, output } = await fixture();
-    await writeFile(join(input, "installers-win-x64", windowsName), "corrupt");
-    await expect(prepareReleaseAssets(input, output, version)).rejects.toThrow(
-      "SHA-512"
-    );
-    expect(await readdir(output)).toEqual([]);
-  });
+  it.each([
+    ["win-x64", windowsName],
+    ["linux-x64", `${prefix}linux-x86_64-test.rpm`],
+    ["linux-x64", `${prefix}linux-x64-test.pkg.tar.zst`]
+  ])(
+    "rejects a modified %s installer before copying upload files",
+    async (group, name) => {
+      const { input, output } = await fixture();
+      await writeFile(join(input, `installers-${group}`, name), "corrupt");
+      await expect(
+        prepareReleaseAssets(input, output, version)
+      ).rejects.toThrow("SHA-512");
+      expect(await readdir(output)).toEqual([]);
+    }
+  );
+
+  it.each(["x86_64-test.rpm", "x64-test.pkg.tar.zst"])(
+    "requires Linux %s before publishing",
+    async (suffix) => {
+      const { input, output } = await fixture();
+      await rm(join(input, "installers-linux-x64", `${prefix}linux-${suffix}`));
+      await expect(
+        prepareReleaseAssets(input, output, version)
+      ).rejects.toThrow("缺少 linux-x64");
+      expect(await readdir(output)).toEqual([]);
+    }
+  );
+
+  it.each(["x86_64-test.rpm", "x64-test.pkg.tar.zst"])(
+    "normalizes Linux primary when %s finishes first",
+    async (suffix) => {
+      const { input, output } = await fixture();
+      await changeManifest(
+        join(input, "installers-linux-x64", "latest-linux.yml"),
+        (manifest) => {
+          const primary = manifest.files.find(
+            (file) => file.url === `${prefix}linux-${suffix}`
+          );
+          manifest.path = primary.url;
+          manifest.sha512 = primary.sha512;
+        }
+      );
+      await prepareReleaseAssets(input, output, version);
+      const manifest = yaml.load(
+        await readFile(join(output, "latest-linux.yml"), "utf8")
+      );
+      expect(manifest.files).toHaveLength(4);
+      expect(manifest.path).toBe(`${prefix}linux-x86_64-test.AppImage`);
+      expect(manifest.sha512).toBe(manifest.files[0].sha512);
+    }
+  );
 
   it.each([
     [

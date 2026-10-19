@@ -42,7 +42,9 @@ function releaseGroups(version) {
       manifest: "latest-linux.yml",
       installers: [
         `${prefix}linux-x86_64-test.AppImage`,
-        `${prefix}linux-amd64-test.deb`
+        `${prefix}linux-amd64-test.deb`,
+        `${prefix}linux-x86_64-test.rpm`,
+        `${prefix}linux-x64-test.pkg.tar.zst`
       ],
       blockmaps: []
     }
@@ -68,13 +70,28 @@ async function readUpdateManifest(path, version, group, files) {
     }
     seen.add(entry.url);
   }
-  const primary = group.installers[0];
+  const primary =
+    group.id === "linux-x64" ? manifest.path : group.installers[0];
   if (
     group.installers.some((name) => !seen.has(name)) ||
+    !seen.has(primary) ||
     manifest.path !== primary ||
     manifest.sha512 !== files.get(primary).sha512
   ) {
     throw new Error(`更新清单缺少安装包或主下载项不匹配：${path}`);
+  }
+  if (group.id === "linux-x64") {
+    // Targets finish concurrently; keep AppImage as the portable primary.
+    const portable = group.installers[0];
+    return {
+      ...manifest,
+      path: portable,
+      sha512: files.get(portable).sha512,
+      files: [
+        ...manifest.files.filter((entry) => entry.url === portable),
+        ...manifest.files.filter((entry) => entry.url !== portable)
+      ]
+    };
   }
   return manifest;
 }

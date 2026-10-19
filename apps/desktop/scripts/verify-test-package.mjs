@@ -5,6 +5,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assertElectronLaunchAllowed } from "../../../tools/electron-launch-environment.mjs";
+import { verifyLinuxPackageFiles } from "./linux-package-files.mjs";
 import {
   verifyPackagedRuntime,
   verifyWindowsArchitecture
@@ -61,14 +62,8 @@ if (!artifactStat.isFile() || artifactStat.size === 0) {
 }
 
 if (targetPlatform === "linux") {
-  const appImage = join(
-    releaseDir,
-    `DeepWrite-${packageJson.version}-linux-x86_64-test.AppImage`
-  );
-  const appImageStat = await stat(appImage);
-  if (!appImageStat.isFile() || appImageStat.size === 0) {
-    throw new Error(`Test package is missing or empty: ${appImage}`);
-  }
+  const names = await verifyLinuxPackageFiles(releaseDir, packageJson.version);
+  console.log(`PACKAGE_LINUX_FORMATS_OK count=${names.length}`);
 }
 
 if (targetPlatform === "mac") {

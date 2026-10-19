@@ -117,7 +117,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y \
             xvfb dbus-x11 libgtk-3-0t64 libnotify4 libnss3 libxss1 \
-            libasound2t64 libsecret-1-0 libgbm1 libxtst6 libatspi2.0-0t64
+            libasound2t64 libsecret-1-0 libgbm1 libxtst6 libatspi2.0-0t64 \
+            rpm rpm2cpio libarchive-tools zstd
           # Allow Electron's user-namespace sandbox on this disposable runner.
           if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0

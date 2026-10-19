@@ -132,6 +132,7 @@ pnpm verify    # 运行格式、类型、边界、测试与构建校验
 
 ```bash
 pnpm pack:test             # 当前主机支持的全部测试包
+pnpm pack:test:linux       # Linux x64：AppImage、DEB、RPM、Arch
 pnpm pack:test:win         # Windows x64
 pnpm pack:test:mac:arm64   # macOS Apple Silicon
 pnpm pack:test:mac:x64     # macOS Intel
@@ -139,6 +140,10 @@ pnpm pack:test:mac         # 两种 macOS 架构
 ```
 
 产物保存在 `apps/desktop/release/`。打包流程会先执行完整校验和生产构建，再生成并验证安装包。
+
+Linux 各格式统一使用 `pnpm pack:test:linux`。Ubuntu/Debian 构建机除桌面运行依赖外，还需安装 `rpm`、`rpm2cpio`、`libarchive-tools`、`zstd`；Arch 构建机需安装 `rpm-tools`、`libarchive`、`zstd`，工作流会自动准备相应工具。RPM 和 Arch 包包含 Electron 运行时，并声明 `libsecret` 依赖。
+
+下载后，Fedora/RHEL 可执行 `sudo dnf install ./DeepWrite-<版本>-linux-x86_64-test.rpm`，Arch 可执行 `sudo pacman -U ./DeepWrite-<版本>-linux-x64-test.pkg.tar.zst`。这里生成可本地安装的 Arch 包，不会提交到 AUR。验收会检查架构、桌面入口、运行时文件，以及 RPM/Arch 包内 ASAR 是否与首次启动、重新打开验收所用应用一致。
 
 ### 推送标签后自动发布
 
@@ -149,7 +154,7 @@ pnpm pack:test:mac         # 两种 macOS 架构
 3. 执行 `git tag v1.6.6` 和 `git push origin v1.6.6` 创建并推送标签，无需手动创建 Release。
 4. 在 **Actions → Build and publish tagged release** 查看进度。所有平台通过后，工作流会将安装包、blockmap、更新清单和 `SHA256SUMS.txt` 上传至草稿，核对完整后自动公开 Release。
 
-工作流使用 Windows x64、macOS Apple Silicon、macOS Intel 和 Linux x64 的原生 runner，产物包括 Windows EXE、两种 Mac 架构的 DMG / ZIP、Linux AppImage / deb。各平台沿用 `pnpm pack:test:*` 完成格式、类型、lint、测试、构建及包内首次启动和重新打开验收；Mac 还会检查 DMG、ad-hoc 签名和 ZIP。发布前校验文件大小与 SHA-512，并合并两个架构的 `latest-mac.yml`。构建产物在 Actions 中保留 14 天。
+工作流使用 Windows x64、macOS Apple Silicon、macOS Intel 和 Linux x64 的原生 runner，产物包括 Windows EXE、两种 Mac 架构的 DMG / ZIP、Linux AppImage / DEB / RPM / Arch（`.pkg.tar.zst`）。各平台沿用 `pnpm pack:test:*` 完成格式、类型、lint、测试、构建及包内首次启动和重新打开验收；Mac 还会检查 DMG、ad-hoc 签名和 ZIP。发布前校验文件大小与 SHA-512，并合并两个架构的 `latest-mac.yml`。构建产物在 Actions 中保留 14 天。
 
 只有发布任务通过仓库自动提供的 `GITHUB_TOKEN` 获得 `contents: write`，构建任务保持只读，无需另建个人访问令牌。仓库须允许运行 Actions 和这些工作流使用的 Action。Windows 包沿用未签名配置，macOS 沿用 ad-hoc 签名且不进行 Apple 公证。
 

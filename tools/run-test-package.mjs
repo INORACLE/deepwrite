@@ -146,8 +146,6 @@ async function buildLinux(target, version) {
       "electron-builder.yml",
       `--config.electronVersion=${version}`,
       "--linux",
-      "AppImage",
-      "deb",
       "--x64",
       "--publish",
       "never"
