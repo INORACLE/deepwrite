@@ -11,6 +11,7 @@ import {
 import {
   LongBookIdSchema,
   LongBookSchema,
+  LongBookMetadataSchema,
   LongBookSummarySchema,
   LongLinkedResourceStageScopesSchema,
   LongChapterCardIdSchema,
@@ -714,7 +715,9 @@ export type LongWriteAgentsMdResult = z.infer<
 export const LongWorkspaceIndexResultSchema = z
   .object({
     bookId: LongBookIdSchema,
-    workspaceIndex: LongWorkspaceIndexSnapshotSchema
+    workspaceIndex: LongWorkspaceIndexSnapshotSchema,
+    /** Metadata has no navigation tree; clients derive it from the index. */
+    metadata: LongBookMetadataSchema.optional()
   })
   .strict();
 export type LongWorkspaceIndexResult = z.infer<

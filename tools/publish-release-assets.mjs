@@ -3,6 +3,18 @@ import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { inspectReleaseFile } from "./release-files.mjs";
 
+async function assertTagCommit({ github, repo, tag, commit }) {
+  // Resolve the tag to a commit, including annotated tags. target_commitish
+  // does not pin an existing tag when creating a release.
+  const { data } = await github.rest.repos.getCommit({
+    ...repo,
+    ref: `tags/${tag}`
+  });
+  if (data.sha !== commit) {
+    throw new Error("Release 标签对应的提交已改变，拒绝公开本轮安装包。");
+  }
+}
+
 export async function getReleaseForUpload({
   github,
   repo,
@@ -161,6 +173,7 @@ export async function publishTagRelease({
   ) {
     throw new Error("Release 标签、源提交或工作流编号无效。");
   }
+  await assertTagCommit({ github, repo, tag, commit });
   const draftOwner = `<!-- deepwrite-tag-build:${runId}:${commit} -->`;
   const releases = await github.paginate(github.rest.repos.listReleases, {
     ...repo,
@@ -196,6 +209,7 @@ export async function publishTagRelease({
     directory,
     draftOwner
   });
+  await assertTagCommit({ github, repo, tag, commit });
   const { data } = await github.rest.repos.updateRelease({
     ...repo,
     release_id: release.id,

@@ -104,35 +104,37 @@ export const LongBookSchema = z
   });
 export type LongBook = z.infer<typeof LongBookSchema>;
 
-export const LongBookSummarySchema = z
+export const LongBookMetadataSchema = z
   .object({
     schemaVersion: LongWorkspaceSchemaVersionSchema,
     kind: z.literal("deepwrite.long-book"),
-    ...LongBookSharedShape,
-    navigation: LongWorkspaceNavigationSnapshotSchema
+    ...LongBookSharedShape
   })
-  .strict()
-  .superRefine((book, context) => {
-    if (book.navigation.bookId !== book.id) {
-      context.addIssue({
-        code: "custom",
-        path: ["navigation", "bookId"],
-        message: "Long book summary and navigation ids must match."
-      });
-    }
-    if (book.updatedAt !== book.navigation.updatedAt) {
-      context.addIssue({
-        code: "custom",
-        path: ["updatedAt"],
-        message:
-          "Long book summary and navigation update timestamps must match."
-      });
-    }
-  });
+  .strict();
+export type LongBookMetadata = z.infer<typeof LongBookMetadataSchema>;
+
+export const LongBookSummarySchema = LongBookMetadataSchema.extend({
+  navigation: LongWorkspaceNavigationSnapshotSchema
+}).superRefine((book, context) => {
+  if (book.navigation.bookId !== book.id) {
+    context.addIssue({
+      code: "custom",
+      path: ["navigation", "bookId"],
+      message: "Long book summary and navigation ids must match."
+    });
+  }
+  if (book.updatedAt !== book.navigation.updatedAt) {
+    context.addIssue({
+      code: "custom",
+      path: ["updatedAt"],
+      message: "Long book summary and navigation update timestamps must match."
+    });
+  }
+});
 export type LongBookSummary = z.infer<typeof LongBookSummarySchema>;
 
-export function createLongBookSummary(book: LongBook): LongBookSummary {
-  return LongBookSummarySchema.parse({
+export function createLongBookMetadata(book: LongBook): LongBookMetadata {
+  return LongBookMetadataSchema.parse({
     schemaVersion: book.schemaVersion,
     kind: "deepwrite.long-book",
     id: book.id,
@@ -144,7 +146,13 @@ export function createLongBookSummary(book: LongBook): LongBookSummary {
     linkedSkillIdsByKind: book.linkedSkillIdsByKind,
     linkedResourceStageScopes: book.linkedResourceStageScopes,
     createdAt: book.createdAt,
-    updatedAt: book.updatedAt,
+    updatedAt: book.updatedAt
+  });
+}
+
+export function createLongBookSummary(book: LongBook): LongBookSummary {
+  return LongBookSummarySchema.parse({
+    ...createLongBookMetadata(book),
     navigation: createLongWorkspaceNavigationSnapshot(book.workspaceIndex)
   });
 }

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { dirname } from "node:path";
 import {
+  createLongBookMetadata,
   LongApplyOperationsInputSchema,
   LongApplyOperationsResultSchema,
   LongApplyLegacySyncAtPathInputSchema,
@@ -376,7 +377,8 @@ export class LongWorkspaceService {
     const opened = await this.openProject(input);
     return LongWorkspaceIndexResultSchema.parse({
       bookId: opened.book.id,
-      workspaceIndex: opened.book.workspaceIndex
+      workspaceIndex: opened.book.workspaceIndex,
+      metadata: createLongBookMetadata(opened.book)
     });
   }
 

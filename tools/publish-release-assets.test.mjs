@@ -42,6 +42,7 @@ async function fixture() {
   const github = {
     rest: {
       repos: {
+        getCommit: vi.fn(async () => ({ data: { sha: commit } })),
         getReleaseByTag: vi.fn(async () => ({ data: release })),
         getRelease: vi.fn(async () => ({ data: release })),
         listReleases: vi.fn(),
@@ -219,6 +220,55 @@ async function tagFixture() {
 }
 
 describe("tag-triggered release publication", () => {
+  it("rejects a moved tag before creating or uploading a release", async () => {
+    const { args, github, uploads } = await tagFixture();
+    github.rest.repos.getCommit.mockResolvedValue({
+      data: { sha: "b".repeat(40) }
+    });
+    await expect(publishTagRelease(args)).rejects.toThrow("标签对应的提交");
+    expect(uploads).toEqual([]);
+    expect(github.rest.repos.createRelease).not.toHaveBeenCalled();
+    expect(github.rest.repos.updateRelease).not.toHaveBeenCalled();
+  });
+
+  it.each(["moved", "deleted"])(
+    "keeps the draft private if its tag is %s during upload",
+    async (change) => {
+      const { args, github, release, uploads } = await tagFixture();
+      const upload =
+        github.rest.repos.uploadReleaseAsset.getMockImplementation();
+      github.rest.repos.uploadReleaseAsset.mockImplementationOnce(
+        async (options) => {
+          if (change === "moved")
+            github.rest.repos.getCommit.mockResolvedValue({
+              data: { sha: "b".repeat(40) }
+            });
+          else
+            github.rest.repos.getCommit.mockRejectedValue(
+              Object.assign(new Error("fixture tag not found"), { status: 404 })
+            );
+          return upload(options);
+        }
+      );
+      await expect(publishTagRelease(args)).rejects.toThrow();
+      expect(uploads).toHaveLength(3);
+      expect(release.draft).toBe(true);
+      expect(github.rest.repos.updateRelease).not.toHaveBeenCalled();
+    }
+  );
+
+  it("does not create a tag if the source reference cannot be resolved", async () => {
+    const { args, github, uploads } = await tagFixture();
+    github.rest.repos.getCommit.mockRejectedValueOnce(
+      Object.assign(new Error("fixture tag not found"), { status: 404 })
+    );
+    await expect(publishTagRelease(args)).rejects.toThrow(
+      "fixture tag not found"
+    );
+    expect(uploads).toEqual([]);
+    expect(github.rest.repos.createRelease).not.toHaveBeenCalled();
+  });
+
   it("creates a draft and publishes only after all assets are verified", async () => {
     const { args, github, release, uploads, latest } = await tagFixture();
     const update = github.rest.repos.updateRelease.getMockImplementation();
@@ -247,6 +297,11 @@ describe("tag-triggered release publication", () => {
     );
     expect(release.draft).toBe(false);
     expect(latest.tag).toBe(tag);
+    expect(github.rest.repos.getCommit).toHaveBeenCalledTimes(2);
+    expect(github.rest.repos.getCommit).toHaveBeenCalledWith({
+      ...repo,
+      ref: `tags/${tag}`
+    });
   });
 
   it.each([
