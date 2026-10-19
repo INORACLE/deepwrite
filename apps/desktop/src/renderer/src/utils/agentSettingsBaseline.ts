@@ -1,0 +1,101 @@
+import type {
+  LibraryAgentSettings,
+  LibraryAgentSettingsInput,
+  LongAgentSettings,
+  LongAgentSettingsInput,
+  WorkspaceAgentSettings,
+  WorkspaceAgentSettingsInput
+} from "@deepwrite/contracts";
+
+function cloneBaseline<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+export function editableAgentProfileBaseline<
+  T extends { builtin?: boolean | undefined }
+>(profiles: readonly T[]): Omit<T, "builtin">[] {
+  return cloneBaseline(
+    profiles.map(({ builtin: _builtin, ...profile }) => profile)
+  );
+}
+
+/** The saved form snapshot is independent of reads and saves in other windows. */
+export function withWorkspaceAgentBaseline(
+  input: WorkspaceAgentSettingsInput,
+  settings: WorkspaceAgentSettings | undefined
+): WorkspaceAgentSettingsInput {
+  if (input.workspaceType === "short" && settings?.workspaceType === "short") {
+    return {
+      ...input,
+      baseAgents: cloneBaseline(
+        settings.agents.map(
+          ({ id, systemPrompt, welcomeShortcuts, readAccess }) => ({
+            id,
+            systemPrompt,
+            welcomeShortcuts,
+            readAccess
+          })
+        )
+      ),
+      baseDefaultPlotStageIds: [...settings.defaultPlotStageIds]
+    };
+  }
+  if (
+    input.workspaceType === "script" &&
+    settings?.workspaceType === "script"
+  ) {
+    return {
+      ...input,
+      baseAgents: cloneBaseline(
+        settings.agents.map(
+          ({ id, systemPrompt, welcomeShortcuts, readAccess }) => ({
+            id,
+            systemPrompt,
+            welcomeShortcuts,
+            readAccess
+          })
+        )
+      )
+    };
+  }
+  return input;
+}
+
+export function withLongAgentBaseline(
+  input: LongAgentSettingsInput,
+  settings: LongAgentSettings | null
+): LongAgentSettingsInput {
+  return settings
+    ? {
+        ...input,
+        baseAgents: cloneBaseline(
+          settings.agents.map(
+            ({ id, systemPrompt, welcomeShortcuts, readAccess }) => ({
+              id,
+              systemPrompt,
+              welcomeShortcuts,
+              readAccess
+            })
+          )
+        )
+      }
+    : input;
+}
+
+export function withLibraryAgentBaseline(
+  input: LibraryAgentSettingsInput,
+  settings: LibraryAgentSettings | null
+): LibraryAgentSettingsInput {
+  return settings
+    ? {
+        ...input,
+        baseAgents: cloneBaseline(
+          settings.agents.map(({ domain, systemPrompt, readAccess }) => ({
+            domain,
+            systemPrompt,
+            readAccess
+          }))
+        )
+      }
+    : input;
+}

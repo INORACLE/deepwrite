@@ -14,6 +14,12 @@ import {
   type ModelSettingsNotifications
 } from "./useModelSettingsCoordinator";
 
+import {
+  withWorkspaceAgentBaseline,
+  withLongAgentBaseline,
+  withLibraryAgentBaseline
+} from "../utils/agentSettingsBaseline";
+
 const t = createScopedTranslator("workspace");
 
 export type SettingsFeatureNotifications = ModelSettingsNotifications;
@@ -92,7 +98,14 @@ export function useSettingsFeatureCoordinator(
     if (!api || settingsStore.workspaceAgentSaving) return;
     settingsStore.workspaceAgentSaving = true;
     try {
-      const saved = await api.workspaceAgents.save(settings);
+      const saved = await api.workspaceAgents.save(
+        withWorkspaceAgentBaseline(
+          settings,
+          settingsStore.workspaceAgentSettings.find(
+            (candidate) => candidate.workspaceType === settings.workspaceType
+          )
+        )
+      );
       settingsStore.markLoaded("workspaceAgents", [
         ...settingsStore.workspaceAgentSettings.filter(
           (candidate) => candidate.workspaceType !== saved.workspaceType
@@ -129,7 +142,9 @@ export function useSettingsFeatureCoordinator(
     if (!api || settingsStore.longAgentSaving) return;
     settingsStore.longAgentSaving = true;
     try {
-      const saved = await api.longAgents.save(settings);
+      const saved = await api.longAgents.save(
+        withLongAgentBaseline(settings, settingsStore.longAgentSettings)
+      );
       settingsStore.markLoaded("longAgents", saved);
       uiMessage.success(
         t(
@@ -172,7 +187,9 @@ export function useSettingsFeatureCoordinator(
     if (!api || settingsStore.libraryAgentSaving) return;
     settingsStore.libraryAgentSaving = true;
     try {
-      const saved = await api.libraryAgents.save(settings);
+      const saved = await api.libraryAgents.save(
+        withLibraryAgentBaseline(settings, settingsStore.libraryAgentSettings)
+      );
       settingsStore.markLoaded("libraryAgents", saved);
       uiMessage.success(
         t(

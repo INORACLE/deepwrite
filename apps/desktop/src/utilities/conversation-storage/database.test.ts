@@ -452,5 +452,5 @@ describe("ConversationDatabase durability and isolation", () => {
     expect(full(database, "message-999", 3)).toMatchObject({
       editProposals: []
     });
-  }, 20_000);
+  });
 });

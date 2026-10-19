@@ -25,7 +25,9 @@ const REGISTRY_FILE = "long-project-registry.json";
 const REGISTRY_BACKUP_FILE = "long-project-registry.json.bak";
 const REGISTRY_LOCK_FILE = "long-project-registry.lock";
 const MAX_REGISTRY_BYTES = 4 * 1024 * 1024;
-export const LONG_PROJECT_CATALOG_MAX_SUMMARY_BYTES = 1024 * 1024;
+// Keep one summary below the 4 MiB registry ceiling while allowing large
+// chapter navigation indexes to remain cached and reopenable.
+export const LONG_PROJECT_CATALOG_MAX_SUMMARY_BYTES = 3 * 1024 * 1024;
 const REGISTRY_LOCK_TIMEOUT_MS = 10_000;
 const REGISTRY_LOCK_RETRY_MS = 20;
 const REGISTRY_LOCK_STALE_MS = 60_000;
@@ -739,9 +741,16 @@ async function atomicWriteJson(path: string, value: unknown): Promise<void> {
 async function readOptionalText(path: string): Promise<string | undefined> {
   let handle: Awaited<ReturnType<typeof open>> | undefined;
   try {
+    await assertSafeOptionalRegistryFile(path);
     handle = await open(path, constants.O_RDONLY | O_NOFOLLOW);
     const details = await handle.stat();
+    const pathDetails = await lstat(path);
     if (
+      !pathDetails.isFile() ||
+      pathDetails.isSymbolicLink() ||
+      pathDetails.nlink !== 1 ||
+      pathDetails.dev !== details.dev ||
+      pathDetails.ino !== details.ino ||
       !details.isFile() ||
       details.nlink !== 1 ||
       details.size > MAX_REGISTRY_BYTES
@@ -964,7 +973,9 @@ function assertSummarySize(summary: LongBookSummary): void {
     Buffer.byteLength(JSON.stringify(summary), "utf8") >
     LONG_PROJECT_CATALOG_MAX_SUMMARY_BYTES
   ) {
-    throw new Error("长篇项目导航摘要超过 1 MiB 安全上限。");
+    throw new Error(
+      `长篇项目导航摘要超过 ${LONG_PROJECT_CATALOG_MAX_SUMMARY_BYTES / (1024 * 1024)} MiB 安全上限。`
+    );
   }
 }
 

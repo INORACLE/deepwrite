@@ -21,6 +21,7 @@ import { registryMentionItems, registryPartItems } from "./registry-mentions";
 import { registryMergeInput } from "./registry-merge";
 import { sampleDecompositionPassages } from "./passage-sampling";
 import { briefContext, buildDecompositionBrief } from "./briefs";
+import { pageJsonValue } from "./query-json-page";
 
 /** Matches per chapter and per lookup; evidence packs carry the bulk. */
 const SEARCH_PER_CHAPTER = 3;
@@ -266,26 +267,17 @@ async function querySnapshot(
       }
     } else result = cards;
   }
-  const text = JSON.stringify(result);
   const cursor = request.cursor ?? 0;
-  const end = Math.min(
-    text.length,
-    cursor +
-      Math.min(
-        DECOMPOSITION_QUERY_CHARACTERS,
-        Math.floor(
-          (decompositionInputBudget(
-            job.phase === "read" ? job.models.reading : job.models.integration,
-            job.profile.systemPrompt.length
-          ) /
-            1.5) *
-            0.7
-        )
-      )
+  const pageCharacters = Math.min(
+    DECOMPOSITION_QUERY_CHARACTERS,
+    Math.floor(
+      (decompositionInputBudget(
+        job.phase === "read" ? job.models.reading : job.models.integration,
+        job.profile.systemPrompt.length
+      ) /
+        1.5) *
+        0.7
+    )
   );
-  return {
-    content: text.slice(cursor, end),
-    nextCursor: end < text.length ? end : null,
-    totalCharacters: text.length
-  };
+  return pageJsonValue(result, cursor, pageCharacters);
 }

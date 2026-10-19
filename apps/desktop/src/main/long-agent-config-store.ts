@@ -14,6 +14,7 @@ import {
   type LongAgentSettingsInput,
   type LongAgentSettingsInputAgent
 } from "@deepwrite/contracts";
+import { mergeSettingsById } from "./merge-agent-settings";
 
 /**
  * Version 3 installs the unified English long-agent prompt for every upgraded
@@ -174,19 +175,33 @@ export class LongAgentConfigStore {
 
   async list(): Promise<LongAgentSettings> {
     await this.writeChain;
-    return this.toPublicSettings(await this.readInput());
+    const input = await this.readInput();
+    return this.toPublicSettings(input);
   }
 
   async save(rawInput: LongAgentSettingsInput): Promise<LongAgentSettings> {
     const input = LongAgentSettingsInputSchema.parse(rawInput);
+    const baseline = input.baseAgents;
     let saved: LongAgentSettings | undefined;
     const operation = this.writeChain.then(async () => {
       const normalized: LongAgentSettingsInput = {
         workspaceType: "long",
         agents: input.agents.map(cloneInputAgent)
       };
-      await this.writeInput(normalized);
-      saved = this.toPublicSettings(normalized);
+      const current = baseline ? await this.readInput() : normalized;
+      const next = baseline
+        ? {
+            workspaceType: "long" as const,
+            agents: mergeSettingsById(
+              current.agents,
+              normalized.agents,
+              baseline,
+              (agent) => agent.id
+            )
+          }
+        : normalized;
+      await this.writeInput(next);
+      saved = this.toPublicSettings(next);
     });
     this.trackWrite(operation);
     await operation;

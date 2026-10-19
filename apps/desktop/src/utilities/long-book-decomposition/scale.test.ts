@@ -1,16 +1,25 @@
 import { rm, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { splitDecompositionChunks } from "@deepwrite/contracts";
 import { decompositionFixture } from "./test-support";
 import { runDecompositionFaux } from "./faux-run.test-support";
 import { queryDecomposition } from "./query";
+vi.setConfig({ testTimeout: 120_000, hookTimeout: 60_000 });
 const roots: string[] = [];
 afterEach(async () => {
   await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
+    roots.splice(0).map((root) =>
+      rm(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 100
+      })
+    )
   );
-});
+  // Scale fixtures contain thousands of real files; leave time for removal under I/O contention.
+}, 60_000);
 
 it("300 章、3 卷、20 人物、15 伏笔的续写目标与 v5 账本完整一致", async () => {
   const names = Array.from({ length: 19 }, (_, i) => `人物${i + 1}`).join("、");

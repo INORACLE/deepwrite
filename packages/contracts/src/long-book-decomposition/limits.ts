@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { LONG_BOOK_ANALYSIS_MAX_TOTAL_CHARACTERS } from "../long-book-analysis-limits";
 
-export const DECOMPOSITION_MAX_CHAPTERS = 10_000;
+export const DECOMPOSITION_MAX_CHAPTERS = 50_000;
 export const DECOMPOSITION_MAX_CHARACTERS =
   LONG_BOOK_ANALYSIS_MAX_TOTAL_CHARACTERS;
 export const DECOMPOSITION_MAX_CHUNK_CHAPTERS = 20;

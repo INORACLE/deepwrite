@@ -14,6 +14,7 @@ import {
   type LibraryAgentSettingsInput,
   type LibraryAgentSkill
 } from "@deepwrite/contracts";
+import { mergeSettingsById } from "./merge-agent-settings";
 
 interface DiskLibraryAgentSettings {
   version: 1;
@@ -177,13 +178,15 @@ export class LibraryAgentConfigStore {
 
   async list(): Promise<LibraryAgentSettings> {
     await this.writeChain;
-    return this.toPublicSettings(await this.readInput());
+    const input = await this.readInput();
+    return this.toPublicSettings(input);
   }
 
   async save(
     rawInput: LibraryAgentSettingsInput
   ): Promise<LibraryAgentSettings> {
     const input = LibraryAgentSettingsInputSchema.parse(rawInput);
+    const baseline = input.baseAgents;
     let saved: LibraryAgentSettings | undefined;
     const operation = this.writeChain.then(async () => {
       const normalized: LibraryAgentSettingsInput = {
@@ -193,8 +196,19 @@ export class LibraryAgentConfigStore {
           readAccess: cloneReadAccess(agent.readAccess)
         }))
       };
-      await this.writeInput(normalized);
-      saved = this.toPublicSettings(normalized);
+      const current = baseline ? await this.readInput() : normalized;
+      const next = baseline
+        ? {
+            agents: mergeSettingsById(
+              current.agents,
+              normalized.agents,
+              baseline,
+              (agent) => agent.domain
+            )
+          }
+        : normalized;
+      await this.writeInput(next);
+      saved = this.toPublicSettings(next);
     });
     this.trackWrite(operation);
     await operation;

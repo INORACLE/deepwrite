@@ -56,14 +56,7 @@ export async function acquireProjectTransactionLock(
     let handle: Awaited<ReturnType<typeof open>> | undefined;
     let acquiredIdentity: string | undefined;
     try {
-      handle = await open(
-        lockPath,
-        fsConstants.O_WRONLY |
-          fsConstants.O_CREAT |
-          fsConstants.O_EXCL |
-          fsConstants.O_NOFOLLOW,
-        0o600
-      );
+      handle = await openProjectTransactionLockFile(lockPath);
       const acquiredInfo = await handle.stat({ bigint: true });
       if (!acquiredInfo.isFile() || acquiredInfo.nlink !== 1n) {
         throw new Error("新建项目事务锁不是安全的普通文件。");
@@ -238,4 +231,33 @@ export async function delay(milliseconds: number): Promise<void> {
   await new Promise<void>((resolveDelay) => {
     setTimeout(resolveDelay, milliseconds);
   });
+}
+
+/** Windows may reject exclusive creation briefly while a prior lock is pending
+ * deletion. Retry only that open operation; never unlink or relax ownership. */
+export async function openProjectTransactionLockFile(
+  lockPath: string,
+  platform: NodeJS.Platform = process.platform
+): Promise<Awaited<ReturnType<typeof open>>> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await open(
+        lockPath,
+        fsConstants.O_WRONLY |
+          fsConstants.O_CREAT |
+          fsConstants.O_EXCL |
+          fsConstants.O_NOFOLLOW,
+        0o600
+      );
+    } catch (error: unknown) {
+      if (
+        platform !== "win32" ||
+        !isNodeError(error, "EPERM") ||
+        attempt >= 5
+      ) {
+        throw error;
+      }
+      await delay(LOCK_RETRY_MS * (attempt + 1));
+    }
+  }
 }

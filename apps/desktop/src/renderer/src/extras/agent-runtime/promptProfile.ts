@@ -1,3 +1,4 @@
+import { editableAgentProfileBaseline } from "../../utils/agentSettingsBaseline";
 import {
   resolveLocalizedText,
   type LocalizedText
@@ -72,7 +73,8 @@ export function createPromptProfile(
     apply(
       await api().extrasAgents.profiles.save({
         agentId,
-        profiles: next
+        profiles: next,
+        baseProfiles: editableAgentProfileBaseline(profiles.value)
       } as ExtrasAgentSettingsInputOf<PromptAgentId>),
       submitted
     );

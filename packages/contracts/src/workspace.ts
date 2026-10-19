@@ -675,13 +675,19 @@ export const ShortWorkspaceAgentSettingsInputSchema = z
     defaultPlotStageIds: ShortDefaultPlotStageIdsSchema.default([
       ...SHORT_DEFAULT_PLOT_STAGE_IDS
     ]),
+    baseDefaultPlotStageIds: ShortDefaultPlotStageIdsSchema.optional(),
     agents: z
       .array(ShortWorkspaceAgentSettingsInputAgentSchema)
+      .length(SHORT_WORKSPACE_AGENT_IDS.length),
+    baseAgents: z
+      .array(ShortWorkspaceAgentSettingsInputAgentSchema)
       .length(SHORT_WORKSPACE_AGENT_IDS.length)
+      .optional()
   })
-  .superRefine((value, context) =>
-    validateCompleteAgentSet(value.agents, context)
-  );
+  .superRefine((value, context) => {
+    validateCompleteAgentSet(value.agents, context);
+    if (value.baseAgents) validateCompleteAgentSet(value.baseAgents, context);
+  });
 export type ShortWorkspaceAgentSettingsInput = z.infer<
   typeof ShortWorkspaceAgentSettingsInputSchema
 >;

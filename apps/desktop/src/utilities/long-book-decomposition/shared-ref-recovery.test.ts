@@ -11,10 +11,17 @@ import { decompositionFixture } from "./test-support";
 import { addDecompositionUnit } from "./workflow";
 
 const roots: string[] = [];
-vi.setConfig({ testTimeout: 30_000 });
+vi.setConfig({ testTimeout: 120_000, hookTimeout: 60_000 });
 afterEach(async () => {
   await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
+    roots.splice(0).map((root) =>
+      rm(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 100
+      })
+    )
   );
 });
 

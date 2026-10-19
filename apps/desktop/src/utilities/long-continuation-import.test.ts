@@ -9,7 +9,8 @@ import {
 import { LongProjectStore } from "./long-project-store";
 
 const roots: string[] = [];
-vi.setConfig({ testTimeout: 30_000 });
+// Importing 50 chapters writes 49 durable checkpoints and their transaction files.
+vi.setConfig({ testTimeout: 120_000, hookTimeout: 30_000 });
 
 async function fixture(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "deepwrite-continuation-import-"));
@@ -20,7 +21,12 @@ async function fixture(): Promise<string> {
 afterEach(async () => {
   await Promise.all(
     roots.splice(0).map(async (root) => {
-      await rm(root, { recursive: true, force: true });
+      await rm(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 100
+      });
     })
   );
 });

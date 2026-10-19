@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import {
   CommandEnvelopeSchema,
   createEnvelope,
@@ -11,10 +11,20 @@ import { FolderCatalogStore } from "../folder-catalog-store";
 import { LongWorkspaceService } from "../long-workspace-service";
 import { withBookIdentityCommands } from "./commands";
 
+// Real project transactions and SQLite/profile copies need a disk integration budget.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
+
 const roots: string[] = [];
 afterEach(async () => {
   await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
+    roots.splice(0).map((root) =>
+      rm(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 100
+      })
+    )
   );
 });
 

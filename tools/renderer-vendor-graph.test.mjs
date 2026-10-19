@@ -4,7 +4,8 @@ import { assertRendererVendorGraph } from "./renderer-vendor-graph.mjs";
 function inspect(chunks) {
   return assertRendererVendorGraph(
     "/assets/i18n-runtime-test.js",
-    async (path) => {
+    async (rawPath) => {
+      const path = rawPath.replaceAll("\\", "/");
       if (!(path in chunks)) throw new Error(`Missing fixture chunk: ${path}`);
       return chunks[path];
     }

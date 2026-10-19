@@ -199,11 +199,11 @@ export async function readRegularFileOptionalWithIdentity(
       }
       throw error;
     }
-    if (
-      pathInfo.isSymbolicLink() ||
-      pathInfo.dev !== info.dev ||
-      pathInfo.ino !== info.ino
-    ) {
+    if (pathInfo.isSymbolicLink()) {
+      if (options.pathRaceAsMissing) return undefined;
+      throw new Error("项目事务目标不能是符号链接。");
+    }
+    if (pathInfo.dev !== info.dev || pathInfo.ino !== info.ino) {
       if (options.pathRaceAsMissing) return undefined;
       throw new Error("项目事务目标在读取期间发生替换。");
     }

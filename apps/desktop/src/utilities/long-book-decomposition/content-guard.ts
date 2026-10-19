@@ -14,13 +14,17 @@ export function latestDecompositionRef(
   resourceId: string
 ): DecompositionContentRef | undefined {
   let latest: DecompositionContentRef | undefined;
-  for (const unit of Object.values(job.units))
-    for (const ref of unit.outputRefs)
+  for (const unit of Object.values(job.units)) {
+    const refs = unit.previousOutputRefs
+      ? [...unit.previousOutputRefs, ...unit.outputRefs]
+      : unit.outputRefs;
+    for (const ref of refs)
       if (
         ref.resourceId === resourceId &&
         (!latest || ref.revision > latest.revision)
       )
         latest = ref;
+  }
   return latest;
 }
 

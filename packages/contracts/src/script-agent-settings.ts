@@ -178,11 +178,17 @@ export const ScriptWorkspaceAgentSettingsInputSchema = z
     workspaceType: z.literal("script"),
     agents: z
       .array(ScriptWorkspaceAgentSettingsInputAgentSchema)
+      .length(SCRIPT_WORKSPACE_AGENT_IDS.length),
+    baseAgents: z
+      .array(ScriptWorkspaceAgentSettingsInputAgentSchema)
       .length(SCRIPT_WORKSPACE_AGENT_IDS.length)
+      .optional()
   })
-  .superRefine((value, context) =>
-    validateCompleteScriptAgentSet(value.agents, context)
-  );
+  .superRefine((value, context) => {
+    validateCompleteScriptAgentSet(value.agents, context);
+    if (value.baseAgents)
+      validateCompleteScriptAgentSet(value.baseAgents, context);
+  });
 export type ScriptWorkspaceAgentSettingsInput = z.infer<
   typeof ScriptWorkspaceAgentSettingsInputSchema
 >;

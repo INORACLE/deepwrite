@@ -30,7 +30,14 @@ async function storage() {
   const directory = await mkdtemp(
     join(tmpdir(), "deepwrite-history-integration-")
   );
-  cleanup.push(() => rm(directory, { recursive: true, force: true }));
+  cleanup.push(() =>
+    rm(directory, {
+      recursive: true,
+      force: true,
+      maxRetries: 10,
+      retryDelay: 100
+    })
+  );
   const database = new ConversationDatabase(join(directory, "history.sqlite"));
   cleanup.push(() => database.close());
   const api = {
@@ -234,7 +241,7 @@ describe("controller → incremental writer → SQLite", () => {
       database.session({ key, sessionId: controller.sessionId.value })
         ?.messageCount
     ).toBe(1);
-  }, 20_000);
+  });
   it("rewrites a middle prompt while keeping its prefix and exact database order", async () => {
     const { database, api } = await storage();
     const model = createDeferredApi();

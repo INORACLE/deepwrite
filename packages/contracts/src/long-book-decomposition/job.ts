@@ -4,6 +4,7 @@ import { decompositionInputBudget, DecompositionChunkSchema } from "./chunking";
 import {
   DecompositionIdSchema,
   DECOMPOSITION_MAX_CHARACTERS,
+  DECOMPOSITION_MAX_CHAPTERS,
   DecompositionPhaseSchema,
   DecompositionRangeSchema,
   DecompositionRunPhaseSchema
@@ -23,7 +24,7 @@ export const DecompositionSourceRefSchema = z.object({
   fingerprint: z.string().regex(/^[a-f0-9]{64}$/u),
   confirmationId: DecompositionIdSchema,
   confirmedAt: z.string().datetime(),
-  chapterCount: z.number().int().min(1).max(10_000),
+  chapterCount: z.number().int().min(1).max(DECOMPOSITION_MAX_CHAPTERS),
   characterCount: z.number().int().min(1).max(DECOMPOSITION_MAX_CHARACTERS),
   range: DecompositionRangeSchema
 });
@@ -44,6 +45,8 @@ export const DecompositionUnitSchema = z.object({
   runId: z.string().optional(),
   attemptId: DecompositionIdSchema.optional(),
   outputRefs: z.array(DecompositionContentRefSchema).default([]),
+  /** Earlier writes remain available to conflict guards after replanning. */
+  previousOutputRefs: z.array(DecompositionContentRefSchema).optional(),
   receiptIds: z.array(DecompositionIdSchema).default([]),
   lastError: z.string().max(2000).optional(),
   updatedAt: z.string().datetime(),
@@ -54,8 +57,8 @@ export const DecompositionUnitSchema = z.object({
     .object({
       registryId: DecompositionIdSchema,
       volume: z.string().min(1).max(256),
-      startOrder: z.number().int().min(1).max(10_000),
-      endOrder: z.number().int().min(1).max(10_000)
+      startOrder: z.number().int().min(1).max(DECOMPOSITION_MAX_CHAPTERS),
+      endOrder: z.number().int().min(1).max(DECOMPOSITION_MAX_CHAPTERS)
     })
     .optional(),
   topic: z

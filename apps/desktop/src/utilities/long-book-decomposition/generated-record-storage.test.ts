@@ -6,10 +6,7 @@ import {
   DECOMPOSITION_RECORD_MAX_BYTES,
   type LongBookDecompositionJob
 } from "@deepwrite/contracts";
-import {
-  DecompositionRecordStore,
-  decompositionRecordId
-} from "./record-store";
+import { DecompositionRecordStore } from "./record-store";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -67,10 +64,9 @@ it("序列化转义后超过本地上限时拒绝写入，并保留已保存的�
   const oversized = data(
     `开${"\n".repeat(DECOMPOSITION_RECORD_MAX_BYTES / 2)}尾`
   );
-  const id = decompositionRecordId(job, "summary:characters");
   await expect(
     store.save(job, "summary:characters", oversized)
-  ).rejects.toThrow(`项目事务文件超过大小限制：records/${id}.json`);
+  ).rejects.toThrow("拆解单元记录超过 32 MiB UTF-8 安全上限。");
   expect((await store.record(job, "summary:characters")).data).toEqual(
     original
   );

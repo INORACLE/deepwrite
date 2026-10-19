@@ -20,14 +20,27 @@ import {
 
 const cleanups = [];
 afterEach(async () => {
-  await closeRendererStateTestStores();
-  for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
-  vi.restoreAllMocks();
+  try {
+    for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
+  } finally {
+    await closeRendererStateTestStores();
+    vi.restoreAllMocks();
+  }
 });
 
 async function harness() {
   const directory = await mkdtemp(join(tmpdir(), "deepwrite-child-close-"));
-  cleanups.push(() => rm(directory, { recursive: true, force: true }));
+  cleanups.push(async () => {
+    // dispose() flushes persistence and may open a lazy backend. Close it
+    // afterwards, before deleting SQLite files that Windows keeps locked.
+    await closeRendererStateTestStores();
+    await rm(directory, {
+      recursive: true,
+      force: true,
+      maxRetries: 10,
+      retryDelay: 100
+    });
+  });
   const disk = new RendererStateStore(directory);
   setActivePinia(createPinia());
   const store = useConversationStore();

@@ -69,7 +69,7 @@ describe("library management agent wiring", () => {
       "settingsStore.ensureLibraryAgentsLoaded"
     );
     expect(settingsCoordinatorSource).toContain(
-      "api.libraryAgents.save(settings)"
+      "withLibraryAgentBaseline(settings, settingsStore.libraryAgentSettings)"
     );
     expect(settingsCoordinatorSource).toContain(
       "api.libraryAgents.reset(domain)"

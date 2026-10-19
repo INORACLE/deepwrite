@@ -107,12 +107,18 @@ export const LongAgentSettingsInputSchema = z
     workspaceType: z.literal("long"),
     agents: z
       .array(LongAgentSettingsInputAgentSchema)
+      .length(LONG_AGENT_IDS.length),
+    baseAgents: z
+      .array(LongAgentSettingsInputAgentSchema)
       .length(LONG_AGENT_IDS.length)
+      .optional()
   })
   .strict()
-  .superRefine((value, context) =>
-    validateCompleteLongAgentSet(value.agents, context)
-  );
+  .superRefine((value, context) => {
+    validateCompleteLongAgentSet(value.agents, context);
+    if (value.baseAgents)
+      validateCompleteLongAgentSet(value.baseAgents, context);
+  });
 export type LongAgentSettingsInput = z.infer<
   typeof LongAgentSettingsInputSchema
 >;

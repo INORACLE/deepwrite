@@ -2,10 +2,11 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { CloudBackupService } from "./service";
 import type { CloudBackupObjectStore } from "./oss-client";
 import { CLOUD_BACKUP_QUOTA_BYTES } from "@deepwrite/contracts";
+import { packBackupSnapshot, snapshotObjectKeys } from "./packager";
 
 const roots: string[] = [];
 
@@ -66,6 +67,34 @@ async function setupWorkspace(): Promise<{
     )}\n`
   );
   return { userData, workspace };
+}
+
+async function previewFixture() {
+  const fixture = await setupWorkspace();
+  const store = new MemoryStore();
+  const hooks = {
+    getWorkspaceDirectory: async () => fixture.workspace,
+    registerCatalogProject: vi.fn(async () => undefined),
+    registerLongBook: vi.fn(async () => undefined)
+  };
+  const service = new CloudBackupService(
+    fixture.userData,
+    hooks,
+    store,
+    () => new Date("2026-08-13T01:00:00.000Z")
+  );
+  const { machineKey } = await service.status();
+  return { ...fixture, store, hooks, service, machineKey };
+}
+
+function replaceRemoteSnapshot(store: MemoryStore, machineKey: string) {
+  const keys = snapshotObjectKeys(machineKey);
+  const packed = packBackupSnapshot(machineKey, "2026-08-13T02:00:00.000Z", []);
+  store.objects.set(keys.archive, packed.zip);
+  store.objects.set(
+    keys.manifest,
+    Buffer.from(JSON.stringify(packed.manifest))
+  );
 }
 
 describe("cloud backup service", () => {
@@ -161,4 +190,56 @@ describe("cloud backup service", () => {
       "同步预览已过期"
     );
   });
+
+  it.each(["created", "updated", "removed"])(
+    "rejects an upload preview when the remote snapshot was %s without changing cloud files",
+    async (change) => {
+      const { service, store, machineKey } = await previewFixture();
+      if (change !== "created") {
+        const initial = await service.previewBackup();
+        await service.applyBackup(initial.previewId);
+      }
+      const preview = await service.previewBackup();
+      if (change === "removed") store.objects.clear();
+      else replaceRemoteSnapshot(store, machineKey);
+      const before = new Map(store.objects);
+      const upload = vi.spyOn(store, "putObject");
+
+      await expect(service.applyBackup(preview.previewId)).rejects.toThrow(
+        "云端备份在预览后发生变化"
+      );
+      expect(upload).not.toHaveBeenCalled();
+      expect(store.objects).toEqual(before);
+    }
+  );
+
+  it.each(["updated", "removed"])(
+    "rejects a restore preview when the remote snapshot was %s and preserves local edits",
+    async (change) => {
+      const { service, store, hooks, machineKey, workspace } =
+        await previewFixture();
+      const upload = await service.previewBackup();
+      await service.applyBackup(upload.previewId);
+      const body = join(workspace, "books", "测试书", "body.md");
+      const localContent = "本地尚未备份的修改。";
+      await writeFile(body, localContent);
+      const preview = await service.previewRestore(machineKey);
+      expect(preview.changes.some(({ change }) => change === "overwrite")).toBe(
+        true
+      );
+      if (change === "removed") store.objects.clear();
+      else replaceRemoteSnapshot(store, machineKey);
+      const download = vi.spyOn(store, "getObject");
+
+      await expect(service.applyRestore(preview.previewId)).rejects.toThrow(
+        "云端备份在预览后发生变化"
+      );
+      expect(download).not.toHaveBeenCalledWith(
+        snapshotObjectKeys(machineKey).archive
+      );
+      expect(await readFile(body, "utf8")).toBe(localContent);
+      expect(hooks.registerCatalogProject).not.toHaveBeenCalled();
+      expect(hooks.registerLongBook).not.toHaveBeenCalled();
+    }
+  );
 });

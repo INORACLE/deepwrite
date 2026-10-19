@@ -84,9 +84,11 @@ export function subagentModeSystemRequirements(
   mode: SubagentAgentMode
 ): string | undefined {
   if (mode === "pure-bare") return undefined;
-  return mode === "pure-read"
-    ? input.pureReadSystemPromptRequirements
-    : input.systemPromptRequirements;
+  const requirements =
+    mode === "pure-read"
+      ? input.pureReadSystemPromptRequirements
+      : input.systemPromptRequirements;
+  return typeof requirements === "function" ? requirements() : requirements;
 }
 
 /** A bare child must not get manuscript text re-attached after compaction. */

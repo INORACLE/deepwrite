@@ -348,15 +348,13 @@ describe("LongProjectCatalog", () => {
     }
   });
 
-  it("bounds each cached navigation summary independently", async () => {
-    expect(LONG_PROJECT_CATALOG_MAX_SUMMARY_BYTES).toBe(1024 * 1024);
+  it("round-trips large navigation summaries and rejects those above the shared limit", async () => {
+    expect(LONG_PROJECT_CATALOG_MAX_SUMMARY_BYTES).toBe(3 * 1024 * 1024);
     const fixture = await createFixture();
     await fixture.catalog.openAtPath(fixture.projectDirectory);
-    const oversized = structuredClone(
-      fakeOpened(fixture.projectDirectory).summary
-    );
+    const large = structuredClone(fakeOpened(fixture.projectDirectory).summary);
     const chapterCount = 5_000;
-    oversized.navigation.arcs = [
+    large.navigation.arcs = [
       {
         id: "arc_catalog-large",
         volumeId: "volume_default",
@@ -364,26 +362,45 @@ describe("LongProjectCatalog", () => {
         order: 1
       }
     ];
-    oversized.navigation.chapterCards = Array.from(
+    large.navigation.chapterCards = Array.from(
       { length: chapterCount },
       (_, index) => ({
         id: `chapter_catalog-large-${index + 1}`,
         volumeId: "volume_default",
         primaryArcId: "arc_catalog-large",
-        title: `第 ${index + 1} 章 ${"长".repeat(180)}`,
+        title: `第 ${index + 1} 章 ${"长".repeat(120)}`,
         narrativeOrder: index + 1,
         bodyStatus: "empty" as const
       })
     );
-    oversized.navigation.counts = {
-      ...oversized.navigation.counts,
+    large.navigation.counts = {
+      ...large.navigation.counts,
       arcs: 1,
       chapterCards: chapterCount
     };
 
+    const bytes = Buffer.byteLength(JSON.stringify(large), "utf8");
+    expect(bytes).toBeGreaterThan(1024 * 1024);
+    expect(bytes).toBeLessThan(LONG_PROJECT_CATALOG_MAX_SUMMARY_BYTES);
     await expect(
-      fixture.catalog.updateSummary(oversized.id, oversized)
-    ).rejects.toThrow(/摘要超过/u);
+      fixture.catalog.updateSummary(large.id, large)
+    ).resolves.toBeUndefined();
+    const accepted = (await fixture.catalog.list()).books.find(
+      ({ id }) => id === large.id
+    )!;
+    expect(accepted.navigation.chapterCards).toHaveLength(chapterCount);
+    const tooLarge = structuredClone(large);
+    for (const card of tooLarge.navigation.chapterCards)
+      card.title += "长".repeat(60);
+    expect(Buffer.byteLength(JSON.stringify(tooLarge), "utf8")).toBeGreaterThan(
+      LONG_PROJECT_CATALOG_MAX_SUMMARY_BYTES
+    );
+    await expect(
+      fixture.catalog.updateSummary(tooLarge.id, tooLarge)
+    ).rejects.toThrow("3 MiB");
+    expect(
+      (await fixture.catalog.list()).books.find(({ id }) => id === large.id)
+    ).toEqual(accepted);
   });
 
   it("recovers the primary registry from its backup", async () => {

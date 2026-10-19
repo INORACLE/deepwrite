@@ -140,22 +140,22 @@ pnpm pack:test:mac         # 两种 macOS 架构
 
 产物保存在 `apps/desktop/release/`。打包流程会先执行完整校验和生产构建，再生成并验证安装包。
 
-### 发布 Release 后自动打包
+### 推送标签后自动发布
 
-仓库的 `Build release installers` 工作流在 GitHub Release **发布后**自动运行，流程为：推送代码 → 发布 Release → 自动打包 → 安装包出现在该 Release 的 Assets 中。仅推送代码或标签、保存 Release 草稿不会触发打包。
+仓库的 `Build and publish tagged release` 工作流在推送 `v*` 标签时自动运行：推送标签 → 构建并验收所有平台 → 上传到草稿 → 公开完整的 GitHub Release。标签必须采用 `v主版本.次版本.补丁版本` 格式，且与两个 package.json 的版本一致。普通分支推送和发布 Release 不触发打包。
 
-1. 首次使用先将 `.github/workflows/release.yml` 和配套脚本推送到 `main`，后续发布所选的代码也须包含这些文件。
+1. 首次使用先将 `.github/workflows/release.yml` 和配套脚本推送到 `main`，标签指向的代码也须包含这些文件。
 2. 将根目录和 `apps/desktop/package.json` 的 `version` 改成相同的目标版本，提交并推送。例如都为 `1.6.6` 时，对应标签为 `v1.6.6`。
-3. 打开仓库的 **Releases → Draft a new release**，选择目标代码，创建对应标签，填写说明并点击 **Publish release**。
-4. 在 **Actions → Build release installers** 查看进度。所有平台通过后，工作流会将安装包、blockmap、更新清单和 `SHA256SUMS.txt` 上传到刚发布的 Release。
+3. 执行 `git tag v1.6.6` 和 `git push origin v1.6.6` 创建并推送标签，无需手动创建 Release。
+4. 在 **Actions → Build and publish tagged release** 查看进度。所有平台通过后，工作流会将安装包、blockmap、更新清单和 `SHA256SUMS.txt` 上传至草稿，核对完整后自动公开 Release。
 
-工作流使用 Windows x64、macOS Apple Silicon、macOS Intel 和 Linux x64 的原生 runner，产物包括 Windows EXE、两种 Mac 架构的 DMG / ZIP、Linux AppImage / deb。各平台沿用 `pnpm pack:test:*` 完成格式、类型、lint、测试、构建及包内首次启动和重新打开验收；Mac 还会检查 DMG、ad-hoc 签名和 ZIP。上传前校验文件大小与 SHA-512，并合并两个架构的 `latest-mac.yml`。构建产物在 Actions 中保留 14 天。
+工作流使用 Windows x64、macOS Apple Silicon、macOS Intel 和 Linux x64 的原生 runner，产物包括 Windows EXE、两种 Mac 架构的 DMG / ZIP、Linux AppImage / deb。各平台沿用 `pnpm pack:test:*` 完成格式、类型、lint、测试、构建及包内首次启动和重新打开验收；Mac 还会检查 DMG、ad-hoc 签名和 ZIP。发布前校验文件大小与 SHA-512，并合并两个架构的 `latest-mac.yml`。构建产物在 Actions 中保留 14 天。
 
-上传权限由工作流的 `contents: write` 和仓库自动提供的 `GITHUB_TOKEN` 授予，无需另建个人访问令牌。仓库须允许运行 Actions 和这些工作流使用的 Action；**Settings → Releases → Release immutability** 须关闭，因为这个流程会在 Release 公开后追加附件。Windows 包沿用未签名配置，macOS 沿用 ad-hoc 签名且不进行 Apple 公证。
+只有发布任务通过仓库自动提供的 `GITHUB_TOKEN` 获得 `contents: write`，构建任务保持只读，无需另建个人访问令牌。仓库须允许运行 Actions 和这些工作流使用的 Action。Windows 包沿用未签名配置，macOS 沿用 ad-hoc 签名且不进行 Apple 公证。
 
-失败时在原运行中选择 **Re-run failed jobs**，已成功的平台产物可以复用；上传重试会跳过大小和 SHA-256 相同的现有附件，不覆盖不同内容的同名文件。若已发布的标签没有触发记录，可在工作流的 **Run workflow** 中选择 `main`，填入该标签补跑，源码始终取自标签对应的提交。Release 发布后到打包完成前，页面会暂时只有源码下载。
+失败时在原运行中选择 **Re-run failed jobs**，复用已成功的平台产物并继续本轮草稿上传。重试会跳过大小和 SHA-256 相同的附件；只清理本轮私有草稿中未完成的空附件后重传，不覆盖不同内容的同名文件、已有公开 Release 或其他运行的草稿。上传失败时草稿保持私有。若标签没有触发记录，可在工作流的 **Run workflow** 中选择 `main`，填入已有标签补跑，源码始终取自标签对应的提交。发布说明自动生成。GitHub 按语义版本选择 Latest，旧标签晚完成也不会顶替新版本。
 
-应用内更新继续由根目录 `update.json` 控制。安装包全部上传成功后，再按既有发布清单流程更新它；工作流不会提前递增清单版本。
+应用内更新继续由根目录 `update.json` 控制。Release 公开且安装包全部上传成功后，再按既有发布清单流程更新它；工作流不会提前递增清单版本。
 
 ## 项目结构
 
