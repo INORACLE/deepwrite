@@ -15,6 +15,7 @@ import { DecompositionService } from "./service";
 import { decompositionFixture } from "./test-support";
 import { runDecompositionFaux } from "./faux-run.test-support";
 import { addDecompositionUnit } from "./workflow";
+import { cleanupDecompositionRoots } from "./fixture-cleanup.test-support";
 
 let workerDirectory: string;
 const roots: string[] = [];
@@ -37,9 +38,7 @@ beforeAll(async () => {
   });
 }, 30_000);
 afterEach(async () => {
-  await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
-  );
+  await cleanupDecompositionRoots(roots);
 });
 afterAll(async () => {
   await rm(workerDirectory, { recursive: true, force: true });

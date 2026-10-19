@@ -1,14 +1,13 @@
-import { mkdir, mkdtemp, realpath, rm, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import { DecompositionJobStateStore } from "./job-state-store";
+import { cleanupDecompositionRoots } from "./fixture-cleanup.test-support";
 
 const roots: string[] = [];
 afterEach(async () => {
-  await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
-  );
+  await cleanupDecompositionRoots(roots);
 });
 async function fixture() {
   const root = await realpath(

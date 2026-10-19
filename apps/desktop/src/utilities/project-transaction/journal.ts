@@ -88,7 +88,12 @@ export async function cleanupTransaction(
     journal.transactionId
   );
   assertContained(projectRoot, transactionRoot);
-  await rm(transactionRoot, { recursive: true, force: true });
+  await rm(transactionRoot, {
+    recursive: true,
+    force: true,
+    maxRetries: 10,
+    retryDelay: 100
+  });
   await syncDirectory(dirname(transactionRoot));
 }
 

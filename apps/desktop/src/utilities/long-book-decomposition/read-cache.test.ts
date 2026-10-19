@@ -13,13 +13,12 @@ import { DecompositionService } from "./service";
 import { decompositionFixture } from "./test-support";
 import { queryDecomposition } from "./query";
 import { stageRecovery } from "../project-recovery.test-support";
+import { cleanupDecompositionRoots } from "./fixture-cleanup.test-support";
 
 const roots: string[] = [];
 afterEach(async () => {
   vi.restoreAllMocks();
-  await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
-  );
+  await cleanupDecompositionRoots(roots);
 });
 
 it("command-scoped services reuse validated source revisions and recovery inspects metadata only", async () => {

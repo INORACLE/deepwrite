@@ -1,9 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   decompositionUsageLimit,
   readyDecompositionUnitIds
 } from "@deepwrite/contracts";
 import { decompositionFixture } from "./test-support";
+import { cleanupDecompositionRoots } from "./fixture-cleanup.test-support";
+
+const roots: string[] = [];
+afterEach(() => cleanupDecompositionRoots(roots));
 
 const usage = (tokens: number) => ({
   inputTokens: tokens,
@@ -14,7 +18,8 @@ const usage = (tokens: number) => ({
 
 describe("decomposition usage guard", () => {
   it("keeps Main-observed usage across control calls", async () => {
-    const { job, service } = await decompositionFixture("materials", 3);
+    const { job, root, service } = await decompositionFixture("materials", 3);
+    roots.push(root);
     await service.control({ jobId: job.id, action: "stop" }, usage(1000));
     const saved = await service.control(
       { jobId: job.id, action: "stop" },
@@ -29,7 +34,8 @@ describe("decomposition usage guard", () => {
   });
 
   it("pauses after a package past the limit and raises it on continue", async () => {
-    const { job, service } = await decompositionFixture("materials", 3);
+    const { job, root, service } = await decompositionFixture("materials", 3);
+    roots.push(root);
     const [unitId] = readyDecompositionUnitIds(job);
     const opened = await service.open(
       { jobId: job.id, phase: "read", unitIds: [unitId!] },

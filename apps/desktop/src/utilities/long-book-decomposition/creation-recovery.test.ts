@@ -1,15 +1,13 @@
-import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { LongBookDecompositionJobSchema } from "@deepwrite/contracts";
 import { decompositionFixture } from "./test-support";
+import { cleanupDecompositionRoots } from "./fixture-cleanup.test-support";
 
 const roots: string[] = [];
 afterEach(async () => {
   vi.restoreAllMocks();
-  await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
-  );
+  await cleanupDecompositionRoots(roots);
 });
 
 it("续写源文写入后创建中断，继续同一任务保留正文且不重复建长篇", async () => {

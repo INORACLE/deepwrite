@@ -1,23 +1,15 @@
-import { rm, stat } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { splitDecompositionChunks } from "@deepwrite/contracts";
 import { decompositionFixture } from "./test-support";
 import { runDecompositionFaux } from "./faux-run.test-support";
 import { queryDecomposition } from "./query";
+import { cleanupDecompositionRoots } from "./fixture-cleanup.test-support";
 vi.setConfig({ testTimeout: 120_000, hookTimeout: 60_000 });
 const roots: string[] = [];
 afterEach(async () => {
-  await Promise.all(
-    roots.splice(0).map((root) =>
-      rm(root, {
-        recursive: true,
-        force: true,
-        maxRetries: 10,
-        retryDelay: 100
-      })
-    )
-  );
+  await cleanupDecompositionRoots(roots);
   // Scale fixtures contain thousands of real files; leave time for removal under I/O contention.
 }, 60_000);
 

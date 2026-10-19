@@ -1,4 +1,3 @@
-import { rm } from "node:fs/promises";
 import { afterEach, expect, it, vi } from "vitest";
 import { DecompositionSubmissionDataSchema } from "@deepwrite/contracts";
 import { FolderCatalogStore } from "../folder-catalog-store";
@@ -7,13 +6,12 @@ import { DecompositionService } from "./service";
 import { decompositionFixture } from "./test-support";
 import { runDecompositionFaux } from "./faux-run.test-support";
 import * as longUnitWriter from "./long-unit-writer";
+import { cleanupDecompositionRoots } from "./fixture-cleanup.test-support";
 
 const roots: string[] = [];
 afterEach(async () => {
   vi.restoreAllMocks();
-  await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
-  );
+  await cleanupDecompositionRoots(roots);
 });
 
 it("汇总超过 20 万字的人物概览，中断后继续仍保留全文且只提交一次账本", async () => {

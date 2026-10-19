@@ -1,22 +1,18 @@
-import { readFile, rm, writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it } from "vitest";
 import { readyDecompositionUnitIds } from "@deepwrite/contracts";
 import { decompositionFixture } from "./test-support";
+import { cleanupDecompositionRoots } from "./fixture-cleanup.test-support";
 import { addDecompositionUnit } from "./workflow";
 import {
   assertDecompositionObjectWritable,
   decompositionSha
 } from "./content-guard";
 
-vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 const roots: string[] = [];
 afterEach(async () => {
-  await Promise.all(
-    roots
-      .splice(0)
-      .map((root) => rm(root, { recursive: true, force: true, maxRetries: 10 }))
-  );
+  await cleanupDecompositionRoots(roots);
 });
 
 async function completedPlotFixture() {

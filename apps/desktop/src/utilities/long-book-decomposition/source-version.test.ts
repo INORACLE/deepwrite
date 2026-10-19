@@ -1,12 +1,11 @@
-import { rm, readFile, writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import { decompositionFixture } from "./test-support";
+import { cleanupDecompositionRoots } from "./fixture-cleanup.test-support";
 const roots: string[] = [];
 afterEach(async () => {
-  await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
-  );
+  await cleanupDecompositionRoots(roots);
 });
 it("章节校对新建不可变版本，旧任务仍读取旧正文，确认绑定版本与范围", async () => {
   const fixture = await decompositionFixture("materials");

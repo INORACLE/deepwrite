@@ -144,7 +144,7 @@ describe("voice WAV encoding", () => {
     const audio = encodeVoiceWav([new Float32Array(16_000 * 601)], 16_000);
     expect(audio.durationMs).toBe(600_000);
     expect(audio.audioBase64.length).toBeLessThan(26_000_000);
-  });
+  }, 30_000); // Encode the full production duration limit, including its 25 MB IPC payload.
 
   it("rejects an empty capture before starting a recognition request", () => {
     expect(() => encodeVoiceWav([], 48_000)).toThrow("没有录到声音");

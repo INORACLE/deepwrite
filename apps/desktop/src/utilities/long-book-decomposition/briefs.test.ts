@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   normalizeDecompositionRegistry,
   type DecompositionAsset,
@@ -10,6 +10,10 @@ import { buildDecompositionBrief, type BriefContext } from "./briefs";
 import { briefTokens } from "./brief-text";
 import { queryDecomposition } from "./query";
 import { decompositionFixture } from "./test-support";
+import { cleanupDecompositionRoots } from "./fixture-cleanup.test-support";
+
+const roots: string[] = [];
+afterEach(() => cleanupDecompositionRoots(roots));
 
 const card = (
   order: number,
@@ -93,6 +97,7 @@ function unit(
 describe("decomposition evidence packs", () => {
   it("hands a reader its unsaved chapters with their checkpoint ids", async () => {
     const { job, root, service } = await decompositionFixture("materials", 3);
+    roots.push(root);
     const pack = async () =>
       (
         await queryDecomposition(job, root, service.reader, {
@@ -111,7 +116,8 @@ describe("decomposition evidence packs", () => {
   });
 
   it("builds a final dossier from saved biographies and recent mentions", async () => {
-    const { job } = await decompositionFixture("materials", 3);
+    const { job, root } = await decompositionFixture("materials", 3);
+    roots.push(root);
     unit(job, "character-volume:rc_main:1");
     unit(job, "character:rc_main", ["character-volume:rc_main:1"]);
     const pack = await buildDecompositionBrief(
@@ -135,7 +141,8 @@ describe("decomposition evidence packs", () => {
   });
 
   it("samples oversized evidence evenly within the budget", async () => {
-    const { job } = await decompositionFixture("materials", 3);
+    const { job, root } = await decompositionFixture("materials", 3);
+    roots.push(root);
     unit(job, "character:rc_main");
     const cards = Array.from({ length: 400 }, (_, index) =>
       card(index + 1, [
@@ -153,7 +160,8 @@ describe("decomposition evidence packs", () => {
   });
 
   it("numbers a registry part's names and leaves the merge only cross-part clusters", async () => {
-    const { job } = await decompositionFixture("materials", 3);
+    const { job, root } = await decompositionFixture("materials", 3);
+    roots.push(root);
     unit(job, "registry:part:1");
     unit(job, "registry:part:2");
     unit(job, "registry:merge", ["registry:part:1", "registry:part:2"]);

@@ -1,4 +1,3 @@
-import { rm } from "node:fs/promises";
 import { afterEach, expect, it, vi } from "vitest";
 import type { DecompositionSubmissionData } from "@deepwrite/contracts";
 import { FolderCatalogStore } from "../folder-catalog-store";
@@ -9,20 +8,12 @@ import { DecompositionService } from "./service";
 import { markDecompositionUnitDone } from "./submission-staging";
 import { decompositionFixture } from "./test-support";
 import { addDecompositionUnit } from "./workflow";
+import { cleanupDecompositionRoots } from "./fixture-cleanup.test-support";
 
 const roots: string[] = [];
 vi.setConfig({ testTimeout: 120_000, hookTimeout: 60_000 });
 afterEach(async () => {
-  await Promise.all(
-    roots.splice(0).map((root) =>
-      rm(root, {
-        recursive: true,
-        force: true,
-        maxRetries: 10,
-        retryDelay: 100
-      })
-    )
-  );
+  await cleanupDecompositionRoots(roots);
 });
 
 async function sharedArcFixture() {

@@ -1,4 +1,4 @@
-import { readFile, writeFile, rm } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import {
@@ -9,14 +9,12 @@ import { decompositionFixture } from "./test-support";
 import { addDecompositionUnit } from "./workflow";
 import { requeueDecompositionUnit } from "./unit-retry";
 import { runDecompositionFaux } from "./faux-run.test-support";
+import { cleanupDecompositionRoots } from "./fixture-cleanup.test-support";
 
 const roots: string[] = [];
-vi.setConfig({ testTimeout: 30_000 });
 afterEach(async () => {
   vi.restoreAllMocks();
-  await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
-  );
+  await cleanupDecompositionRoots(roots);
 });
 async function styleFixture() {
   const fixture = await decompositionFixture("materials");

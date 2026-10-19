@@ -1,4 +1,4 @@
-import { readFile, rm, writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { FolderCatalogStore } from "../folder-catalog-store";
@@ -7,13 +7,12 @@ import { DecompositionService } from "./service";
 import { decompositionFixture } from "./test-support";
 import { runDecompositionFaux } from "./faux-run.test-support";
 import * as longUnitWriter from "./long-unit-writer";
+import { cleanupDecompositionRoots } from "./fixture-cleanup.test-support";
 
 const roots: string[] = [];
 afterEach(async () => {
   vi.restoreAllMocks();
-  await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
-  );
+  await cleanupDecompositionRoots(roots);
 });
 
 it.each(["before-receipt", "after-receipt"] as const)(

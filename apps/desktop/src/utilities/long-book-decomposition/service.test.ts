@@ -1,4 +1,4 @@
-import { readdir, rm, readFile, writeFile } from "node:fs/promises";
+import { readdir, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -19,12 +19,11 @@ import {
   LONG_PORTABLE_BUNDLE_SCHEMA_VERSION,
   parseLongPortableExportBundle
 } from "../long-portable-bundle";
+import { cleanupDecompositionRoots } from "./fixture-cleanup.test-support";
 
 const roots: string[] = [];
 afterEach(async () => {
-  await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
-  );
+  await cleanupDecompositionRoots(roots);
 });
 
 describe("整书拆解持久化工作流", () => {

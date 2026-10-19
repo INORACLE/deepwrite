@@ -1,15 +1,13 @@
-import { rm } from "node:fs/promises";
 import { afterEach, expect, it } from "vitest";
 import { readyDecompositionUnitIds } from "@deepwrite/contracts";
 import { decompositionFixture } from "./test-support";
 import { runDecompositionFaux } from "./faux-run.test-support";
 import { DecompositionService } from "./service";
+import { cleanupDecompositionRoots } from "./fixture-cleanup.test-support";
 
 const roots: string[] = [];
 afterEach(async () => {
-  await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
-  );
+  await cleanupDecompositionRoots(roots);
 });
 
 it.each(["continuation", "materials"] as const)(

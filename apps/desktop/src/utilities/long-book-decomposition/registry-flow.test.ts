@@ -1,16 +1,13 @@
-import { rm } from "node:fs/promises";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it } from "vitest";
 import type { DecompositionSubmitInput } from "@deepwrite/contracts";
 import { decompositionFixture } from "./test-support";
 import { addDecompositionUnit } from "./workflow";
 import { queryDecomposition } from "./query";
+import { cleanupDecompositionRoots } from "./fixture-cleanup.test-support";
 
 const roots: string[] = [];
-vi.setConfig({ testTimeout: 30_000 });
 afterEach(async () => {
-  await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
-  );
+  await cleanupDecompositionRoots(roots);
 });
 
 async function setup() {

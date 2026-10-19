@@ -1,4 +1,4 @@
-import { mkdtemp, realpath, rm, stat } from "node:fs/promises";
+import { mkdtemp, realpath, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
@@ -7,12 +7,11 @@ import {
   type LongBookDecompositionJob
 } from "@deepwrite/contracts";
 import { DecompositionRecordStore } from "./record-store";
+import { cleanupDecompositionRoots } from "./fixture-cleanup.test-support";
 
 const roots: string[] = [];
 afterEach(async () => {
-  await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
-  );
+  await cleanupDecompositionRoots(roots);
 });
 async function fixture() {
   const root = await realpath(

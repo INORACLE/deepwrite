@@ -1,13 +1,11 @@
-import { rm } from "node:fs/promises";
 import { afterEach, expect, it } from "vitest";
 import { queryDecomposition } from "./query";
 import { decompositionFixture } from "./test-support";
+import { cleanupDecompositionRoots } from "./fixture-cleanup.test-support";
 
 const roots: string[] = [];
 afterEach(async () => {
-  await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
-  );
+  await cleanupDecompositionRoots(roots);
 });
 
 it.each(["continuation", "materials"] as const)(

@@ -163,7 +163,12 @@ export async function commitProjectTransactionLocked(
     return recovered;
   } catch (error: unknown) {
     if (!journalWritten) {
-      await rm(transactionRoot, { recursive: true, force: true });
+      await rm(transactionRoot, {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 100
+      });
     }
     throw error;
   }
