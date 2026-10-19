@@ -16,6 +16,21 @@ import {
   replanLegacyRegistryParts
 } from "./registry-mentions";
 
+function preserveDecompositionWrites(unit: DecompositionUnit): void {
+  const latest = new Map<string, DecompositionUnit["outputRefs"][number]>();
+  for (const ref of [...(unit.previousOutputRefs ?? []), ...unit.outputRefs]) {
+    const key = `${ref.projectId}:${ref.resourceId}`;
+    const prior = latest.get(key);
+    if (
+      !prior ||
+      ref.revision > prior.revision ||
+      (ref.revision === prior.revision && ref.userOwned)
+    )
+      latest.set(key, ref);
+  }
+  if (latest.size) unit.previousOutputRefs = [...latest.values()];
+}
+
 export function addDecompositionUnit(
   job: LongBookDecompositionJob,
   id: string,
@@ -34,6 +49,10 @@ export function addDecompositionUnit(
       );
       prior.status = "pending";
       prior.attempts = 0;
+      preserveDecompositionWrites(prior);
+      prior.outputRefs = [];
+      prior.receiptIds = [];
+      delete prior.requiredReceiptIds;
     }
     if (phase === "integrate" && prior.status === "skipped") {
       prior.status = "pending";

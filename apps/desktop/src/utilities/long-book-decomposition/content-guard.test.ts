@@ -86,4 +86,28 @@ describe("生成文档的冲突判断", () => {
       assertDecompositionObjectWritable(owned, "volume", decompositionSha("x"))
     ).toThrow("decomposition.conflict");
   });
+
+  it("历史引用保留用户所有权，后续明确生成的新版本可以接替它", () => {
+    const current = job([]);
+    const unit = current.units["reading:c:0"]!;
+    unit.previousOutputRefs = [ref(3, "用户版本", { userOwned: true })];
+    expect(() =>
+      assertDecompositionDocumentWritable(
+        current,
+        "card",
+        "用户版本",
+        "用户版本"
+      )
+    ).toThrow("decomposition.conflict");
+
+    unit.outputRefs = [ref(4, "重新生成版本")];
+    expect(() =>
+      assertDecompositionDocumentWritable(
+        current,
+        "card",
+        "重新生成版本",
+        "继续更新"
+      )
+    ).not.toThrow();
+  });
 });

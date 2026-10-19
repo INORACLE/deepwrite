@@ -45,6 +45,8 @@ export const DecompositionUnitSchema = z.object({
   runId: z.string().optional(),
   attemptId: DecompositionIdSchema.optional(),
   outputRefs: z.array(DecompositionContentRefSchema).default([]),
+  /** Earlier writes remain available to conflict guards after replanning. */
+  previousOutputRefs: z.array(DecompositionContentRefSchema).optional(),
   receiptIds: z.array(DecompositionIdSchema).default([]),
   lastError: z.string().max(2000).optional(),
   updatedAt: z.string().datetime(),
