@@ -18,7 +18,14 @@ const roots = [];
 afterEach(async () => {
   await closeRendererStateTestStores();
   await Promise.all(
-    roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))
+    roots.splice(0).map((root) =>
+      rm(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 100
+      })
+    )
   );
 });
 function snapshot(sessionId, length = 30) {

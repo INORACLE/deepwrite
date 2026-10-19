@@ -128,6 +128,7 @@ jobs:
         run: |
           pnpm exec vitest run \
             tools/package-runtime-archive.test.mjs \
+            tools/renderer-state-history-migration.test.mjs \
             tools/renderer-vendor-graph.test.mjs \
             apps/desktop/src/main/model-usage-store.test.ts \
             apps/desktop/src/renderer/src/components/ConversationMessageItem.errors.test.ts \
@@ -146,6 +147,7 @@ jobs:
             apps/desktop/src/utilities/long-project-store.*.test.ts \
             apps/desktop/src/utilities/folder-catalog-store.migration-and-projects.test.ts \
             apps/desktop/src/utilities/conversation-exit.test.mjs \
+            apps/desktop/src/utilities/conversation-history-writer.integration.test.mjs \
             apps/desktop/src/utilities/conversation-storage/capacity.test.ts
 
       - name: Build and verify Linux installers

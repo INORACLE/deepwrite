@@ -1,5 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { vi } from "vitest";
 import { ConversationDatabase } from "./conversation-storage/database";
 import { LegacyConversationStore } from "./conversation-storage/legacy-store";
 import { migrateLegacyFile } from "./conversation-storage/legacy-file-migration";
@@ -7,6 +8,10 @@ import {
   RendererStateStore,
   type RendererStateBackend
 } from "./renderer-state-store";
+
+// These facades exercise real SQLite migrations and durable writes, including
+// rollback and retry, rather than an in-memory renderer state mock.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
 const backends = new Set<RendererStateBackend>();
 

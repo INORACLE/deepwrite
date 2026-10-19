@@ -16,6 +16,8 @@ import {
   document,
   runtime
 } from "../renderer/src/composables/useAgentConversation.test-support";
+// Multi-megabyte drafts cross several durable SQLite staging transactions.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 const key = "conversation-history:integration-fixture";
 const date = "2026-09-11T00:00:00.000Z";
 const cleanup = [];
@@ -30,7 +32,14 @@ async function storage() {
   const directory = await mkdtemp(
     join(tmpdir(), "deepwrite-history-integration-")
   );
-  cleanup.push(() => rm(directory, { recursive: true, force: true }));
+  cleanup.push(() =>
+    rm(directory, {
+      recursive: true,
+      force: true,
+      maxRetries: 10,
+      retryDelay: 100
+    })
+  );
   const database = new ConversationDatabase(join(directory, "history.sqlite"));
   cleanup.push(() => database.close());
   const api = {
