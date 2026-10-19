@@ -2,10 +2,12 @@
   "schemaVersion": 1,
   "enabled": true,
   "channel": "stable",
-  "version": "1.7.0",
-  "title": "DeepWrite 1.7.0",
-  "publishedAt": "2026-10-19T21:14:04+08:00",
+  "version": "1.7.1",
+  "title": "DeepWrite 1.7.1",
+  "publishedAt": "2026-10-20T00:47:46+08:00",
   "releaseNotes": [
+    "修复 GitHub 远端打包缺少本机发布配置的问题，将公共服务与 OSS 配置编入 Main，并在包内首次启动及重新打开时验证配置完整性。",
+    "加强 Windows 发布稳定性，隔离磁盘集成测试并新增 Windows 日常完整检查；发布配置缺失或旧构建未验证配置时阻止发布。",
     "新增独立联网搜索与网页正文读取工具，支持每轮开关联网搜索，并为子智能体配置联网策略。",
     "改进长篇创作体验，支持设定、角色、分卷、剧情点和章节等条目长按排序，优化保存状态与编辑视图保持。",
     "优化超长作品与整书拆解的导航、分页读取和结果保存，提升大体量内容加载与中断恢复的稳定性。",
@@ -17,6 +19,6 @@
   ],
   "mandatory": false,
   "minimumSupportedVersion": "1.0.0",
-  "releasePage": "https://github.com/swjybky/deepwrite/releases/tag/v1.7.0",
+  "releasePage": "https://github.com/swjybky/deepwrite/releases/tag/v1.7.1",
   "feedUrl": "https://github.com/swjybky/deepwrite/releases/latest/download"
 }
