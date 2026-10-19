@@ -37,7 +37,13 @@ export async function fixture() {
   const github = {
     rest: {
       repos: {
-        getCommit: vi.fn(async () => ({ data: { sha: commit } })),
+        getCommit: vi.fn(async ({ ref }) => {
+          if (ref !== `refs/tags/${tag}`)
+            throw Object.assign(new Error("fixture invalid tag reference"), {
+              status: 422
+            });
+          return { data: { sha: commit } };
+        }),
         getReleaseByTag: vi.fn(async () => ({ data: release })),
         getRelease: vi.fn(async () => ({ data: release })),
         listReleases: vi.fn(),

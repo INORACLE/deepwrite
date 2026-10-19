@@ -240,7 +240,7 @@ describe("tag-triggered release publication", () => {
     expect(github.rest.repos.getCommit).toHaveBeenCalledTimes(2);
     expect(github.rest.repos.getCommit).toHaveBeenCalledWith({
       ...repo,
-      ref: `tags/${tag}`
+      ref: `refs/tags/${tag}`
     });
   });
 
