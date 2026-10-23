@@ -5,6 +5,7 @@ export type PopupSelectValue = string | number;
 export interface PopupSelectOption {
   value: PopupSelectValue;
   label: string;
+  group?: { key: string; label: string };
   description?: string;
   disabled?: boolean;
   title?: string;

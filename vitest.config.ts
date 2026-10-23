@@ -34,7 +34,7 @@ const diskIntegrationTests = [
   "apps/desktop/src/utilities/folder-catalog-marketplace.test.ts",
   "apps/desktop/src/utilities/folder-catalog-writing-context.test.ts",
   "apps/desktop/src/utilities/material-query-service.test.ts",
-  "apps/desktop/src/utilities/device-sync-{initialization,workspace,plot-stages}.test.ts",
+  "apps/desktop/src/utilities/device-sync-{initialization,workspace,plot-stages,recovery,interrupted-decomposition}.test.ts",
   "apps/desktop/src/extras/device-sync/initialization-workspace.test.ts",
   "apps/desktop/src/extras/agents/sources/long-book-source-commands.test.ts",
   ...[
@@ -51,6 +51,7 @@ const diskIntegrationTests = [
     "quota-recovery",
     "read-cache",
     "recovery",
+    "reuse-recovery",
     "registry-flow",
     "service",
     "shared-ref-recovery",

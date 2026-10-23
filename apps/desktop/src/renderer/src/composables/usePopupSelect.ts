@@ -5,7 +5,6 @@ import {
   onBeforeUnmount,
   onMounted,
   ref,
-  useSlots,
   watch,
   type CSSProperties
 } from "vue";
@@ -23,7 +22,6 @@ export function usePopupSelect(
   props: PopupSelectProps,
   emit: PopupSelectEvents
 ) {
-  const slots = useSlots();
   const trigger = ref<HTMLButtonElement | null>(null);
   const menu = ref<HTMLElement | null>(null);
   const optionElements = ref<Array<HTMLButtonElement | undefined>>([]);
@@ -78,13 +76,7 @@ export function usePopupSelect(
       Math.max(rect.width, props.menuMinWidth),
       Math.min(360, maximumWidth)
     );
-    const estimatedHeight = Math.min(
-      props.options.reduce(
-        (height, option) => height + (option.description ? 58 : 41),
-        12
-      ) + (slots.footer ? 52 : 0),
-      320
-    );
+    const estimatedHeight = Math.min(menu.value?.scrollHeight ?? 12, 320);
     const spaceBelow = Math.max(
       0,
       window.innerHeight - rect.bottom - gap - viewportMargin
@@ -148,6 +140,7 @@ export function usePopupSelect(
     await nextTick();
     positionMenu();
     await nextTick();
+    positionMenu();
     if (focusSelection) {
       focusOption(selectedEnabledIndex());
     }
