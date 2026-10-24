@@ -24,6 +24,7 @@ export interface PopupSelectProps {
   size: "small" | "medium" | "large";
   align: "start" | "end";
   menuMinWidth: number;
+  menuMaxHeight: number;
   menuZIndex: number;
   multiple: boolean;
   selectedValues: readonly PopupSelectValue[];

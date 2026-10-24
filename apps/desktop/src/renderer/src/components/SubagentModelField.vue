@@ -58,6 +58,7 @@ const modeOptions = computed(() => [
         size="large"
         :disabled="disabled || modelOptions.length === 0"
         :menu-min-width="260"
+        :menu-max-height="520"
         :menu-z-index="1200"
         @update:model-value="emit('setModelId', String($event))"
       >

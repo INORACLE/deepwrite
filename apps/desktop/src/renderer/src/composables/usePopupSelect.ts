@@ -76,16 +76,21 @@ export function usePopupSelect(
       Math.max(rect.width, props.menuMinWidth),
       Math.min(360, maximumWidth)
     );
-    const estimatedHeight = Math.min(menu.value?.scrollHeight ?? 12, 320);
+    const estimatedHeight = Math.min(
+      menu.value?.scrollHeight ?? 12,
+      props.menuMaxHeight
+    );
     const spaceBelow = Math.max(
       0,
       window.innerHeight - rect.bottom - gap - viewportMargin
     );
     const spaceAbove = Math.max(0, rect.top - gap - viewportMargin);
-    const opensUpward =
-      spaceBelow < Math.min(estimatedHeight, 180) && spaceAbove > spaceBelow;
+    const opensUpward = spaceBelow < estimatedHeight && spaceAbove > spaceBelow;
     const availableHeight = opensUpward ? spaceAbove : spaceBelow;
-    const maxHeight = Math.max(72, Math.min(320, availableHeight));
+    const maxHeight = Math.max(
+      72,
+      Math.min(props.menuMaxHeight, availableHeight)
+    );
     const renderedHeight = Math.min(estimatedHeight, maxHeight);
     const preferredLeft =
       props.align === "end" ? rect.right - minimumWidth : rect.left;

@@ -16,6 +16,7 @@ const props = withDefaults(
     size?: "small" | "medium" | "large";
     align?: "start" | "end";
     menuMinWidth?: number;
+    menuMaxHeight?: number;
     menuZIndex?: number;
     multiple?: boolean;
     selectedValues?: readonly PopupSelectValue[];
@@ -29,6 +30,7 @@ const props = withDefaults(
     size: "medium",
     align: "start",
     menuMinWidth: 190,
+    menuMaxHeight: 320,
     menuZIndex: 1000,
     multiple: false,
     selectedValues: () => [],
