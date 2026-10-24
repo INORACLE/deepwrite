@@ -15,9 +15,13 @@ if (
 const scaleTest =
   "apps/desktop/src/utilities/long-book-decomposition/scale.test.ts";
 
-// Durable filesystem and SQLite suites run on one worker after regular tests.
+// Durable filesystem, SQLite, and native diagnostics run on one worker.
 // In-memory unit tests keep the normal timeout and parallel scheduling.
 const diskIntegrationTests = [
+  "tools/diagnose-public-service.test.mjs",
+  "apps/desktop/src/main/model-usage-store.test.ts",
+  "apps/desktop/src/main/image/image-persistence.test.ts",
+  "apps/desktop/src/main/image/image-service*.test.ts",
   "apps/desktop/src/utilities/storage-migration.test.ts",
   "apps/desktop/src/utilities/project-transaction*.test.ts",
   "apps/desktop/src/utilities/project-transaction/**/*.test.ts",
