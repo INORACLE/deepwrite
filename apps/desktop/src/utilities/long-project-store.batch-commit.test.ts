@@ -135,6 +135,22 @@ describe("LongProjectStore: batch continuity commits", () => {
       })
     ).resolves.toMatchObject({ content: "" });
 
+    await expect(
+      projectStore.writeDocument(created.projectDirectory, {
+        fileId: firstFiles.characterState.id,
+        content: "不能补写批次中间的历史章节。"
+      })
+    ).rejects.toMatchObject({ code: "historical_continuity_readonly" });
+    await projectStore.writeDocument(created.projectDirectory, {
+      fileId: secondFiles.characterState.id,
+      content: "归档后继续修订末章汇总。"
+    });
+    await expect(
+      projectStore.readDocument(created.projectDirectory, {
+        fileId: secondFiles.characterState.id
+      })
+    ).resolves.toMatchObject({ content: "归档后继续修订末章汇总。" });
+
     const recordPath = join(
       created.projectDirectory,
       afterCommit.book.workspaceIndex.ledger.commits[0]!.recordFile.path

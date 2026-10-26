@@ -309,7 +309,9 @@ export function buildEditTool(ctx: LongToolContext): AgentTool {
 
       if (target.readOnly) {
         throw new Error(
-          "人物当前状态和历史轨迹映射自最新已提交章节，不能在人物阶段直接修改。"
+          target.kind === "chapter_card"
+            ? "历史章节的连续性文件为只读，仅最新账本提交的末章可以继续修改。"
+            : "人物当前状态和历史轨迹映射自最新已提交章节，不能在人物阶段直接修改。"
         );
       }
 

@@ -81,7 +81,10 @@ export {
   StyleComparisonResultSchema,
   StyleComparisonRuntimeContextSchema
 } from "./style-comparison";
-export { latestCommittedContinuityChapter } from "./long-workspace/latest-continuity";
+export {
+  latestCommittedContinuityChapter,
+  isLongChapterContinuityReadOnly
+} from "./long-workspace/latest-continuity";
 export type * from "./long-material-pack";
 export type * from "./library-package";
 export {

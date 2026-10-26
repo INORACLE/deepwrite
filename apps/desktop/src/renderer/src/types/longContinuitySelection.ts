@@ -1,4 +1,5 @@
 import { createScopedTranslator } from "../i18n";
+import { isLongChapterContinuityReadOnly } from "@deepwrite/contracts/renderer";
 
 import type {
   LongBookSummary,
@@ -19,7 +20,7 @@ const t = createScopedTranslator("workspace.selection");
 
 /**
  * Keeps chapter authoring and continuity review as two distinct entry points.
- * Evidence stays read-only; continuity outputs are editable until committed;
+ * Evidence stays read-only; the latest recorded checkpoint remains editable;
  * the internal commit JSON is never part of the visible selection.
  */
 export function createLongContinuitySelection(
@@ -46,6 +47,7 @@ export function createLongContinuitySelection(
     return undefined;
   }
   const committed = entry.commitId !== null;
+  const readOnly = isLongChapterContinuityReadOnly(workspaceIndex, entry);
   const commit = committed
     ? lookup
       ? lookup.commits.get(entry.commitId!)
@@ -79,7 +81,7 @@ export function createLongContinuitySelection(
             return t("namedCurrentState", { name: name });
           },
           file: character.currentState,
-          readOnly: committed
+          readOnly
         },
         {
           role: "history",
@@ -87,7 +89,7 @@ export function createLongContinuitySelection(
             return t("namedHistory", { name: name });
           },
           file: character.history,
-          readOnly: committed
+          readOnly
         }
       ];
     });
@@ -123,7 +125,7 @@ export function createLongContinuitySelection(
                 return t("worldRevelations");
               },
               file: entry.worldReveals,
-              readOnly: committed
+              readOnly
             }
           ]
         : []),
@@ -135,7 +137,7 @@ export function createLongContinuitySelection(
                 return t("foreshadowingChanges");
               },
               file: entry.foreshadowingChanges,
-              readOnly: committed
+              readOnly
             }
           ]
         : []),
@@ -148,7 +150,7 @@ export function createLongContinuitySelection(
                 return t("chapterEndState");
               },
               file: entry.characterState,
-              readOnly: committed
+              readOnly
             },
             {
               role: "handoff" as const,
@@ -156,7 +158,7 @@ export function createLongContinuitySelection(
                 return t("handoff");
               },
               file: entry.handoff,
-              readOnly: committed
+              readOnly
             }
           ])
     ],

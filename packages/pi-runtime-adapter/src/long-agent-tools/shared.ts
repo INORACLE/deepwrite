@@ -35,6 +35,7 @@ export function preflightLongMutationProposal(
       impact_mismatch: "关联影响已经变化",
       invalid_order: "排序范围或顺序不完整",
       recorded_chapter_order: "已写入连续性账本的章节位置固定",
+      historical_continuity_readonly: "历史章节的连续性文件为只读",
       invalid_document_write: "文档写入目标无效",
       invalid_result: "操作后的结构不满足长篇约束",
       document_changed: "文档在读取后已有改动"

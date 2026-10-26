@@ -14,7 +14,7 @@ export class LongLedgerAuditError extends Error {
 
 /**
  * Text-file records keep the stable identities of checkpoint continuity files.
- * Their content remains directly editable and is intentionally not pinned.
+ * Audits do not pin content; checkpoint edit permissions are checked on writes.
  */
 export function assertLongV4LedgerFileAudit(
   index: LongWorkspaceIndexSnapshot,

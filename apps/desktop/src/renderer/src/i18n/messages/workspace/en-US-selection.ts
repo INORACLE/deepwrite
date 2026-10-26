@@ -69,7 +69,7 @@ export default {
   checkpointHelp:
     "An import checkpoint only marks historical text as archived. It does not mean continuity facts, chapter-end states, or handoffs have been generated.",
   chapterContinuityHelp:
-    "Preserves chapter text evidence, character states and history, world revelations, existing foreshadowing changes, chapter-end state, and handoff.",
+    "The latest ledger entry’s final chapter is editable. Earlier continuity records and manuscript evidence are read-only.",
   pendingContinuityHelp:
     "Pending chapter. Only existing foreshadowing touchpoints linked to this chapter are checked; no records are generated when there are no candidates.",
   listOnly: "Only list-based worldbuilding categories support adding items.",

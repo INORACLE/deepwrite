@@ -497,11 +497,14 @@ describe("LongProjectStore: delete last ledger commit", () => {
         fileId: checkpoint.handoff.id
       })
     ).resolves.toMatchObject({ content: "人工修订整批结束后的接续包。" });
+    await projectStore.writeDocument(created.projectDirectory, {
+      fileId: checkpoint.handoff.id,
+      content: "重新提交后继续修订末章。"
+    });
     await expect(
-      projectStore.writeDocument(created.projectDirectory, {
-        fileId: checkpoint.handoff.id,
-        content: "重新提交后禁止直接修改"
+      projectStore.readDocument(created.projectDirectory, {
+        fileId: checkpoint.handoff.id
       })
-    ).rejects.toThrow("已提交的连续性文件为只读");
+    ).resolves.toMatchObject({ content: "重新提交后继续修订末章。" });
   });
 });

@@ -246,14 +246,17 @@ describe("LongProjectStore: commit recovery and direct writes", () => {
       fileId: chapter.body.id,
       content: "提交后直接精修正文。"
     });
-    await expect(
-      projectStore.writeDocument(created.projectDirectory, {
-        fileId: chapter.characterState.id,
-        content: "提交后直接精修章末状态。"
-      })
-    ).rejects.toThrow("已提交的连续性文件为只读");
+    await projectStore.writeDocument(created.projectDirectory, {
+      fileId: chapter.characterState.id,
+      content: "提交后直接精修章末状态。"
+    });
     const edited = await projectStore.openBook(created.projectDirectory);
     expect(edited.book.workspaceIndex.chapters[0]!.commitId).toBe(commitId);
+    await expect(
+      projectStore.readDocument(created.projectDirectory, {
+        fileId: chapter.characterState.id
+      })
+    ).resolves.toMatchObject({ content: "提交后直接精修章末状态。" });
     await expect(
       projectStore.readDocument(created.projectDirectory, {
         fileId: chapter.body.id

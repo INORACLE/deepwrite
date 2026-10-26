@@ -62,6 +62,8 @@ export default {
   recordedChapterOrder:
     "已写入连续性账本的章节位置固定，其他章节也不能越过它们调整顺序。",
   invalidDocumentWrite: "文稿写入内容已失效，请基于最新版本重新生成。",
+  historicalContinuityReadOnly:
+    "历史章节的连续性文件为只读，仅最新账本提交的末章可以继续修改。",
   invalidOperationResult: "结构操作返回了无效结果，请刷新后重试。",
   ledgerAuditFailed: "连续性账本与当前章节不一致，请刷新工作区并核对后重试。",
   settingsStillLoading: "常规设置仍在加载，请稍后再关闭或迁移。",

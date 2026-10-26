@@ -1,4 +1,6 @@
 export default {
+  historicalContinuityReadOnly:
+    "Earlier continuity records are read-only. Only the latest recorded chapter is editable.",
   permissions: "Permissions",
   approvalLabel: "Default agent approval mode",
   requestApproval: "Ask for approval",

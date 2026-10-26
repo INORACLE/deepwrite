@@ -1,4 +1,5 @@
 export default {
+  precedingChangeFailed: "前序处理失败",
   foreshadowingChanges: "伏笔变化",
   worldbuildingReveals: "世界观揭露",
   currentCharacterState: "人物当前状态",
@@ -46,7 +47,7 @@ export default {
     "暂时无法读取变更影响，内容尚未保存。",
   changesCouldNotBeSavedSaveAgainOrReject: "变更未能保存，可再次保存或拒绝。",
   waitingForPrecedingFileOperationsToFinishBeforeResuming:
-    "正在等待前序文件创建或写入完成，随后继续校验。",
+    "等待前序提案保存；失败时请先重试或拒绝该提案。",
   readingFilesAndChangeImpact: "正在读取文件与变更影响……",
   applyingAndSavingChanges: "正在应用变更并保存……",
   addedToTheAutosaveQueue: "已加入实时自动保存队列。",
@@ -82,7 +83,7 @@ export default {
   thisDiffIsLargeSoOnlySomeChangesAre:
     "差异较大，仅显示部分变更；行数统计包含完整提案。",
   fileIdentityAndSourceContentHaveNotPassedValidation:
-    "文件身份和原文尚未通过校验，暂不显示差异。",
+    "重新读取并校验文件后可查看差异。",
   aBlankMarkdownFileWasCreatedNoManuscriptLine:
     "已创建空白 Markdown 文件，没有正文行级差异。",
   reject: "拒绝",

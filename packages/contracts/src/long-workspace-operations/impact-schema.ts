@@ -332,6 +332,7 @@ export const LONG_WORKSPACE_OPERATION_ERROR_CODES = [
   "impact_mismatch",
   "invalid_order",
   "recorded_chapter_order",
+  "historical_continuity_readonly",
   "invalid_document_write",
   "invalid_result",
   "document_changed"

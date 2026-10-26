@@ -2,6 +2,7 @@ import type {
   LongWorkspaceFileReference,
   LongWorkspaceIndexSnapshot
 } from "@deepwrite/contracts";
+import { isLongChapterContinuityReadOnly } from "@deepwrite/contracts";
 import {
   LONG_BOOK_LINE_ID,
   LONG_CHAPTER_CHARACTER_DOCUMENTS,
@@ -160,7 +161,10 @@ function resolveChapterDocument(
     title: `${card.title} / ${
       characterName ? `${characterName} / ` : ""
     }${LONG_DOCUMENT_LABELS[document]}`,
-    file
+    file,
+    ...(document !== "body" && document !== "card"
+      ? { readOnly: isLongChapterContinuityReadOnly(index, files) }
+      : {})
   };
 }
 

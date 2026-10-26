@@ -4,8 +4,12 @@ import {
   type Message,
   type Tool
 } from "@earendil-works/pi-ai";
-import { inPlaceSummaryPrompt } from "./summary-prompts";
+import {
+  inPlaceSummaryPrompt,
+  summaryLengthInstruction
+} from "./summary-prompts";
 import type { SummaryModel, SummaryRequest } from "./summarize";
+import { streamSummary } from "./summary-stream";
 
 /** The run's own request head: same system prompt, tools and cache key. */
 export interface InPlaceSummaryTarget {
@@ -28,11 +32,7 @@ export async function summarizeInPlace(
 ): Promise<string> {
   if (summaryModel.local) throw new Error("本地模拟不使用原位摘要。");
   request.signal.throwIfAborted();
-  const { model, streamFn, thinkingLevel } = summaryModel;
-  const signal = AbortSignal.any([
-    request.signal,
-    AbortSignal.timeout(120_000)
-  ]);
+  const { thinkingLevel } = summaryModel;
   // Same conversion the agent loop applies before every request.
   const sent = messages.filter(
     (message): message is Message =>
@@ -41,8 +41,8 @@ export async function summarizeInPlace(
       message.role === "assistant" ||
       message.role === "toolResult"
   );
-  const stream = await streamFn(
-    model,
+  const result = await streamSummary(
+    summaryModel,
     normalizeContext({
       ...(sent.some((message) => message.role === "system")
         ? {}
@@ -54,7 +54,10 @@ export async function summarizeInPlace(
           content: [
             {
               type: "text",
-              text: inPlaceSummaryPrompt(request.task, request.instructions)
+              text: [
+                inPlaceSummaryPrompt(request.task, request.instructions),
+                summaryLengthInstruction(request.targetTokens)
+              ].join("\n\n")
             }
           ],
           timestamp: Date.now()
@@ -62,26 +65,22 @@ export async function summarizeInPlace(
       ]
     }),
     {
-      maxTokens: Math.min(
-        request.maxTokens,
-        model.maxTokens || request.maxTokens
-      ),
-      signal,
+      // Preserve the selected model's limit and thinking level through Pi.
       maxRetries: 0,
       ...(target.sessionId ? { sessionId: target.sessionId } : {}),
       ...(thinkingLevel === "off" ? {} : { reasoning: thinkingLevel })
-    }
+    },
+    request.signal
   );
-  const result = await stream.result();
   request.onUsage({
     usage: result.usage,
     runtime: summaryModel.runtime,
     status:
       result.stopReason === "aborted"
         ? "aborted"
-        : result.stopReason === "error"
-          ? "error"
-          : "completed"
+        : result.stopReason === "stop"
+          ? "completed"
+          : "error"
   });
   request.signal.throwIfAborted();
   const text = result.content

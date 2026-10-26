@@ -1,4 +1,4 @@
-import { formatError, getErrorCode } from "../i18n/errors";
+import { getErrorCode } from "../i18n/errors";
 import { createScopedTranslator } from "../i18n";
 import { ref, type Ref } from "vue";
 import {
@@ -20,6 +20,10 @@ import { createId } from "@deepwrite/shared";
 import type { LongWorkspaceRendererApi } from "../types/longWorkspace";
 import { createKeyedSerialTaskQueue } from "../utils/keyedSerialTaskQueue";
 import { longWorldbuildingFiles } from "../utils/longWorldbuildingFiles";
+import {
+  longProposalErrorMessage as errorMessage,
+  withLongProposalBlockers
+} from "./proposal-coordinator/long-proposal-feedback";
 import {
   commitLongContinuityFinalization,
   continuityFinalizationKey,
@@ -279,6 +283,7 @@ export interface LongWorkspaceProposalItem {
   error?: string;
   errorPhase?: "preview" | "apply";
   errorRetryable?: boolean;
+  blockedByError?: boolean;
 }
 
 interface LongProposalNotifications {
@@ -349,10 +354,6 @@ function isLongProposalEvent(
   event: SystemEventEnvelope
 ): event is LongWorkspaceProposalEvent {
   return LONG_PROPOSAL_TYPES.has(event.type);
-}
-
-function errorMessage(error: unknown, fallback: string): string {
-  return formatError(error, fallback);
 }
 
 function isRetryableLongProposalError(error: unknown): boolean {
@@ -428,7 +429,7 @@ export function useLongWorkspaceProposals(
     );
     const next = { ...queues.value };
     if (retained.length) {
-      next[bookId] = retained;
+      next[bookId] = withLongProposalBlockers(retained);
     } else {
       delete next[bookId];
     }
@@ -517,14 +518,12 @@ export function useLongWorkspaceProposals(
     if (currentIndex < 0) return undefined;
     return items
       .slice(0, currentIndex)
-      .reverse()
       .find(
         (candidate) =>
           isBatchProposal(candidate.event) &&
           candidate.event.payload.sessionId === item.event.payload.sessionId &&
           candidate.event.payload.runId === item.event.payload.runId &&
-          candidate.status !== "accepted" &&
-          candidate.status !== "error"
+          candidate.status !== "accepted"
       );
   }
 

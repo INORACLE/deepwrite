@@ -17,8 +17,8 @@ export interface ContextBudget {
   summarizeAt: number;
   /** Recent context kept verbatim by a summary. */
   keepRecentTokens: number;
-  /** Output limit of one summary request. */
-  summaryMaxTokens: number;
+  /** Soft summary length target used in the prompt, not a generation cap. */
+  summaryTargetTokens: number;
   /** Budget for source content re-attached after a summary. */
   rehydrateTokens: number;
 }
@@ -45,7 +45,7 @@ export function resolveContextBudget(
     pruneAt: Math.floor(working * 0.5),
     summarizeAt: Math.floor(working * 0.8),
     keepRecentTokens: Math.max(128, Math.floor(working * 0.25)),
-    summaryMaxTokens: Math.max(
+    summaryTargetTokens: Math.max(
       128,
       Math.min(6_144, maxOutput, Math.floor(working * 0.15))
     ),

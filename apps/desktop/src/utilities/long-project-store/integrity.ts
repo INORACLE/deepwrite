@@ -1,5 +1,7 @@
 import {
   LongFileIdSchema,
+  LongWorkspaceOperationError,
+  isLongChapterContinuityReadOnly,
   LONG_WORKSPACE_INDEX_PATH,
   type LongProjectManifest,
   type LongWorkspaceIndexSnapshot
@@ -26,7 +28,7 @@ export function assertMutableChapterDocument(
 ): void {
   const committedContinuity = index.chapters.some(
     (chapter) =>
-      chapter.commitId !== null &&
+      isLongChapterContinuityReadOnly(index, chapter) &&
       [
         chapter.characterState,
         chapter.handoff,
@@ -39,7 +41,11 @@ export function assertMutableChapterDocument(
       ].some((file) => file?.id === fileId)
   );
   if (committedContinuity) {
-    throw new Error("已提交的连续性文件为只读，请先删除对应提交记录再修改。");
+    throw new LongWorkspaceOperationError(
+      "historical_continuity_readonly",
+      "历史章节的连续性文件为只读，仅最新账本提交的末章可以继续修改。",
+      { fileId }
+    );
   }
 }
 

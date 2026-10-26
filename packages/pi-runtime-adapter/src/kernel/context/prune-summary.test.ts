@@ -104,7 +104,7 @@ describe("loss-aware context pruning and summarization", () => {
       undefined,
       {
         task: "short-plot",
-        maxTokens: 300,
+        targetTokens: 300,
         signal: new AbortController().signal,
         state: new ConversationContextState(),
         onUsage: () => {}
@@ -131,7 +131,7 @@ describe("loss-aware context pruning and summarization", () => {
     };
     const request = {
       task: "short-draft" as const,
-      maxTokens: 500,
+      targetTokens: 500,
       signal: new AbortController().signal,
       state: new ConversationContextState(),
       onUsage: () => {}
@@ -162,7 +162,7 @@ describe("loss-aware context pruning and summarization", () => {
       undefined,
       {
         task: "general",
-        maxTokens: 300,
+        targetTokens: 300,
         signal: controller.signal,
         state: new ConversationContextState(),
         onUsage: () => {}

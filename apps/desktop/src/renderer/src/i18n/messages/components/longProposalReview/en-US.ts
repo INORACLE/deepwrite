@@ -1,4 +1,5 @@
 export default {
+  precedingChangeFailed: "Preceding change failed",
   foreshadowingChanges: "Foreshadowing changes",
   worldbuildingReveals: "Worldbuilding reveals",
   currentCharacterState: "Current character state",
@@ -47,7 +48,7 @@ export default {
   changesCouldNotBeSavedSaveAgainOrReject:
     "Changes could not be saved. Save again or reject.",
   waitingForPrecedingFileOperationsToFinishBeforeResuming:
-    "Waiting for preceding file operations to finish before resuming validation.",
+    "Waiting for earlier saves. Retry or reject failed proposals first.",
   readingFilesAndChangeImpact: "Reading files and change impact…",
   applyingAndSavingChanges: "Applying and saving changes…",
   addedToTheAutosaveQueue: "Added to the autosave queue.",
@@ -85,7 +86,7 @@ export default {
   thisDiffIsLargeSoOnlySomeChangesAre:
     "This diff is large, so only some changes are shown. Line counts cover the full proposal.",
   fileIdentityAndSourceContentHaveNotPassedValidation:
-    "File identity and source content have not passed validation. The diff is not available yet.",
+    "Reload and validate the file to view the diff.",
   aBlankMarkdownFileWasCreatedNoManuscriptLine:
     "A blank Markdown file was created. No manuscript line changes.",
   reject: "Reject",

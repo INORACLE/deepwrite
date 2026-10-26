@@ -269,6 +269,9 @@ function proposalAction(item: LongWorkspaceProposalItem): string {
 }
 
 function proposalStatusText(item: LongWorkspaceProposalItem): string {
+  if (item.status === "waiting" && item.blockedByError) {
+    return t("precedingChangeFailed");
+  }
   if (item.event.type === "long.ledger_commit_proposal") {
     if (item.status === "accepted") return t("archived");
     if (item.status === "waiting") return t("waitingForPrerequisiteFiles");
@@ -313,6 +316,9 @@ function contentProposalVisualStatus(
 }
 
 function contentProposalStatusLabel(item: LongWorkspaceProposalItem): string {
+  if (item.status === "waiting" && item.blockedByError) {
+    return t("precedingChangeFailed");
+  }
   if (item.status === "accepted") return t("accepted");
   if (item.status === "error") {
     return item.errorPhase === "preview"
@@ -416,6 +422,9 @@ function proposalVisualStatus(
 function structureProposalStatusMessage(
   item: LongWorkspaceProposalItem
 ): string {
+  if (item.status === "waiting") {
+    return t("waitingForPrecedingFileOperationsToFinishBeforeResuming");
+  }
   if (item.status === "accepted")
     return t("structureChangesAppliedAndSavedLocally");
   if (item.status === "error") {

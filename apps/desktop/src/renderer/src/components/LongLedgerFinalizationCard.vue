@@ -5,6 +5,7 @@ import type { LongWorkspaceProposalItem } from "../composables/useLongWorkspaceP
 import AppIcon from "./AppIcon.vue";
 
 const t = createScopedTranslator("components.longLedgerFinalizationCard");
+const proposalText = createScopedTranslator("components.longProposalReview");
 
 const props = defineProps<{ item: LongWorkspaceProposalItem }>();
 
@@ -39,7 +40,9 @@ const batchInfo = computed(() => {
 const statusLabel = computed(() => {
   switch (props.item.status) {
     case "waiting":
-      return t("waitingForPrerequisiteFiles");
+      return props.item.blockedByError
+        ? proposalText("precedingChangeFailed")
+        : t("waitingForPrerequisiteFiles");
     case "submitting":
       return t("archiving");
     case "accepted":
@@ -63,7 +66,9 @@ const statusMessage = computed(() => {
     );
   }
   if (props.item.status === "waiting") {
-    return t("theFullChapterBatchWillBeArchivedAfterAll");
+    return props.item.blockedByError
+      ? proposalText("waitingForPrecedingFileOperationsToFinishBeforeResuming")
+      : t("theFullChapterBatchWillBeArchivedAfterAll");
   }
   if (props.item.status === "submitting") {
     return t("validatingBatchManuscriptsHistoricalLedgersAndFinalChapterFiles");

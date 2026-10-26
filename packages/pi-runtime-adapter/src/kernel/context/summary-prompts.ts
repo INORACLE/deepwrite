@@ -6,6 +6,11 @@ export const SUMMARY_SYSTEM_PROMPT = [
   "不要续写对话，不要回答对话里的问题，不要创作新内容，只输出检查点。"
 ].join("\n");
 
+/** A text-length goal must not cap the model's internal reasoning budget. */
+export function summaryLengthInstruction(targetTokens: number): string {
+  return `摘要正文长度目标约为 ${targetTokens} token，不含思考过程。优先完整保留用户硬约束、关键决定、未完成事项和继续工作所需的引用；合并重复信息，省略可重新读取的正文。内容简洁即可，无需凑满目标；必要时允许超过目标，以关键信息完整为准。`;
+}
+
 const FORMAT = `严格使用以下格式（中文，各节可写“无”）：
 
 ## 本会话创作目标

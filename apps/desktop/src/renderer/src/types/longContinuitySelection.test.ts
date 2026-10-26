@@ -8,6 +8,43 @@ import {
 } from "./longWorkspace";
 
 describe("continuity selection permissions", () => {
+  it("refreshes an open checkpoint to read-only after a later ledger entry is added", () => {
+    const { summary, workspaceIndex } = fixture("commit_one");
+    const selected = createLongContinuitySelection(
+      summary,
+      workspaceIndex,
+      "chapter_one"
+    )!;
+    expect(
+      selected.files.find(({ role }) => role === "handoff")?.readOnly
+    ).toBe(false);
+    workspaceIndex.ledger.commits.push({
+      ...workspaceIndex.ledger.commits[0]!,
+      id: "commit_later",
+      sequence: 2,
+      chapterCardId: "chapter_two"
+    });
+    const historical = reconcileLongWorkspaceSelection(
+      summary,
+      workspaceIndex,
+      selected
+    )!;
+    expect(
+      historical.files
+        .filter(({ role }) => role !== "body")
+        .every(({ readOnly }) => readOnly)
+    ).toBe(true);
+    workspaceIndex.ledger.commits.pop();
+    const latest = reconcileLongWorkspaceSelection(
+      summary,
+      workspaceIndex,
+      historical
+    )!;
+    expect(latest.files.find(({ role }) => role === "handoff")?.readOnly).toBe(
+      false
+    );
+  });
+
   it("allows pending continuity edits while keeping body evidence read-only", () => {
     const { summary, workspaceIndex } = fixture(null);
     const selection = createLongContinuitySelection(
@@ -175,8 +212,7 @@ describe("continuity selection permissions", () => {
       ]);
       expect(
         selection?.files.every(
-          ({ role, readOnly }) =>
-            readOnly === (role === "body" || commitId !== null)
+          ({ role, readOnly }) => readOnly === (role === "body")
         )
       ).toBe(true);
       expect(
@@ -227,6 +263,10 @@ describe("continuity selection permissions", () => {
       pending
     )!;
     expect(resubmitted.continuityView).toBe("history");
-    expect(resubmitted.files.every(({ readOnly }) => readOnly)).toBe(true);
+    expect(
+      resubmitted.files.every(
+        ({ role, readOnly }) => readOnly === (role === "body")
+      )
+    ).toBe(true);
   });
 });

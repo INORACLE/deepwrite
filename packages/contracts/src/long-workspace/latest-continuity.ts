@@ -2,6 +2,19 @@ import type { LongWorkspaceIndexSnapshot } from "./index-validation";
 
 type LongChapterFileEntry = LongWorkspaceIndexSnapshot["chapters"][number];
 
+/** Only the newest ledger entry's checkpoint remains editable after recording. */
+export function isLongChapterContinuityReadOnly(
+  workspaceIndex: Pick<LongWorkspaceIndexSnapshot, "ledger">,
+  chapter: Pick<LongChapterFileEntry, "chapterCardId" | "commitId">
+): boolean {
+  if (chapter.commitId === null) return false;
+  const latest = workspaceIndex.ledger.commits.at(-1);
+  return (
+    latest?.id !== chapter.commitId ||
+    latest.chapterCardId !== chapter.chapterCardId
+  );
+}
+
 /** Resolves the newest commit's final continuity checkpoint chapter. */
 export function latestCommittedContinuityChapter(
   workspaceIndex: LongWorkspaceIndexSnapshot,

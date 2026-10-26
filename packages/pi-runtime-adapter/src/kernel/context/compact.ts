@@ -206,7 +206,7 @@ export async function compactMessages(
     ...(policy.manual?.instructions
       ? { instructions: policy.manual.instructions }
       : {}),
-    maxTokens: budget.summaryMaxTokens,
+    targetTokens: budget.summaryTargetTokens,
     signal: request.signal,
     state,
     onUsage: request.onUsage

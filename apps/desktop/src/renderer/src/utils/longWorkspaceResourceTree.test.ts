@@ -484,7 +484,7 @@ describe("long workspace resource-tree projection", () => {
         projectLongWorkspaceNavigation(summaryFixture(), index)
           .find(({ label }) => label === "连续性账本")
           ?.children?.find((node) => node.label === label)?.children?.[0];
-      const assertPermissions = (label: string, committed: boolean) => {
+      const assertPermissions = (label: string) => {
         const node = select(label)!;
         expect(
           node.longWorkspaceSelection?.files.find(({ role }) => role === "body")
@@ -493,17 +493,17 @@ describe("long workspace resource-tree projection", () => {
         expect(
           node.longWorkspaceSelection?.files
             .filter(({ role }) => role !== "body")
-            .every(({ readOnly }) => readOnly === committed)
+            .every(({ readOnly }) => !readOnly)
         ).toBe(true);
         if (layout === "left-tree") {
           const handoff = node.children?.find(
             ({ label }) => label === "接续包"
           );
           expect(handoff).toBeDefined();
-          expect(Boolean(handoff?.readOnly)).toBe(committed);
+          expect(Boolean(handoff?.readOnly)).toBe(false);
         }
       };
-      assertPermissions("待处理章节", false);
+      assertPermissions("待处理章节");
       const commit = {
         id: "commit_permissions",
         mode: "text_files" as const,
@@ -519,13 +519,13 @@ describe("long workspace resource-tree projection", () => {
       };
       chapter.commitId = commit.id;
       index.ledger.commits = [commit];
-      assertPermissions("章节记录", true);
+      assertPermissions("章节记录");
       chapter.commitId = null;
       index.ledger.commits = [];
-      assertPermissions("待处理章节", false);
+      assertPermissions("待处理章节");
       chapter.commitId = commit.id;
       index.ledger.commits = [commit];
-      assertPermissions("章节记录", true);
+      assertPermissions("章节记录");
     }
   );
 });

@@ -52,6 +52,11 @@ export async function previewWorkspaceOperations(
       loaded,
       requestedBatch
     );
+    for (const proposal of batch.documentWrites) {
+      if (proposal.mode !== "create") {
+        assertDirectlyMutableDocument(loaded.index, proposal.fileId);
+      }
+    }
     return previewLongWorkspaceOperations(loaded.index, batch);
   });
 }

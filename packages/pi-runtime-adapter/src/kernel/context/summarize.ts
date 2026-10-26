@@ -19,9 +19,11 @@ import type { ConversationContextState } from "./state";
 import {
   SUMMARY_SYSTEM_PROMPT,
   initialSummaryPrompt,
-  updateSummaryPrompt
+  updateSummaryPrompt,
+  summaryLengthInstruction
 } from "./summary-prompts";
 import type { ContextTaskKind } from "./types";
+import { streamSummary } from "./summary-stream";
 
 const SUMMARY_RETRY_DELAYS_MS = [1_000, 3_000] as const;
 
@@ -43,7 +45,8 @@ export interface SummaryUsage {
 export interface SummaryRequest {
   task: ContextTaskKind;
   instructions?: string;
-  maxTokens: number;
+  /** Prompt-only text target. Pi uses the configured model generation limit. */
+  targetTokens: number;
   signal: AbortSignal;
   state: ConversationContextState;
   onUsage(usage: SummaryUsage): void;
@@ -96,15 +99,11 @@ async function complete(
 ): Promise<string> {
   request.signal.throwIfAborted();
   if (summaryModel.local) return localSummary(prompt);
-  const { model, streamFn, thinkingLevel } = summaryModel;
+  const { thinkingLevel } = summaryModel;
   for (let attempt = 0; ; attempt += 1) {
     request.signal.throwIfAborted();
-    const signal = AbortSignal.any([
-      request.signal,
-      AbortSignal.timeout(120_000)
-    ]);
-    const stream = streamFn(
-      model,
+    const result = await streamSummary(
+      summaryModel,
       normalizeContext({
         systemPrompt: SUMMARY_SYSTEM_PROMPT,
         messages: [
@@ -116,21 +115,14 @@ async function complete(
         ]
       }),
       {
-        maxTokens: Math.min(
-          request.maxTokens,
-          model.maxTokens || request.maxTokens
-        ),
-        signal,
+        // Let Pi use model.maxTokens and clamp it to the remaining context.
         maxRetries: 0,
         // One-off requests: isolate routing and skip unreusable cache writes.
         cacheRetention: "none",
         sessionId: randomUUID(),
         ...(thinkingLevel === "off" ? {} : { reasoning: thinkingLevel })
-      }
-    );
-    const result = await abortable(
-      Promise.resolve(stream).then((value) => value.result()),
-      signal
+      },
+      request.signal
     );
     request.onUsage({
       usage: result.usage,
@@ -138,9 +130,9 @@ async function complete(
       status:
         result.stopReason === "aborted"
           ? "aborted"
-          : result.stopReason === "error"
-            ? "error"
-            : "completed"
+          : result.stopReason === "stop"
+            ? "completed"
+            : "error"
     });
     if (result.stopReason === "aborted") {
       throw request.signal.reason ?? new Error("上下文压缩已中止。");
@@ -155,28 +147,15 @@ async function complete(
     }
     request.signal.throwIfAborted();
     if (result.stopReason !== "stop")
-      throw new Error("摘要输出不完整，保留原上下文。请提高摘要模型输出上限。");
+      throw new Error(
+        "摘要输出不完整，保留原上下文。摘要输出上限包含思考 token，请降低摘要模型思考强度或提高输出上限。"
+      );
     const text = assistantText(result);
     if (text.length > 32_000)
       throw new Error("摘要超过保存上限，保留原上下文。");
     if (!text) throw new Error("摘要模型没有返回内容。");
     return text;
   }
-}
-
-/** Even a provider that never finishes its stream must release the run. */
-function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const abort = () => reject(signal.reason);
-    if (signal.aborted) {
-      reject(signal.reason);
-      return;
-    }
-    signal.addEventListener("abort", abort, { once: true });
-    promise
-      .then(resolve, reject)
-      .finally(() => signal.removeEventListener("abort", abort));
-  });
 }
 
 /** Fold every character, including the middle of long user messages, into
@@ -188,16 +167,23 @@ export async function summarizeMessages(
   request: SummaryRequest
 ): Promise<string> {
   const window = summaryModel.model.contextWindow || 128_000;
-  const output = Math.min(
-    request.maxTokens,
-    summaryModel.model.maxTokens || request.maxTokens
+  // Reserve space while splitting input; this is not an API output cap.
+  // Pi independently fits the model's generation limit to each request.
+  const outputReserve = Math.min(
+    summaryModel.model.maxTokens > 0
+      ? summaryModel.model.maxTokens
+      : Math.floor(window * 0.25),
+    Math.floor(window * 0.25)
   );
   let remaining = serializeForSummary(messages, request.state);
   let summary = previousSummary;
   while (remaining.length) {
-    const instructions = summary
-      ? updateSummaryPrompt(request.task, request.instructions)
-      : initialSummaryPrompt(request.task, request.instructions);
+    const instructions = [
+      summary
+        ? updateSummaryPrompt(request.task, request.instructions)
+        : initialSummaryPrompt(request.task, request.instructions),
+      summaryLengthInstruction(request.targetTokens)
+    ].join("\n\n");
     const previous = summary
       ? `<previous-summary>\n${summary}\n</previous-summary>`
       : "";
@@ -205,7 +191,7 @@ export async function summarizeMessages(
       estimateTextTokens(SUMMARY_SYSTEM_PROMPT + instructions + previous) *
         1.5 +
       512;
-    const available = Math.floor((window - output - overhead) * 0.7);
+    const available = Math.floor((window - outputReserve - overhead) * 0.7);
     if (available < 256)
       throw new Error(
         "摘要模型上下文不足以容纳已有摘要，请选择更大窗口的摘要模型。"
