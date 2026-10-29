@@ -13,13 +13,7 @@ export default {
   characters: "人物",
   valueContinuityFiles: "{arg0} 个连续性文件",
   continuityLedgerArchive: "连续性账本归档",
-  processing: "处理中…",
-  retryAutosave: "重试自动保存",
-  retry: "重试",
-  apply: "确认应用",
-  writeAndSave: "确认写入并保存",
   retryArchive: "重试归档",
-  archiveNow: "立即归档",
   archived: "已归档",
   waitingForPrerequisiteFiles: "等待前序文件",
   archiving: "正在归档",
@@ -72,14 +66,9 @@ export default {
   retryApplying: "重试应用",
   acceptAndApply: "接受并应用",
   novelProposalsAwaitingApproval: "长篇待审批提案",
-  agentWrites: "智能体写入",
-  itemsProcessing: "项处理中",
-  itemsSaved: "项已保存",
-  allChangesAreScopedToTheCurrentBook: "所有变更均按当前书籍隔离",
   goToTargetFile: "跳转到目标文件",
   valueLinesAddedValueLinesRemoved: "增加 {arg0} 行，删除 {arg1} 行",
   viewChanges: "查看差异",
-  changeBlocks: "个变更块",
   thisDiffIsLargeSoOnlySomeChangesAre:
     "差异较大，仅显示部分变更；行数统计包含完整提案。",
   fileIdentityAndSourceContentHaveNotPassedValidation:
@@ -87,8 +76,5 @@ export default {
   aBlankMarkdownFileWasCreatedNoManuscriptLine:
     "已创建空白 Markdown 文件，没有正文行级差异。",
   reject: "拒绝",
-  previewAgain: "重新预览",
-  processingMessage: "{arg0} 项处理中",
-  savedMessage: "{arg0} 项已保存",
   changeBlocksMessage: "{arg0} 个变更块"
 };

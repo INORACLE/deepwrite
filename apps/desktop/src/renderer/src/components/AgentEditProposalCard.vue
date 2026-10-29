@@ -8,11 +8,17 @@ import AppIcon from "./AppIcon.vue";
 import AgentEditProposalDiff from "./AgentEditProposalDiff.vue";
 import ApprovalDiscardButton from "./ApprovalDiscardButton.vue";
 import {
-  approvalDiscardStatusLabel,
-  approvalDiscardStatusMessage,
-  approvalDiscardVisualStatus,
-  shouldShowApprovalDiscardButton
-} from "./approvalDiscardPresentation";
+  isStaleProposal,
+  longExpectedImpact as proposalExpectedImpact,
+  proposalAcceptLabel,
+  proposalDiscardState,
+  proposalReviewDisabled,
+  proposalStatusLabel,
+  proposalStatusMessage,
+  proposalVisualStatus,
+  showDiscardButton,
+  showProposalReviewActions
+} from "./agentEditProposalPresentation";
 
 const t = createScopedTranslator("components.agentEditProposalCard");
 const longWorkspace = useLongWorkspaceStore();
@@ -25,10 +31,13 @@ const props = withDefaults(
     discardable?: boolean;
     /** Received through device sync: reviewed on that device, read-only here. */
     remoteDevice?: string | undefined;
+    /** `row`: body of a file-change summary row, whose header shows the title. */
+    variant?: "card" | "row";
   }>(),
   {
     allowLiveEditReview: false,
-    discardable: false
+    discardable: false,
+    variant: "card"
   }
 );
 
@@ -44,124 +53,9 @@ const emit = defineEmits<{
   discard: [payload: { runId: string; proposalId: string }];
 }>();
 
-const proposalStatusLabels: Record<AgentEditProposal["status"], string> = {
-  get pending() {
-    return t("awaitingReview");
-  },
-  get accepting() {
-    return t("applying");
-  },
-  get accepted() {
-    return t("accepted");
-  },
-  get rejected() {
-    return t("rejected");
-  },
-  get conflict() {
-    return t("changeConflict");
-  },
-  get error() {
-    return t("failedToApply");
-  }
-};
-
-const proposalStatusMessages: Record<AgentEditProposal["status"], string> = {
-  get pending() {
-    return t("acceptToApplyTheChangesToTheCurrentManuscript");
-  },
-  get accepting() {
-    return t("applyingAndSavingChanges");
-  },
-  get accepted() {
-    return t("changesAppliedAndSavedLocally");
-  },
-  get rejected() {
-    return t("theCurrentManuscriptWasKeptTheseChangesWereNot");
-  },
-  get conflict() {
-    return t("theChangesCouldNotBeAppliedCurrentContentWas");
-  },
-  get error() {
-    return t("theChangesCouldNotBeAppliedCheckTheRun");
-  }
-};
-
-/** The target changed after the agent read it; the user must choose. */
-const isStale = computed(
-  () =>
-    props.proposal.staleBase !== undefined &&
-    props.proposal.status === "pending"
-);
-
-function proposalStatusLabel(): string {
-  if (props.remoteDevice && props.proposal.status === "pending")
-    return t("awaitingReviewOnDevice", { device: props.remoteDevice });
-  const discardLabel = approvalDiscardStatusLabel(proposalDiscardState());
-  if (discardLabel) return discardLabel;
-  if (isStale.value) return t("youEditedThis");
-  if (
-    props.proposal.status === "pending" &&
-    props.proposal.approvalMode === "auto-approve"
-  ) {
-    return t("awaitingAutosave");
-  }
-  if (isLongProposal()) {
-    if (props.proposal.status === "accepting") return t("saving");
-    if (props.proposal.status === "conflict") return t("contentChanged");
-    if (props.proposal.status === "error") return t("saveFailed");
-  }
-  return proposalStatusLabels[props.proposal.status];
-}
-
-function proposalVisualStatus(): AgentEditProposal["status"] {
-  return (
-    approvalDiscardVisualStatus(proposalDiscardState()) ??
-    (isStale.value ? "conflict" : props.proposal.status)
-  );
-}
-
-function showDiscardButton(): boolean {
-  if (props.remoteDevice) return false;
-  return shouldShowApprovalDiscardButton(
-    props.discardable,
-    props.proposal.status === "accepted",
-    proposalDiscardState()
-  );
-}
-
-function proposalAcceptLabel(): string {
-  if (props.proposal.status === "accepting") return t("savingLabel");
-  if (isStale.value) return t("overwriteWithAgentVersion");
-  if (isLongProposal()) {
-    if (!longExpectedImpact.value) return t("reviewImpact");
-    return props.proposal.status === "error"
-      ? t("confirmAgain")
-      : t("confirmAndSave");
-  }
-  return props.proposal.status === "error"
-    ? t("retryAcceptingAndSaving")
-    : t("acceptAndSave");
-}
-
-function isLongProposal(): boolean {
-  return Boolean(
-    props.proposal.longWorldbuildingTarget ||
-    props.proposal.longCharacterTarget ||
-    props.proposal.longPlotDesignTarget ||
-    props.proposal.longDraftTarget
-  );
-}
-
-function proposalDiscardState(): AgentEditProposal["discardState"] | undefined {
-  return isLongProposal() ? undefined : props.proposal.discardState;
-}
-
-const longExpectedImpact = computed(
-  () =>
-    props.proposal.longWorldbuildingTarget?.expectedImpact ??
-    props.proposal.longCharacterTarget?.expectedImpact ??
-    props.proposal.longPlotDesignTarget?.expectedImpact ??
-    props.proposal.longDraftTarget?.expectedImpact
+const isStale = computed(() => isStaleProposal(props.proposal));
+const longExpectedImpact = computed(() =>
+  proposalExpectedImpact(props.proposal)
 );
 const longExpectedImpactSummary = computed(() =>
   longExpectedImpact.value
@@ -173,180 +67,30 @@ const longExpectedImpactSummary = computed(() =>
       )
     : ""
 );
-
-function canReviewProposalWhileStreaming(): boolean {
-  return props.allowLiveEditReview;
-}
-
-function showProposalReviewActions(): boolean {
-  if (props.remoteDevice) return false;
-  if (
-    !isStale.value &&
-    props.proposal.approvalMode === "auto-approve" &&
-    canReviewProposalWhileStreaming() &&
-    (props.proposal.status === "pending" ||
-      props.proposal.status === "accepting")
-  ) {
-    return false;
-  }
-  return (
-    props.proposal.status === "pending" ||
-    props.proposal.status === "accepting" ||
-    props.proposal.status === "error" ||
-    props.proposal.status === "conflict"
-  );
-}
-
-function isProposalReviewable(decision: "accept" | "reject"): boolean {
-  return (
-    props.proposal.status === "pending" ||
-    props.proposal.status === "error" ||
-    (decision === "reject" && props.proposal.status === "conflict")
-  );
-}
-
-function proposalReviewDisabled(decision: "accept" | "reject"): boolean {
-  if (!isProposalReviewable(decision)) return true;
-  return (
-    props.messageStatus === "streaming" && !canReviewProposalWhileStreaming()
-  );
-}
-
-function proposalStatusMessage(): string {
-  const proposal = props.proposal;
-  if (props.remoteDevice)
-    return t(
-      proposal.status === "pending" ? "reviewOnlyOnDevice" : "handledOnDevice",
-      { device: props.remoteDevice }
-    );
-  const discardMessage = approvalDiscardStatusMessage(proposalDiscardState());
-  if (discardMessage) return discardMessage;
-  if (isStale.value) {
-    return isLongProposal() ? t("staleLongMessage") : t("staleTextMessage");
-  }
-  if (!proposal.statusMessage && isLongProposal()) {
-    if (proposal.status === "accepting") {
-      return t("savingThisNovelChange");
-    }
-    if (proposal.status === "conflict") {
-      return t("theTargetContentOrItsLinksHaveChangedThis");
-    }
-    if (proposal.status === "error") {
-      return t("thisNovelChangeCouldNotBeSavedCheckThe");
-    }
-  }
-  if (
-    props.messageStatus === "streaming" &&
-    proposal.status === "pending" &&
-    proposal.approvalMode === "auto-approve" &&
-    canReviewProposalWhileStreaming()
-  ) {
-    return t("thisItemIsReadyAndIsEnteringTheAutosave");
-  }
-  if (
-    props.messageStatus === "streaming" &&
-    proposal.status === "pending" &&
-    canReviewProposalWhileStreaming()
-  ) {
-    return t("thisItemIsReadyForReviewTheAgentIs");
-  }
-  if (
-    props.messageStatus === "streaming" &&
-    proposal.status === "error" &&
-    canReviewProposalWhileStreaming()
-  ) {
-    return (
-      proposal.statusMessage ?? t("autosaveFailedYouCanRetryOrRejectNowThe")
-    );
-  }
-  if (
-    props.messageStatus === "streaming" &&
-    proposal.status === "pending" &&
-    proposal.approvalMode === "auto-approve"
-  ) {
-    return t("thisItemIsReadyAndHasBeenAddedTo");
-  }
-  if (
-    props.messageStatus === "streaming" &&
-    (proposal.status === "pending" || proposal.status === "error")
-  ) {
-    return t("availableForReviewWhenGenerationFinishes");
-  }
-  if (
-    !proposal.statusMessage &&
-    proposal.status === "pending" &&
-    proposal.libraryTarget
-  ) {
-    return proposal.libraryTarget.operation === "create"
-      ? t("acceptToCreateTheLibraryEntryAndSaveIt")
-      : t("acceptToUpdateTheLibraryEntryAndSaveIt");
-  }
-  if (
-    !proposal.statusMessage &&
-    proposal.status === "pending" &&
-    proposal.draftSectionCreationTarget
-  ) {
-    return t("acceptToCreateBlankManuscriptAndCharacterStateFiles");
-  }
-  if (
-    !proposal.statusMessage &&
-    proposal.status === "pending" &&
-    proposal.draftSectionRenameTarget
-  ) {
-    return t("acceptToRenameTheChapterAndSaveLocallyIts");
-  }
-  if (
-    !proposal.statusMessage &&
-    proposal.status === "pending" &&
-    proposal.draftSectionDeletionTarget
-  ) {
-    return t("acceptToPermanentlyDeleteThisChapterItsManuscriptAnd");
-  }
-  if (
-    !proposal.statusMessage &&
-    proposal.status === "pending" &&
-    proposal.longWorldbuildingTarget
-  ) {
-    return proposal.longWorldbuildingTarget.file.operation === "create"
-      ? t("acceptToCreateABlankWorldbuildingFileAndSave")
-      : t("acceptToWriteTheWorldbuildingFileAndSaveIt");
-  }
-  if (
-    !proposal.statusMessage &&
-    proposal.status === "pending" &&
-    proposal.longCharacterTarget
-  ) {
-    return proposal.longCharacterTarget.files.every(
-      ({ operation }) => operation === "create"
-    )
-      ? t("acceptToCreateTheCharacterAndBothProfilesAnd")
-      : t("acceptToWriteTheCharacterProfileAndSaveIt");
-  }
-  if (
-    !proposal.statusMessage &&
-    proposal.status === "pending" &&
-    proposal.longPlotDesignTarget
-  ) {
-    return t("acceptToValidateStructuralImpactAndSaveThePlot");
-  }
-  if (
-    !proposal.statusMessage &&
-    proposal.status === "pending" &&
-    proposal.longDraftTarget
-  ) {
-    return t("acceptToSaveTheCurrentChapterManuscriptToIts");
-  }
-  return (
-    proposal.statusMessage?.trim() || proposalStatusMessages[proposal.status]
-  );
-}
+const canLocate = computed(
+  () => props.proposal.status === "accepted" && !props.remoteDevice
+);
 
 function review(decision: "accept" | "reject"): void {
-  if (proposalReviewDisabled(decision)) return;
+  if (proposalReviewDisabled(props, decision)) return;
   emit("review", {
     runId: props.proposal.runId,
     proposalId: props.proposal.id,
     decision
+  });
+}
+
+function locate(): void {
+  emit("locate", {
+    runId: props.proposal.runId,
+    proposalId: props.proposal.id
+  });
+}
+
+function discard(): void {
+  emit("discard", {
+    runId: props.proposal.runId,
+    proposalId: props.proposal.id
   });
 }
 </script>
@@ -354,13 +98,13 @@ function review(decision: "accept" | "reject"): void {
 <template>
   <article
     class="edit-proposal-card"
-    :class="`is-${proposalVisualStatus()}`"
+    :class="[`is-${proposalVisualStatus(proposal)}`, `is-${variant}-variant`]"
     :aria-busy="
       proposal.status === 'accepting' ||
-      proposalDiscardState()?.status === 'discarding'
+      proposalDiscardState(proposal)?.status === 'discarding'
     "
   >
-    <header class="edit-proposal-header">
+    <header v-if="variant === 'card'" class="edit-proposal-header">
       <span class="edit-proposal-icon" aria-hidden="true">
         <AppIcon name="file" :size="17" />
       </span>
@@ -369,9 +113,9 @@ function review(decision: "accept" | "reject"): void {
           <strong>{{ proposal.title }}</strong>
           <span
             class="edit-proposal-status"
-            :class="`is-${proposalVisualStatus()}`"
+            :class="`is-${proposalVisualStatus(proposal)}`"
           >
-            {{ proposalStatusLabel() }}
+            {{ proposalStatusLabel(props) }}
           </span>
           <button
             v-if="proposal.status === 'accepted' && !remoteDevice"
@@ -379,24 +123,16 @@ function review(decision: "accept" | "reject"): void {
             type="button"
             :title="t('goToTargetFile')"
             :aria-label="t('goToTargetFile')"
-            @click.stop="
-              emit('locate', {
-                runId: proposal.runId,
-                proposalId: proposal.id
-              })
-            "
+            @click.stop="locate"
           >
             {{ t("goToTargetFile") }}
           </button>
           <ApprovalDiscardButton
-            v-if="showDiscardButton()"
-            :discarding="proposalDiscardState()?.status === 'discarding'"
-            @discard="
-              emit('discard', {
-                runId: proposal.runId,
-                proposalId: proposal.id
-              })
+            v-if="showDiscardButton(props)"
+            :discarding="
+              proposalDiscardState(proposal)?.status === 'discarding'
             "
+            @discard="discard"
           />
         </div>
         <p v-if="proposal.libraryTarget">
@@ -428,8 +164,11 @@ function review(decision: "accept" | "reject"): void {
         <span class="is-deletion">−{{ proposal.deletions }}</span>
       </div>
     </header>
+    <p v-else-if="proposal.summary" class="edit-proposal-row-summary">
+      {{ proposal.summary }}
+    </p>
 
-    <AgentEditProposalDiff :proposal="proposal" />
+    <AgentEditProposalDiff :proposal="proposal" :inline="variant === 'row'" />
 
     <section
       v-if="longExpectedImpact"
@@ -441,12 +180,17 @@ function review(decision: "accept" | "reject"): void {
     </section>
 
     <footer class="edit-proposal-footer">
-      <span class="edit-proposal-message">{{ proposalStatusMessage() }}</span>
-      <div v-if="showProposalReviewActions()" class="edit-proposal-actions">
+      <span class="edit-proposal-message">{{
+        proposalStatusMessage(props)
+      }}</span>
+      <div
+        v-if="showProposalReviewActions(props)"
+        class="edit-proposal-actions"
+      >
         <button
           class="edit-review-button is-reject"
           type="button"
-          :disabled="proposalReviewDisabled('reject')"
+          :disabled="proposalReviewDisabled(props, 'reject')"
           @click="review('reject')"
         >
           {{ isStale ? t("keepMine") : t("reject") }}
@@ -455,11 +199,30 @@ function review(decision: "accept" | "reject"): void {
           v-if="proposal.status !== 'conflict'"
           class="edit-review-button is-accept"
           type="button"
-          :disabled="proposalReviewDisabled('accept')"
+          :disabled="proposalReviewDisabled(props, 'accept')"
           @click="review('accept')"
         >
-          {{ proposalAcceptLabel() }}
+          {{ proposalAcceptLabel(proposal) }}
         </button>
+      </div>
+      <!-- A summary row has no card header, so its settled actions sit here. -->
+      <div
+        v-else-if="variant === 'row' && (canLocate || showDiscardButton(props))"
+        class="edit-proposal-actions"
+      >
+        <button
+          v-if="canLocate"
+          class="approval-target-button"
+          type="button"
+          @click.stop="locate"
+        >
+          {{ t("goToTargetFile") }}
+        </button>
+        <ApprovalDiscardButton
+          v-if="showDiscardButton(props)"
+          :discarding="proposalDiscardState(proposal)?.status === 'discarding'"
+          @discard="discard"
+        />
       </div>
     </footer>
   </article>

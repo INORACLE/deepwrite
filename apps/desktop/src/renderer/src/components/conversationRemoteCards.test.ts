@@ -5,6 +5,7 @@ import { renderToString } from "vue/server-renderer";
 import { parseStoredMessage } from "../composables/agent-conversation/parse-message";
 import { processingItems } from "./conversationProcessingItems";
 import { approvalItemsForMessage } from "./conversationToolPresentation";
+import AgentEditProposalCard from "./AgentEditProposalCard.vue";
 import ConversationMessageItem from "./ConversationMessageItem.vue";
 
 const at = "2026-10-12T08:00:01.000Z";
@@ -96,9 +97,27 @@ describe("cards of a conversation received from another device", () => {
     app.use(createPinia());
     const html = await renderToString(app);
     expect(html).toContain("在电脑A上待审核");
-    expect(html).toContain("这个提案只能在电脑A上审核。");
     expect(html).toContain("来自电脑A");
+    // Nothing to decide here, so the summary row stays collapsed.
+    expect(html).toContain('aria-expanded="false"');
     expect(html).not.toContain("edit-review-button");
     expect(html).not.toContain("approval-target-button");
+
+    const approval = approvalItemsForMessage(message, [])[0]!;
+    const row = createSSRApp({
+      render: () =>
+        approval.type === "edit-proposal" &&
+        h(AgentEditProposalCard, {
+          variant: "row",
+          proposal: approval.proposal,
+          messageStatus: "completed",
+          remoteDevice: approval.remoteDevice
+        })
+    });
+    row.use(createPinia());
+    const body = await renderToString(row);
+    expect(body).toContain("这个提案只能在电脑A上审核。");
+    expect(body).not.toContain("edit-review-button");
+    expect(body).not.toContain("approval-target-button");
   });
 });

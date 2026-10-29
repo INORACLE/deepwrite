@@ -45,6 +45,7 @@ import contextWindowIndicator from "./contextWindowIndicator/en-US";
 import conversationActivityLabel from "./conversationActivityLabel/en-US";
 import conversationComposer from "./conversationComposer/en-US";
 import conversationContextCompactionNotice from "./conversationContextCompactionNotice/en-US";
+import conversationFileChanges from "./conversationFileChanges/en-US";
 import conversationHistoryDeleteDialog from "./conversationHistoryDeleteDialog/en-US";
 import conversationHistoryMenu from "./conversationHistoryMenu/en-US";
 import conversationMessageItem from "./conversationMessageItem/en-US";
@@ -235,6 +236,7 @@ export default {
   conversationActivityLabel,
   conversationComposer,
   conversationContextCompactionNotice,
+  conversationFileChanges,
   conversationHistoryDeleteDialog,
   conversationHistoryMenu,
   conversationMessageItem,

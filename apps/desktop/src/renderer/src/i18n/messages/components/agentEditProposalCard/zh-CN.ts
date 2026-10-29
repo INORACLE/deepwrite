@@ -60,14 +60,11 @@ export default {
   acceptToSaveTheCurrentChapterManuscriptToIts:
     "接受后将把当前章正文保存到该章节独立的 Markdown 文件。",
   goToTargetFile: "跳转到目标文件",
-  target: "目标",
   skillLibrary: "技能库",
   materialLibrary: "素材库",
   valueLinesAddedValueLinesRemoved: "增加 {arg0} 行，删除 {arg1} 行",
   exactImpactOfThisNovelChange: "本次长篇修改的精确影响",
   structuralAndLinkChanges: "本次结构与关联影响",
-  noAdditionalLinksWillChangeOnlyTheProposedFile:
-    "没有额外关联变化，仅保存提案中的文件内容。",
   reject: "拒绝",
   targetMessage: "目标{arg0}：{arg1}",
   awaitingReviewOnDevice: "在{device}上待审核",

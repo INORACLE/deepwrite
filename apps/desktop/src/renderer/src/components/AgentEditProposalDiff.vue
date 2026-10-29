@@ -5,7 +5,14 @@ import AppIcon from "./AppIcon.vue";
 import ConversationDetails from "./ConversationDetails.vue";
 
 const t = createScopedTranslator("components.agentEditProposalDiff");
-defineProps<{ proposal: AgentEditProposal }>();
+withDefaults(
+  defineProps<{
+    proposal: AgentEditProposal;
+    /** Show the hunks directly, for a container that is itself a disclosure. */
+    inline?: boolean;
+  }>(),
+  { inline: false }
+);
 
 function diffLineMark(type: "context" | "addition" | "deletion"): string {
   if (type === "addition") return "+";
@@ -15,12 +22,14 @@ function diffLineMark(type: "context" | "addition" | "deletion"): string {
 </script>
 
 <template>
-  <ConversationDetails
+  <component
+    :is="inline ? 'div' : ConversationDetails"
     v-if="proposal.hunks.length"
-    :detail-id="`${proposal.id}:diff`"
+    v-bind="inline ? {} : { detailId: `${proposal.id}:diff` }"
     class="edit-proposal-diff"
+    :class="{ 'is-inline': inline }"
   >
-    <template #summary>
+    <template v-if="!inline" #summary>
       <span>{{ t("viewChanges") }}</span>
       <small>{{
         t("changeBlocksMessage", {
@@ -63,7 +72,7 @@ function diffLineMark(type: "context" | "addition" | "deletion"): string {
         {{ t("thisDiffIsLargeSoOnlySomeChangesAre") }}
       </p>
     </div>
-  </ConversationDetails>
+  </component>
   <p v-else class="edit-proposal-empty">
     {{ t("noLineChangesToDisplay") }}
   </p>

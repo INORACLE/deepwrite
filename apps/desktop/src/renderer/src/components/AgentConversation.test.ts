@@ -19,7 +19,10 @@ import timelineBlocksSource from "./conversationTimelineBlocks.ts?raw";
 import processingItemSource from "./ConversationProcessingItem.vue?raw";
 import workGroupSource from "./ConversationWorkGroup.vue?raw";
 import presentationSource from "./conversationToolPresentation.ts?raw";
-import proposalCardSource from "./AgentEditProposalCard.vue?raw";
+import proposalCardViewSource from "./AgentEditProposalCard.vue?raw";
+import proposalCardPresentationSource from "./agentEditProposalPresentation.ts?raw";
+import fileChangeSummarySource from "./ConversationFileChangeSummary.vue?raw";
+import fileChangeRowSource from "./ConversationFileChangeRow.vue?raw";
 import discardButtonSource from "./ApprovalDiscardButton.vue?raw";
 import writingWorkspaceSource from "./WritingWorkspaceModule.vue?raw";
 import longWorkspaceSource from "./LongWorkspaceModule.vue?raw";
@@ -29,6 +32,10 @@ import subagentDetailSource from "./SubagentRunDetail.vue?raw";
 import subagentPresentationSource from "./subagentRunPresentation.ts?raw";
 
 const subagentSource = `${subagentListSource}\n${subagentCardSource}\n${subagentDetailSource}`;
+// Card status and wording live beside the card so summary rows can share them.
+const proposalCardSource = `${proposalCardViewSource}\n${proposalCardPresentationSource}`;
+// Finished turns show their approvals inside the file-change summary rows.
+const approvalHostSource = `${messageItemSource}\n${processingItemSource}\n${fileChangeSummarySource}\n${fileChangeRowSource}`;
 
 describe("AgentConversation edit proposal placement", () => {
   it("places the creative agent mode selector immediately before approval", () => {
@@ -100,12 +107,12 @@ describe("AgentConversation edit proposal placement", () => {
     expect(proposalCardSource).toContain("approval-target-button");
     expect(proposalCardSource).toContain("goToTargetFile");
     expect(proposalCardSource).toContain("goToTargetFile");
-    expect(proposalCardSource).toContain("emit('locate', {");
-    expect(`${messageItemSource}\n${processingItemSource}`).toContain(
+    expect(proposalCardSource).toContain('emit("locate", {');
+    expect(approvalHostSource).toContain(
       "@locate=\"emit('locateEditProposal', $event)\""
     );
     expect(
-      `${messageItemSource}\n${processingItemSource}`.match(
+      approvalHostSource.match(
         /@locate="emit\('locateEditProposal', \$event\)"/g
       )
     ).toHaveLength(2);
@@ -122,9 +129,7 @@ describe("AgentConversation edit proposal placement", () => {
     expect(presentationSource).toContain(
       "canDiscard: agentProposalSupportsDiscard(proposal)"
     );
-    expect(`${messageItemSource}\n${processingItemSource}`).toContain(
-      ':discardable="approval.canDiscard"'
-    );
+    expect(approvalHostSource).toContain(':discardable="latest.canDiscard"');
     expect(`${messageItemSource}\n${processingItemSource}`).toContain(
       ':discardable="item.canDiscard"'
     );
@@ -203,12 +208,12 @@ describe("AgentConversation edit proposal placement", () => {
     expect(proposalCardSource).toContain(
       "autosaveFailedYouCanRetryOrRejectNowThe"
     );
-    expect(proposalCardSource).toContain("showProposalReviewActions()");
+    expect(proposalCardSource).toContain("showProposalReviewActions(props)");
     expect(proposalCardSource).toContain(
-      ":disabled=\"proposalReviewDisabled('reject')\""
+      ":disabled=\"proposalReviewDisabled(props, 'reject')\""
     );
     expect(proposalCardSource).toContain(
-      ":disabled=\"proposalReviewDisabled('accept')\""
+      ":disabled=\"proposalReviewDisabled(props, 'accept')\""
     );
     expect(proposalCardSource).not.toContain(
       ":disabled=\"message.status === 'streaming' || proposal.status === 'accepting'\""
@@ -224,7 +229,7 @@ describe("AgentConversation edit proposal placement", () => {
       messageBodyStart
     );
     const proposalsStart = messageItemSource.indexOf(
-      'class="approval-card-stack"',
+      "<ConversationFileChangeSummary",
       responseStart
     );
     const actionsStart = messageItemSource.indexOf(

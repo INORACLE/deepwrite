@@ -105,6 +105,9 @@ withDefaults(defineProps<{ name: IconName; size?: number }>(), { size: 18 });
     <template v-else-if="name === 'folder'">
       <path d="M3.5 6.5h6l2 2h9v9.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" />
     </template>
+    <template v-else-if="name === 'external'">
+      <path d="M7 17 17 7M9 7h8v8" />
+    </template>
     <template v-else-if="name === 'file'">
       <path d="M6 3.5h8l4 4V20H6zM14 3.5V8h4" />
     </template>

@@ -25,6 +25,7 @@ import legacySyncSource from "./LongLegacySyncDialog.vue?raw";
 import leftSidebarSource from "./LeftSidebar.vue?raw";
 import proposalReviewSource from "./LongProposalReview.vue?raw";
 import proposalImpactSource from "./LongProposalImpactDetails.vue?raw";
+import proposalPresentationSource from "./longProposalPresentation.ts?raw";
 import removalSource from "./LongBookRemovalDialog.vue?raw";
 import sectionSource from "./TreeSection.vue?raw";
 import structureSource from "./LongStructureManager.vue?raw";
@@ -77,7 +78,11 @@ const agentConversationSource = [
   processingItemSource
 ].join("\n");
 
-const proposalSource = [proposalReviewSource, proposalImpactSource].join("\n");
+const proposalSource = [
+  proposalReviewSource,
+  proposalPresentationSource,
+  proposalImpactSource
+].join("\n");
 
 export {
   agentConversationSource,

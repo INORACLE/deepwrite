@@ -5,9 +5,13 @@ import editProposalSource from "./AgentEditProposalCard.vue?raw";
 import editDiffSource from "./AgentEditProposalDiff.vue?raw";
 import ledgerFinalizationSource from "./LongLedgerFinalizationCard.vue?raw";
 import impactDetailsSource from "./LongProposalImpactDetails.vue?raw";
-import source from "./LongProposalReview.vue?raw";
+import viewSource from "./LongProposalReview.vue?raw";
+import presentationSource from "./longProposalPresentation.ts?raw";
+import fileChangeRowSource from "./ConversationFileChangeRow.vue?raw";
 
-const conversationSource = `${conversationItemSource}\n${processingItemSource}`;
+// Titles, statuses and diffs are shared with the conversation's summary rows.
+const source = `${viewSource}\n${presentationSource}`;
+const conversationSource = `${conversationItemSource}\n${processingItemSource}\n${fileChangeRowSource}`;
 
 describe("LongProposalReview content file cards", () => {
   it("offers target navigation after a proposal is accepted", () => {
@@ -39,8 +43,12 @@ describe("LongProposalReview content file cards", () => {
     expect(source).toContain(
       "'has-edit-proposal-surface-items': hasEditProposalSurfaceItems"
     );
-    expect(source).toContain('<header v-if="!embedded">');
     expect(source).toContain(".long-proposal-review.is-embedded");
+    // A summary row already shows the title, so its body drops the header.
+    expect(source).toContain("rowBody?: boolean");
+    expect(source).toContain(
+      '<header v-if="!rowBody" class="edit-proposal-header">'
+    );
   });
 
   it("uses the existing text-edit card surface for every Markdown proposal", () => {
@@ -94,7 +102,7 @@ describe("LongProposalReview content file cards", () => {
     expect(source).toContain("structureChanges");
     expect(source).toContain('case "long.worldbuilding_file_proposal":');
     expect(source).toContain('case "long.character_file_proposal":');
-    expect(source).toContain("writeAndSave");
+    expect(source).toContain("acceptAndApply");
   });
 
   it("uses the same approval-card surface for structure proposals", () => {
@@ -102,9 +110,8 @@ describe("LongProposalReview content file cards", () => {
     expect(source).toContain("function usesEditProposalSurface");
     expect(source).toContain("function structureProposalStatusMessage");
     expect(source).toContain("function structureProposalAcceptLabel");
-    expect(source).toContain(
-      "usesEditProposalSurface(item)\n              ? ['edit-proposal-card'"
-    );
+    expect(source).toContain('<template v-if="usesEditProposalSurface(item)">');
+    expect(source).toContain(": ['edit-proposal-card',");
     expect(source).toContain("structureChangesAppliedAndSavedLocally");
   });
 
@@ -138,7 +145,9 @@ describe("LongProposalReview content file cards", () => {
 
   it("does not render unverified continuity metadata or diffs", () => {
     expect(source).toContain("trustedContinuityIdentity");
-    expect(source).toContain("contentFileTitle(item, card.file)");
+    expect(source).toContain(
+      "contentFileTitle(item, card.file, workspaceIndex)"
+    );
     expect(source).toContain("canDisplayContentFileDiff(item)");
     expect(source).toContain('item.status === "ready"');
     expect(source).toContain('item.status === "submitting"');

@@ -63,15 +63,12 @@ export default {
   acceptToSaveTheCurrentChapterManuscriptToIts:
     "Accept to save the current chapter manuscript to its own Markdown file.",
   goToTargetFile: "Go to target file",
-  target: "Target",
   skillLibrary: "Skill library",
   materialLibrary: "Material library",
   valueLinesAddedValueLinesRemoved:
     "Lines added: {arg0}; lines removed: {arg1}",
   exactImpactOfThisNovelChange: "Exact impact of this novel change",
   structuralAndLinkChanges: "Structural and link changes",
-  noAdditionalLinksWillChangeOnlyTheProposedFile:
-    "No additional links will change. Only the proposed file content will be saved.",
   reject: "Reject",
   targetMessage: "Target {arg0}: {arg1}",
   awaitingReviewOnDevice: "Awaiting review on {device}",

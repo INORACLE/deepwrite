@@ -13,13 +13,7 @@ export default {
   characters: "Characters",
   valueContinuityFiles: "{arg0} continuity files",
   continuityLedgerArchive: "Continuity ledger archive",
-  processing: "Processing…",
-  retryAutosave: "Retry autosave",
-  retry: "Retry",
-  apply: "Apply",
-  writeAndSave: "Write and save",
   retryArchive: "Retry archive",
-  archiveNow: "Archive now",
   archived: "Archived",
   waitingForPrerequisiteFiles: "Waiting for prerequisite files",
   archiving: "Archiving",
@@ -74,15 +68,9 @@ export default {
   retryApplying: "Retry applying",
   acceptAndApply: "Accept and apply",
   novelProposalsAwaitingApproval: "Novel proposals awaiting approval",
-  agentWrites: "Agent writes",
-  itemsProcessing: " items processing",
-  itemsSaved: " items saved",
-  allChangesAreScopedToTheCurrentBook:
-    "All changes are scoped to the current book",
   goToTargetFile: "Go to target file",
   valueLinesAddedValueLinesRemoved: "{arg0} lines added, {arg1} lines removed",
   viewChanges: "View changes",
-  changeBlocks: " change blocks",
   thisDiffIsLargeSoOnlySomeChangesAre:
     "This diff is large, so only some changes are shown. Line counts cover the full proposal.",
   fileIdentityAndSourceContentHaveNotPassedValidation:
@@ -90,8 +78,5 @@ export default {
   aBlankMarkdownFileWasCreatedNoManuscriptLine:
     "A blank Markdown file was created. No manuscript line changes.",
   reject: "Reject",
-  previewAgain: "Preview again",
-  processingMessage: "Processing: {arg0}",
-  savedMessage: "Saved: {arg0}",
   changeBlocksMessage: "Change blocks: {arg0}"
 };

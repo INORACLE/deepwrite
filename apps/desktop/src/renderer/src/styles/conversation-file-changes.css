@@ -1,0 +1,320 @@
+/* One summary card per finished turn: a row per changed file. */
+.file-change-summary {
+  container-type: inline-size;
+  contain: paint;
+  overflow: hidden;
+  width: 100%;
+  margin: 14px 0 6px;
+  border: 1px solid var(--theme-line);
+  border-radius: 10px;
+  background: var(--surface-raised);
+  color: var(--text-primary);
+}
+
+.file-change-summary-header {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 14px 6px 13px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.file-change-summary-header:hover,
+.file-change-row-header:hover {
+  background: var(--surface-hover);
+}
+
+.file-change-summary-header > svg,
+.file-change-chevron,
+.file-change-more > svg {
+  color: var(--text-tertiary);
+  transition: transform 150ms ease;
+}
+
+.file-change-summary.is-open > .file-change-summary-header > svg,
+.file-change-row.is-open .file-change-chevron {
+  transform: rotate(90deg);
+}
+
+.file-change-summary-title {
+  overflow: hidden;
+  font-size: 0.928571rem;
+  font-weight: 620;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-change-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--code-font);
+  font-size: var(--code-font-size);
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.file-change-stats .is-addition {
+  color: var(--success);
+}
+
+.file-change-stats .is-deletion {
+  color: var(--danger);
+}
+
+.file-change-overall {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 0.785714rem;
+  font-weight: 560;
+  white-space: nowrap;
+}
+
+.file-change-overall::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  content: "";
+}
+
+.file-change-overall.is-action {
+  color: color-mix(in srgb, var(--accent) 82%, var(--text-primary));
+}
+
+.file-change-overall.is-action::before {
+  background: var(--accent);
+}
+
+.file-change-overall.is-danger {
+  color: color-mix(in srgb, var(--danger) 82%, var(--text-primary));
+}
+
+.file-change-overall.is-danger::before {
+  background: var(--danger);
+}
+
+.file-change-overall.is-done::before {
+  background: var(--success);
+}
+
+.file-change-list {
+  border-top: 1px solid var(--theme-line-soft);
+}
+
+.file-change-row + .file-change-row {
+  border-top: 1px solid var(--theme-line-soft);
+}
+
+.file-change-row-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 26px;
+  align-items: center;
+  gap: 4px;
+  padding-right: 10px;
+}
+
+.file-change-row-toggle {
+  display: grid;
+  grid-template-columns: 13px 26px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 5px 0 5px 13px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.file-change-row-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+}
+
+.file-change-row-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.file-change-row-name strong {
+  overflow: hidden;
+  font-size: 0.857143rem;
+  font-weight: 600;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-change-row-name small {
+  flex: 0 1 auto;
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-change-tag {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border: 1px solid var(--theme-line-soft);
+  border-radius: 5px;
+  color: var(--text-secondary);
+  font-size: 0.678571rem;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.file-change-tag.is-delete {
+  color: color-mix(in srgb, var(--danger) 82%, var(--text-primary));
+}
+
+/* The locate button keeps its slot so rows never shift when it appears. */
+.file-change-locate {
+  display: grid;
+  grid-column: 2;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.file-change-row-header:hover .file-change-locate,
+.file-change-locate:focus-visible {
+  opacity: 1;
+}
+
+.file-change-locate:hover {
+  background: var(--surface-selected);
+  color: var(--accent);
+}
+
+.file-change-row-body {
+  border-top: 1px solid var(--theme-line-soft);
+  background: var(--surface-main);
+}
+
+.file-change-row-body .edit-proposal-card {
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.file-change-row-body .edit-proposal-row-summary {
+  margin: 0;
+  padding: 9px 14px 9px 61px;
+  color: var(--text-secondary);
+  font-size: 0.821429rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.file-change-row-body .edit-proposal-diff.is-inline {
+  border-top: 0;
+  border-bottom: 0;
+}
+
+.file-change-row-body .edit-proposal-empty {
+  padding-left: 61px;
+}
+
+.file-change-row-body .edit-proposal-footer {
+  border-top: 1px solid var(--theme-line-soft);
+  background: var(--surface-raised);
+}
+
+.file-change-history {
+  border-top: 1px solid var(--theme-line-soft);
+}
+
+.file-change-history > summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 14px 0 61px;
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.file-change-history > summary::-webkit-details-marker {
+  display: none;
+}
+
+.file-change-history > summary > svg {
+  transition: transform 150ms ease;
+}
+
+.file-change-history[open] > summary > svg {
+  transform: rotate(90deg);
+}
+
+.file-change-history-item > header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 0 14px 0 61px;
+  border-top: 1px solid var(--theme-line-soft);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.file-change-history-item .file-change-stats {
+  margin-left: auto;
+  font-size: 0.75rem;
+}
+
+.file-change-more {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 13px 0 61px;
+  border-top: 1px solid var(--theme-line-soft);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.785714rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.file-change-more:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+/* Narrow panes: the status pill stays, the line counts give way first. */
+@container (max-width: 420px) {
+  .file-change-row-toggle .file-change-stats {
+    display: none;
+  }
+}

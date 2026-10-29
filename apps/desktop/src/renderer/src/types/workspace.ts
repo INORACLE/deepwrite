@@ -14,6 +14,7 @@ export type IconName =
   | "directory"
   | "download"
   | "edit"
+  | "external"
   | "file"
   | "folder"
   | "globe"

@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { createScopedTranslator, locale } from "../i18n";
 import { formatModelProviderError } from "../i18n/errors";
-import { computed, onBeforeUnmount, ref, useId } from "vue";
-import {
-  provideConversationDisclosureScope,
-  useConversationDisclosure
-} from "../composables/conversationDisclosureState";
+import { computed, onBeforeUnmount, ref } from "vue";
+import { provideConversationDisclosureScope } from "../composables/conversationDisclosureState";
 import type { LongWorkspaceIndexSnapshot } from "@deepwrite/contracts";
 import type { LongWorkspaceProposalItem } from "../composables/useLongWorkspaceProposals";
 import { formatFileSize } from "../composables/useConversationAttachments";
@@ -18,11 +15,10 @@ import {
   approvalItemsForMessage,
   visibleResponse
 } from "./conversationToolPresentation";
-import AgentEditProposalCard from "./AgentEditProposalCard.vue";
 import AppIcon from "./AppIcon.vue";
+import ConversationFileChangeSummary from "./ConversationFileChangeSummary.vue";
 import ConversationProcessingTimeline from "./ConversationProcessingTimeline.vue";
 import ConversationUserMessageEditor from "./ConversationUserMessageEditor.vue";
-import LongProposalReview from "./LongProposalReview.vue";
 import StreamedContent from "./StreamedContent.vue";
 
 const t = createScopedTranslator("components.conversationMessageItem");
@@ -78,17 +74,6 @@ const hasApprovalCards = computed(
     props.message.role === "assistant" &&
     props.message.status !== "streaming" &&
     approvalItems.value.length > 0
-);
-const approvalCardsId = useId();
-const approvalCardsExpanded = useConversationDisclosure(
-  () => `${props.message.id}:approval-cards-expanded`
-);
-const approvalCardsToggleLabel = computed(() =>
-  t(
-    approvalCardsExpanded.value
-      ? "collapseApprovalCards"
-      : "expandApprovalCards"
-  )
 );
 const copied = ref(false);
 let copiedTimer: number | undefined;
@@ -200,38 +185,22 @@ onBeforeUnmount(() => {
         <div v-if="message.status === 'stopped'" class="message-stopped-copy">
           {{ t("generationStopped") }}
         </div>
-        <section
+        <ConversationFileChangeSummary
           v-if="hasApprovalCards"
-          v-show="approvalCardsExpanded"
-          :id="approvalCardsId"
-          class="approval-card-stack"
-          :aria-label="t('approvalCardsForThisTurn')"
-        >
-          <template v-for="approval in approvalItems" :key="approval.id">
-            <AgentEditProposalCard
-              v-if="approval.type === 'edit-proposal'"
-              :proposal="approval.proposal"
-              :message-status="message.status"
-              :allow-live-edit-review="allowLiveEditReview"
-              :discardable="approval.canDiscard"
-              :remote-device="approval.remoteDevice"
-              @review="emit('reviewEdit', $event)"
-              @locate="emit('locateEditProposal', $event)"
-              @discard="emit('discardEditProposal', $event)"
-            />
-            <LongProposalReview
-              v-else
-              embedded
-              conversation-card
-              :items="[approval.item]"
-              :workspace-index="longWorkspaceIndex"
-              @approve="emit('approveLongProposal', $event)"
-              @reject="emit('rejectLongProposal', $event)"
-              @retry-preview="emit('retryLongProposalPreview', $event)"
-              @locate="emit('locateLongProposal', $event)"
-            />
-          </template>
-        </section>
+          :approvals="approvalItems"
+          :message-status="message.status"
+          :allow-live-edit-review="allowLiveEditReview"
+          :long-workspace-index="longWorkspaceIndex"
+          @review-edit="emit('reviewEdit', $event)"
+          @locate-edit-proposal="emit('locateEditProposal', $event)"
+          @discard-edit-proposal="emit('discardEditProposal', $event)"
+          @approve-long-proposal="emit('approveLongProposal', $event)"
+          @reject-long-proposal="emit('rejectLongProposal', $event)"
+          @retry-long-proposal-preview="
+            emit('retryLongProposalPreview', $event)
+          "
+          @locate-long-proposal="emit('locateLongProposal', $event)"
+        />
       </div>
 
       <div
@@ -267,22 +236,6 @@ onBeforeUnmount(() => {
         >
           <AppIcon :name="copied ? 'check' : 'copy'" :size="15" />
         </button>
-        <button
-          v-if="hasApprovalCards"
-          type="button"
-          :title="approvalCardsToggleLabel"
-          :aria-label="approvalCardsToggleLabel"
-          :aria-expanded="approvalCardsExpanded"
-          :aria-controls="approvalCardsId"
-          @click="approvalCardsExpanded = !approvalCardsExpanded"
-        >
-          <AppIcon
-            name="chevron"
-            :size="15"
-            class="approval-cards-chevron"
-            :class="{ 'is-collapsed': !approvalCardsExpanded }"
-          />
-        </button>
         <span v-if="message.remote">{{
           t("fromDevice", { device: message.remote.device })
         }}</span>
@@ -306,14 +259,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.approval-cards-chevron {
-  transform: rotate(-90deg);
-}
-
-.approval-cards-chevron.is-collapsed {
-  transform: rotate(90deg);
-}
-
 .message.is-user.is-editing .message-body {
   width: 100%;
   max-width: 100%;
